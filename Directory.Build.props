@@ -8,6 +8,7 @@
     <DuckovPath>$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
     <DuckovWorkshopPath>$(SteamDir)steamapps/workshop/content/3167020/</DuckovWorkshopPath>
     <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
+    <ManagedDirectory>$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
   <!-- Fail early if SteamDir is not provided -->

@@ -25,6 +25,8 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props') }}
           restore-keys: |
             ${{ runner.os }}-nuget
+      - name: Fetch build dependencies
+        run: bash scripts/fetch_build_dependency.sh
       - name: Restore dependencies
         run: |
           dotnet restore Docky.Sdk.slnx
