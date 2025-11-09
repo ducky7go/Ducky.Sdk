@@ -1,5 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <DuckovPath>$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
+    <DuckovWorkshopPath>$(SteamDir)steamapps/workshop/content/3167020/</DuckovWorkshopPath>
+    <!-- Resolve ManagedDirectory: if a repo root Managed folder exists, use it; otherwise fallback to game Managed -->
+    <_RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../'))</_RepoRoot>
+    <_ManagedDirCandidate>$([System.IO.Path]::Combine('$(_RepoRoot)','Managed'))</_ManagedDirCandidate>
+    <ManagedDirectory Condition="Exists('$(_ManagedDirCandidate)')">$(_ManagedDirCandidate)/</ManagedDirectory>
+    <ManagedDirectory Condition="'$(ManagedDirectory)' == ''">$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>
+    <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
@@ -13,19 +23,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\TeamSoda.*" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Unity*" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\FOW*" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\SodaLocalization*" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\ItemStatsSystem.dll" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Newtonsoft.Json.dll" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\EasySave3.dll" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\UniTask.dll" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Eflatun.SceneReference.dll" />
+    <ProjectReference Include="..\..\SDKlibs\Ducky.Sdk.Lib\Ducky.Sdk.Lib.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\SDKlibs\Ducky.Sdk.Lib\Ducky.Sdk.Lib.csproj" />
+    <Reference Include="$(ManagedDirectory)TeamSoda.*" />
+    <Reference Include="$(ManagedDirectory)Unity*" />
+    <Reference Include="$(ManagedDirectory)FOW*" />
+    <Reference Include="$(ManagedDirectory)SodaLocalization*" />
+    <Reference Include="$(ManagedDirectory)ItemStatsSystem.dll" />
+    <Reference Include="$(ManagedDirectory)Newtonsoft.Json.dll" />
+    <Reference Include="$(ManagedDirectory)EasySave3.dll" />
   </ItemGroup>
 
 </Project>
