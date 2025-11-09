@@ -44,5 +44,4 @@ public static class ItemAgent_GunExtensions
 
     public static void SetShellParticle(this ItemAgent_Gun target, ParticleSystem value) =>
         target.SetField("shellParticle", value);
-
 }

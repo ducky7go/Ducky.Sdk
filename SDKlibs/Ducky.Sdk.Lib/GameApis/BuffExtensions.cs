@@ -75,5 +75,4 @@ public static class BuffExtensions
 
     public static void SetTotalLifeTime(this Buff target, float value) =>
         target.SetField("totalLifeTime", value);
-
 }

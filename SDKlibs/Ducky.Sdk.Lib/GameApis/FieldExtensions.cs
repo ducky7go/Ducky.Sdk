@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Ducky.Sdk.GameApis;
 
-internal static class FieldExtensions
+public static class FieldExtensions
 {
     // caches for compiled setters/getters. Keys include target type, field name and value type where appropriate.
     private static readonly ConcurrentDictionary<string, Delegate> TypedSetters = new();
@@ -23,17 +23,24 @@ internal static class FieldExtensions
     private static readonly ConcurrentDictionary<string, Func<object>> StaticObjectGetters = new();
 
     // Helpers to build cache keys
-    private static string TypedKey(Type targetType, string fieldName, Type valueType) => $"{targetType.FullName}:{fieldName}:{valueType.FullName}";
+    private static string TypedKey(Type targetType, string fieldName, Type valueType) =>
+        $"{targetType.FullName}:{fieldName}:{valueType.FullName}";
+
     private static string ObjectKey(Type targetType, string fieldName) => $"{targetType.FullName}:{fieldName}:obj";
-    private static string StaticTypedKey(Type targetType, string fieldName, Type valueType) => $"{targetType.FullName}:{fieldName}:{valueType.FullName}:static";
-    private static string StaticObjectKey(Type targetType, string fieldName) => $"{targetType.FullName}:{fieldName}:obj:static";
+
+    private static string StaticTypedKey(Type targetType, string fieldName, Type valueType) =>
+        $"{targetType.FullName}:{fieldName}:{valueType.FullName}:static";
+
+    private static string StaticObjectKey(Type targetType, string fieldName) =>
+        $"{targetType.FullName}:{fieldName}:obj:static";
 
     // --- SETTER CREATORS ---
     private static Action<TTarget, TValue> CreateTypedSetter<TTarget, TValue>(string fieldName)
     {
         var targetType = typeof(TTarget);
-        var fieldInfo = targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                        ?? throw new MissingFieldException(targetType.FullName, fieldName);
+        var fieldInfo =
+            targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            ?? throw new MissingFieldException(targetType.FullName, fieldName);
 
         var targetParam = Expression.Parameter(targetType, "target");
         var valueParam = Expression.Parameter(typeof(TValue), "value");
@@ -51,8 +58,9 @@ internal static class FieldExtensions
     private static Action<TTarget, object> CreateObjectSetter<TTarget>(string fieldName)
     {
         var targetType = typeof(TTarget);
-        var fieldInfo = targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                        ?? throw new MissingFieldException(targetType.FullName, fieldName);
+        var fieldInfo =
+            targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            ?? throw new MissingFieldException(targetType.FullName, fieldName);
 
         var targetParam = Expression.Parameter(targetType, "target");
         var valueParam = Expression.Parameter(typeof(object), "value");
@@ -77,8 +85,9 @@ internal static class FieldExtensions
     private static Func<TTarget, TValue> CreateTypedGetter<TTarget, TValue>(string fieldName)
     {
         var targetType = typeof(TTarget);
-        var fieldInfo = targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                        ?? throw new MissingFieldException(targetType.FullName, fieldName);
+        var fieldInfo =
+            targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            ?? throw new MissingFieldException(targetType.FullName, fieldName);
 
         var targetParam = Expression.Parameter(targetType, "target");
         var fieldExpr = Expression.Field(targetParam, fieldInfo);
@@ -91,8 +100,9 @@ internal static class FieldExtensions
     private static Func<TTarget, object> CreateObjectGetter<TTarget>(string fieldName)
     {
         var targetType = typeof(TTarget);
-        var fieldInfo = targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                        ?? throw new MissingFieldException(targetType.FullName, fieldName);
+        var fieldInfo =
+            targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            ?? throw new MissingFieldException(targetType.FullName, fieldName);
 
         var targetParam = Expression.Parameter(targetType, "target");
         var fieldExpr = Expression.Convert(Expression.Field(targetParam, fieldInfo), typeof(object));
@@ -127,7 +137,8 @@ internal static class FieldExtensions
         }
         catch (Exception)
         {
-            var fieldInfo = typeof(TTarget).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            var fieldInfo = typeof(TTarget).GetField(fieldName,
+                                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
                             ?? throw new MissingFieldException(typeof(TTarget).FullName, fieldName);
             var refl = CreateReflectionTypedSetter<TTarget, TValue>(fieldInfo);
             TypedSetters.TryAdd(key, refl);
@@ -155,7 +166,8 @@ internal static class FieldExtensions
         }
         catch (Exception)
         {
-            var fieldInfo = typeof(TTarget).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            var fieldInfo = typeof(TTarget).GetField(fieldName,
+                                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
                             ?? throw new MissingFieldException(typeof(TTarget).FullName, fieldName);
             var refl = CreateReflectionObjectSetter<TTarget>(fieldInfo);
             Action<object, object> boxed = (t, v) => refl((TTarget)t!, v);
@@ -180,7 +192,8 @@ internal static class FieldExtensions
         }
         catch (Exception)
         {
-            var fieldInfo = typeof(TTarget).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            var fieldInfo = typeof(TTarget).GetField(fieldName,
+                                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
                             ?? throw new MissingFieldException(typeof(TTarget).FullName, fieldName);
             var refl = CreateReflectionTypedGetter<TTarget, TValue>(fieldInfo);
             TypedGetters.TryAdd(key, refl);
@@ -206,7 +219,8 @@ internal static class FieldExtensions
         }
         catch (Exception)
         {
-            var fieldInfo = typeof(TTarget).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            var fieldInfo = typeof(TTarget).GetField(fieldName,
+                                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
                             ?? throw new MissingFieldException(typeof(TTarget).FullName, fieldName);
             var refl = CreateReflectionObjectGetter<TTarget>(fieldInfo);
             Func<object, object> boxed = t => refl((TTarget)t!);
@@ -219,8 +233,9 @@ internal static class FieldExtensions
     private static Action<TValue> CreateStaticTypedSetter<TTarget, TValue>(string fieldName)
     {
         var targetType = typeof(TTarget);
-        var fieldInfo = targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-                        ?? throw new MissingFieldException(targetType.FullName, fieldName);
+        var fieldInfo =
+            targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+            ?? throw new MissingFieldException(targetType.FullName, fieldName);
 
         var valueParam = Expression.Parameter(typeof(TValue), "value");
         Expression valueExpr = valueParam;
@@ -236,8 +251,9 @@ internal static class FieldExtensions
 
     private static Action<object> CreateStaticObjectSetter(Type targetType, string fieldName)
     {
-        var fieldInfo = targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-                        ?? throw new MissingFieldException(targetType.FullName, fieldName);
+        var fieldInfo =
+            targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+            ?? throw new MissingFieldException(targetType.FullName, fieldName);
 
         var valueParam = Expression.Parameter(typeof(object), "value");
         var converted = Expression.Convert(valueParam, fieldInfo.FieldType);
@@ -261,8 +277,9 @@ internal static class FieldExtensions
     private static Func<TValue> CreateStaticTypedGetter<TTarget, TValue>(string fieldName)
     {
         var targetType = typeof(TTarget);
-        var fieldInfo = targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-                        ?? throw new MissingFieldException(targetType.FullName, fieldName);
+        var fieldInfo =
+            targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+            ?? throw new MissingFieldException(targetType.FullName, fieldName);
 
         var fieldExpr = Expression.Field(null, fieldInfo);
         Expression body = Expression.Convert(fieldExpr, typeof(TValue));
@@ -271,8 +288,9 @@ internal static class FieldExtensions
 
     private static Func<object> CreateStaticObjectGetter(Type targetType, string fieldName)
     {
-        var fieldInfo = targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-                        ?? throw new MissingFieldException(targetType.FullName, fieldName);
+        var fieldInfo =
+            targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+            ?? throw new MissingFieldException(targetType.FullName, fieldName);
 
         var fieldExpr = Expression.Convert(Expression.Field(null, fieldInfo), typeof(object));
         return Expression.Lambda<Func<object>>(fieldExpr).Compile();
@@ -306,7 +324,8 @@ internal static class FieldExtensions
         }
         catch (Exception)
         {
-            var fieldInfo = typeof(TTarget).GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+            var fieldInfo = typeof(TTarget).GetField(fieldName,
+                                BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
                             ?? throw new MissingFieldException(typeof(TTarget).FullName, fieldName);
             var refl = CreateReflectionStaticTypedSetter<TTarget, TValue>(fieldInfo);
             StaticTypedSetters.TryAdd(key, refl);
@@ -330,8 +349,9 @@ internal static class FieldExtensions
         }
         catch (Exception)
         {
-            var fieldInfo = targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-                            ?? throw new MissingFieldException(targetType.FullName, fieldName);
+            var fieldInfo =
+                targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+                ?? throw new MissingFieldException(targetType.FullName, fieldName);
             var refl = CreateReflectionStaticObjectSetter(fieldInfo);
             StaticObjectSetters.TryAdd(key, refl);
             return refl;
@@ -354,7 +374,8 @@ internal static class FieldExtensions
         }
         catch (Exception)
         {
-            var fieldInfo = typeof(TTarget).GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+            var fieldInfo = typeof(TTarget).GetField(fieldName,
+                                BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
                             ?? throw new MissingFieldException(typeof(TTarget).FullName, fieldName);
             var refl = CreateReflectionStaticTypedGetter<TValue>(fieldInfo);
             StaticTypedGetters.TryAdd(key, refl);
@@ -378,8 +399,9 @@ internal static class FieldExtensions
         }
         catch (Exception)
         {
-            var fieldInfo = targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-                            ?? throw new MissingFieldException(targetType.FullName, fieldName);
+            var fieldInfo =
+                targetType.GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+                ?? throw new MissingFieldException(targetType.FullName, fieldName);
             var refl = CreateReflectionStaticObjectGetter(fieldInfo);
             StaticObjectGetters.TryAdd(key, refl);
             return refl;

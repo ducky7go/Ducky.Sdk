@@ -13,7 +13,10 @@ public class CodeGenTests
     {
         var types = new[]
         {
-            typeof(Buff), typeof(GameplayDataSettings.BuffsData), typeof(ItemSetting_Gun), typeof(ItemAgent_Gun)
+            typeof(Buff),
+            typeof(GameplayDataSettings.BuffsData),
+            typeof(ItemSetting_Gun),
+            typeof(ItemAgent_Gun)
         };
         var outDir = Path.GetFullPath("../../../../../SDKlibs/Ducky.Sdk.Lib/GameApis");
 

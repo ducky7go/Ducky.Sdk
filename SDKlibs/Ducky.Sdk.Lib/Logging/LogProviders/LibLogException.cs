@@ -10,14 +10,10 @@ namespace Ducky.Sdk.Logging.LogProviders
 #if LIBLOG_EXCLUDE_CODE_COVERAGE
     [ExcludeFromCodeCoverage]
 #endif
-#if !LIBLOG_PROVIDERS_ONLY || LIBLOG_PUBLIC
     /// <summary>
     /// Exception thrown by LibLog.
     /// </summary>
     public
-#else
-    internal
-#endif
     class LibLogException : Exception
     {
         /// <summary>

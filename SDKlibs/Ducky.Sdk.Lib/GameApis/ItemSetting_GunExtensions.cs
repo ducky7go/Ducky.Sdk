@@ -1,4 +1,3 @@
-
 using Duckov.Buffs;
 
 namespace Ducky.Sdk.GameApis;
@@ -67,5 +66,4 @@ public static class ItemSetting_GunExtensions
 
     public static void SetTriggerMode(this ItemSetting_Gun target, ItemSetting_Gun.TriggerModes value) =>
         target.SetField("triggerMode", value);
-
 }

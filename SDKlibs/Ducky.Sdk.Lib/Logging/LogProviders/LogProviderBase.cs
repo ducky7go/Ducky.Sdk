@@ -16,11 +16,7 @@ namespace Ducky.Sdk.Logging.LogProviders
 #if LIBLOG_EXCLUDE_CODE_COVERAGE
     [ExcludeFromCodeCoverage]
 #endif
-#if LIBLOG_PUBLIC
-    public
-#else
-    internal
-#endif
+public
     abstract class LogProviderBase : ILogProvider
     {
         private static readonly IDisposable NoopDisposableInstance = new DisposableAction();

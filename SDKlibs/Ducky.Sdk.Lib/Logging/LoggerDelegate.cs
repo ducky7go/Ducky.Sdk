@@ -4,7 +4,6 @@ namespace Ducky.Sdk.Logging
 {
     using System;
 
-#if !LIBLOG_PROVIDERS_ONLY || LIBLOG_PUBLIC
     /// <summary>
     /// Logger delegate.
     /// </summary>
@@ -14,8 +13,5 @@ namespace Ducky.Sdk.Logging
     /// <param name="formatParameters">The format parameters</param>
     /// <returns>A boolean.</returns>
     public
-#else
-    internal
-#endif
         delegate bool Logger(LogLevel logLevel, Func<string> messageFunc, Exception exception = null, params object[] formatParameters);
 }

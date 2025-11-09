@@ -1,0 +1,131 @@
+<Project>
+    <Target Name="CopyToDuckov" AfterTargets="Build"
+            Condition=" '$(DuckovPath)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
+        <!-- Ensure destination folder exists -->
+        <MakeDir Directories="$(ModsDirectory)$(ModName)" />
+
+        <!-- copy preview.png and info.ini -->
+        <Copy SourceFiles="@(AssetsFiles)"
+              DestinationFiles="@(AssetsFiles->'$(ModsDirectory)$(ModName)/%(RecursiveDir)%(Filename)%(Extension)')"
+              SkipUnchangedFiles="false" />
+
+        <!-- copy description.md if exists -->
+        <Copy SourceFiles="@(DescriptionMd)"
+              DestinationFiles="@(DescriptionMd->'$(ModsDirectory)$(ModName)/description.md')"
+              SkipUnchangedFiles="false" />
+
+        <!-- copy preview.png if exists -->
+        <Copy SourceFiles="@(PreviewPng)"
+              DestinationFiles="@(PreviewPng->'$(ModsDirectory)$(ModName)/preview.png')"
+              SkipUnchangedFiles="false" />
+
+        <!-- Copy the project output DLL -->
+        <Copy SourceFiles="$(TargetPath)"
+              DestinationFolder="$(ModsDirectory)$(ModName)/"
+              SkipUnchangedFiles="false" />
+
+    </Target>
+
+    <Target Name="RemoveIfDeployModFalse" AfterTargets="Build"
+            Condition=" '$(DuckovPath)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' == 'false' ">
+        <RemoveDir Directories="$(ModsDirectory)$(ModName)" />
+    </Target>
+
+    <!-- Post-build: Update localization CSV files -->
+    <Target Name="UpdateLocalesCsv" AfterTargets="AfterBuild">
+        <PropertyGroup>
+            <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
+            <!-- 获取 NuGet 包的安装路径（$(MSBuildThisFileDirectory) 指向 .targets 所在目录，即 build/） -->
+            <!-- 假设脚本在包的 tools/ 目录，通过 .. 回退到包根目录再进入 tools -->
+            <_ScriptInProject>$(MSBuildThisFileDirectory)../scripts/update-locales-csv.csx</_ScriptInProject>
+            <UpdateScriptPath Condition="$([System.IO.File]::Exists('$(_ScriptInProject)'))">$(_ScriptInProject)</UpdateScriptPath>
+        </PropertyGroup>
+
+        <ItemGroup Condition="'$(UpdateScriptPath)' == ''">
+            <_UpdateLocalesScriptFromContent Include="@(Compile)"
+                                             Condition="'%(Filename)%(Extension)' == 'update-locales-csv.csx'" />
+        </ItemGroup>
+
+        <PropertyGroup>
+            <UpdateScriptPath Condition="'$(UpdateScriptPath)' == '' AND '@(_UpdateLocalesScriptFromContent)' != ''">%(_UpdateLocalesScriptFromContent.FullPath)</UpdateScriptPath>
+            <!-- Fallback only: allow external override via /p:AssetsDir=... -->
+            <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
+            <TargetAssembly>$(TargetPath)</TargetAssembly>
+        </PropertyGroup>
+
+        <Message Text="Running update-locales-csv.csx via dotnet script..." Importance="high" />
+        <Message Text="  ProjectDir: $(ProjectDir)" Importance="high" />
+        <Message Text="  AssetsDir: $(AssetsDir)" Importance="high" />
+        <Message Text="  TargetAssembly: $(TargetAssembly)" Importance="high" />
+        <Message Text="  Script candidate (project): $(_ScriptInProject)" Importance="low" />
+        <Message Text="  Script candidate (contentFiles): @(_UpdateLocalesScriptFromContent->'%(FullPath)')"
+                 Importance="low" Condition="'@(_UpdateLocalesScriptFromContent)' != ''" />
+        <Message Text="  Chosen Script: $(UpdateScriptPath)" Importance="high" Condition="'$(UpdateScriptPath)' != ''" />
+        <Warning Text="update-locales-csv.csx not found. Checked: $(_ScriptInProject); contentFiles. Skipping Exec."
+                 Condition="'$(UpdateScriptPath)' == ''" />
+        <Exec
+            Command="dotnet script &quot;$(UpdateScriptPath)&quot; &quot;$(ProjectDir)&quot; &quot;$(AssetsDir)&quot; &quot;$(TargetAssembly)&quot;"
+            ContinueOnError="true"
+            IgnoreExitCode="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="'$(UpdateScriptPath)' != ''" />
+    </Target>
+
+    <!-- 动态检测本项目直接声明的 NuGet PackageReference，并仅复制对应包的 DLL（不复制其传递依赖）。
+         从项目输出目录提取，避免依赖全局 DllStore。 -->
+    <Target Name="CopyDirectNuGetAssemblies" AfterTargets="Build"
+            Condition=" '$(DuckovPath)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
+        <!-- 目标目录 -->
+        <PropertyGroup>
+            <_DestDir>$(ModsDirectory)$(ModName)/</_DestDir>
+        </PropertyGroup>
+
+        <!-- 收集需要排除的包：来自 Directory.Packages.props 的 GlobalPackageReference -->
+        <ItemGroup>
+            <_GlobalPackages Include="@(GlobalPackageReference->'%(Identity)')" />
+        </ItemGroup>
+
+        <!-- 收集直接声明的包名，排除全局包 -->
+        <ItemGroup>
+            <_DirectPackage Include="@(PackageReference->'%(Identity)')" Exclude="@(_GlobalPackages)" />
+        </ItemGroup>
+
+        <!-- 生成候选 DLL 名称（包名 + .dll） -->
+        <ItemGroup>
+            <_AssemblyFromPackage Include="@(_DirectPackage->'%(Identity).dll')" />
+        </ItemGroup>
+
+        <Message Text="[CopyDirectNuGetAssemblies] Direct packages (filtered): @(_DirectPackage->'%(Identity)')"
+                 Importance="High" />
+
+        <!-- 匹配在项目输出目录（$(TargetDir)）中存在的文件 -->
+        <ItemGroup>
+            <_SourceDll Include="$([System.IO.Path]::Combine('$(TargetDir)','%(_AssemblyFromPackage.Identity)'))"
+                        Condition=" '%(_AssemblyFromPackage.Identity)' != '' AND $([System.IO.File]::Exists($([System.IO.Path]::Combine('$(TargetDir)','%(_AssemblyFromPackage.Identity)')))) AND $([System.String]::Copy($([System.IO.Path]::GetExtension('%(_AssemblyFromPackage.Identity)')))) == '.dll' " />
+        </ItemGroup>
+        <Message Text="[CopyDirectNuGetAssemblies] Resolved source dll list: @(_SourceDll->'%(Identity)')"
+                 Importance="Low" Condition="@(_SourceDll) != ''" />
+
+        <MakeDir Directories="$(_DestDir)" Condition=" '@(_SourceDll)' != '' " />
+
+        <Copy SourceFiles="@(_SourceDll)"
+              DestinationFolder="$(_DestDir)"
+              SkipUnchangedFiles="false"
+              OverwriteReadOnlyFiles="true"
+              Condition=" '@(_SourceDll)' != '' ">
+            <Output TaskParameter="CopiedFiles" ItemName="_CopiedDlls" />
+        </Copy>
+
+        <Message Text="[CopyDirectNuGetAssemblies] Copied: @(_CopiedDlls->'%(Filename)%(Extension)')" Importance="High"
+                 Condition="@(_CopiedDlls) != ''" />
+
+        <!-- 计算遗漏的直接依赖 DLL（仅提示，不失败） -->
+        <ItemGroup>
+            <_MissingDll Include="@(_AssemblyFromPackage)"
+                         Exclude="@(_CopiedDlls->'%(Filename)%(Extension)')" />
+        </ItemGroup>
+
+        <Warning Text="[CopyDirectNuGetAssemblies] Missing dll(s) for direct packages: @(_MissingDll)"
+                 Condition="@(_MissingDll) != ''" />
+    </Target>
+</Project>

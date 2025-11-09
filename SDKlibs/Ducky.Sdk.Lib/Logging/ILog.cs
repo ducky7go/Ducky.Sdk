@@ -7,11 +7,7 @@ namespace Ducky.Sdk.Logging
     /// <summary>
     ///     Simple interface that represent a logger.
     /// </summary>
-#if LIBLOG_PUBLIC
-    public
-#else
-    internal
-#endif
+public
         interface ILog
     {
         /// <summary>

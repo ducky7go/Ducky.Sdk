@@ -87,7 +87,8 @@ internal sealed class ModIdJsonConverter : JsonConverter
         }
     }
 
-    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue,
+        JsonSerializer serializer)
     {
         if (reader.TokenType == JsonToken.Null)
         {
@@ -136,7 +137,8 @@ internal sealed class ModIdTypeConverter : TypeConverter
         return base.ConvertFrom(context, culture, value);
     }
 
-    public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType)
+    public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value,
+        Type destinationType)
     {
         if (destinationType == typeof(string) && value is ModId modId)
         {

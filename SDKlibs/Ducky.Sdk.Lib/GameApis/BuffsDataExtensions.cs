@@ -72,5 +72,4 @@ public static class BuffsDataExtensions
 
     public static void SetWoundBuff(this GameplayDataSettings.BuffsData target, Buff value) =>
         target.SetField("woundBuff", value);
-
 }

@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Duckov.Buffs;
 using Duckov.Utilities;
-using Ducky.Sdk.Configurations;
 using Ducky.Sdk.Logging;
+using Ducky.Sdk.Options;
 using Ducky.Sdk.Utils;
 using UnityEngine;
 

@@ -13,11 +13,7 @@ namespace Ducky.Sdk.Logging
 #if LIBLOG_EXCLUDE_CODE_COVERAGE
     [ExcludeFromCodeCoverage]
 #endif
-#if LIBLOG_PUBLIC
-    public
-#else
-    internal
-#endif
+public
     static class LogExtensions
     {
         internal static readonly object[] EmptyParams = new object[0];

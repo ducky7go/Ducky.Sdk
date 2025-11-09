@@ -69,7 +69,7 @@ public static class Loader
             preferOrder,
             "[Loader/R3]");
     }
-    
+
     public static Assembly LoadSerilog()
     {
         var fileCandidates = new[]

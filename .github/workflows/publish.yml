@@ -1,0 +1,40 @@
+name: Nuget Release
+
+on:
+  push:
+    # Publish semver tags as releases.
+    tags: ["*.*.*"]
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: tree:0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          # Look to see if there is a cache hit for the corresponding requirements file
+          key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget
+      - name: Restore dependencies
+        run: |
+          dotnet restore Docky.Sdk.slnx
+      - name: Build solution
+        run: |
+          dotnet build Docky.Sdk.slnx -c Release --no-restore
+      - name: Pack SDK NuGet package
+        run: |
+          dotnet pack SDKlibs/Ducky.Sdk/Ducky.Sdk.csproj -c Release --include-symbols --include-source -o ./artifacts /p:CI=true
+      - name: Run push to nuget if it is a tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate

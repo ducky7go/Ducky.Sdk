@@ -129,11 +129,7 @@ namespace Ducky.Sdk.Logging
         /// </summary>
         /// <typeparam name="T">The type whose name will be used for the logger.</typeparam>
         /// <returns>An instance of <see cref="ILog"/></returns>
-#if LIBLOG_PUBLIC
-        public
-#else
-        internal
-#endif
+public
         static ILog For<T>() 
         {
             return GetLogger(typeof(T));
@@ -144,11 +140,7 @@ namespace Ducky.Sdk.Logging
         /// </summary>
         /// <returns>An instance of <see cref="ILog"/></returns>
         [MethodImpl(MethodImplOptions.NoInlining)]
-#if LIBLOG_PUBLIC
-        public
-#else
-        internal
-#endif
+public
         static ILog GetCurrentClassLogger()
         {
             var stackFrame = new StackFrame(1, false);
@@ -161,11 +153,7 @@ namespace Ducky.Sdk.Logging
         /// <param name="type">The type whose name will be used for the logger.</param>
         /// <param name="fallbackTypeName">If the type is null then this name will be used as the log name instead</param>
         /// <returns>An instance of <see cref="ILog"/></returns>
-#if LIBLOG_PUBLIC
-        public
-#else
-        internal
-#endif
+public
         static ILog GetLogger(Type type, string fallbackTypeName = "System.Object")
         {
             // If the type passed in is null then fallback to the type name specified
@@ -177,11 +165,7 @@ namespace Ducky.Sdk.Logging
         /// </summary>
         /// <param name="name">The name.</param>
         /// <returns>An instance of <see cref="ILog"/></returns>
-#if LIBLOG_PUBLIC
-        public
-#else
-        internal
-#endif
+public
         static ILog GetLogger(string name)
         {
             var logProvider = CurrentLogProvider ?? ResolveLogProvider();
@@ -196,11 +180,7 @@ namespace Ducky.Sdk.Logging
         /// <param name="message">A message.</param>
         /// <returns>An <see cref="IDisposable"/> that closes context when disposed.</returns>
         [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "SetCurrentLogProvider")]
-#if LIBLOG_PUBLIC
-        public
-#else
-        internal
-#endif
+public
         static IDisposable OpenNestedContext(string message)
         {
             var logProvider = CurrentLogProvider ?? ResolveLogProvider();
@@ -218,11 +198,7 @@ namespace Ducky.Sdk.Logging
         /// <param name="destructure">A optional paramater to indicate message should be destructured.</param>
         /// <returns>An <see cref="IDisposable"/> that closes context when disposed.</returns>
         [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "SetCurrentLogProvider")]
-#if LIBLOG_PUBLIC
-        public
-#else
-        internal
-#endif
+public
         static IDisposable OpenMappedContext(string key, object value, bool destructure = false)
         {
             var logProvider = CurrentLogProvider ?? ResolveLogProvider();
