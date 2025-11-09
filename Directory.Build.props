@@ -1,0 +1,12 @@
+<Project>
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>true</ImplicitUsings>
+        <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
+        <DuckovPath>/home/newbe36524/.local/share/Steam/steamapps/common/Escape from Duckov/</DuckovPath>
+        <DuckovWorkshopPath>/home/newbe36524/.local/share/Steam/steamapps/workshop/content/3167020/</DuckovWorkshopPath>
+        <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
+        <ImplicitUsings>true</ImplicitUsings>
+    </PropertyGroup>
+</Project>

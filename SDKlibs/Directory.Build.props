@@ -1,0 +1,20 @@
+<Project>
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <ImplicitUsings>false</ImplicitUsings>
+        <LangVersion>preview</LangVersion>
+        <Nullable>enable</Nullable>
+        <DuckovPath>/home/newbe36524/.local/share/Steam/steamapps/common/Escape from Duckov/</DuckovPath>
+        <DuckovWorkshopPath>/home/newbe36524/.local/share/Steam/steamapps/workshop/content/3167020/</DuckovWorkshopPath>
+        <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\TeamSoda.*"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Unity*"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\FOW*"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\SodaLocalization*"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\ItemStatsSystem.dll"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Newtonsoft.Json.dll"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\EasySave3.dll"/>
+    </ItemGroup>
+</Project>

@@ -1,0 +1,11 @@
+<Project>
+    <!--
+      Hide content files from Visual Studio solution explorer. Adapted from:
+     -->
+    <ItemGroup>
+        <Compile Update="@(Compile)">
+            <!-- 👇 Replace 'Ducky.Sdk' with your own package name below -->
+            <Visible Condition="'%(NuGetItemType)' == 'Compile' and '%(NuGetPackageId)' == 'Ducky.Sdk'">false</Visible>
+        </Compile>
+    </ItemGroup>
+</Project>

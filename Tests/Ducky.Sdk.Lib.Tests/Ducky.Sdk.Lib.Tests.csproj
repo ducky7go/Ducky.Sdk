@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <PackageReference Include="coverlet.collector"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="NUnit"/>
+        <PackageReference Include="NUnit.Analyzers"/>
+        <PackageReference Include="NUnit3TestAdapter"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="NUnit.Framework"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\TeamSoda.*"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Unity*"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\FOW*"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\SodaLocalization*"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\ItemStatsSystem.dll"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Newtonsoft.Json.dll"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\EasySave3.dll"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\UniTask.dll"/>
+        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Eflatun.SceneReference.dll"/>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\..\SDKlibs\Ducky.Sdk.Lib\Ducky.Sdk.Lib.csproj" />
+    </ItemGroup>
+
+</Project>
