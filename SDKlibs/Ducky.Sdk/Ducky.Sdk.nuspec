@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <!-- 👇 This is the ID of the package in NuGet -->
+        <id>Ducky.Sdk</id>
+        <version>1.0.0</version>
+        <!-- 👇 Indicates the package is only used at build time, not deploy time -->
+        <developmentDependency>true</developmentDependency>
+        <authors>Newbe36524</authors>
+        <license type="expression">MIT</license>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <projectUrl>https://github.com/ducky7go/Ducky.Sdk</projectUrl>
+        <description>An example source-code only package</description>
+        <tags>source compiletime analyser</tags>
+    </metadata>
+    <files>
+        <!-- 映射 Roslyn 分析器 -->
+        <file src="../../SG/Ducky.Sdk.Analyser/bin/Debug/netstandard2.0/Ducky.Sdk.Analyser.dll" target="analyzers/cs" />
+
+        <!-- 👇 Package all .cs files in the project, and place them in the contentFiles folder -->
+        <file src="../Ducky.Sdk.Lib/**/*.cs" exclude="**/obj/**/*.cs" target="contentFiles/cs/netstandard2.1/Sdk/" />
+        <file src="scripts/**/*.csx" target="scripts" />
+        <!-- 👇 Hide content files from Visual Studio solution explorer  -->
+        <file src="Ducky.Sdk.props" target="build/Ducky.Sdk.props" />
+        <file src="Ducky.Sdk.targets" target="build/Ducky.Sdk.targets" />
+    </files>
+</package>

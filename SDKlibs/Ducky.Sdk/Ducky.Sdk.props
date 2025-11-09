@@ -1,0 +1,60 @@
+<Project>
+  <PropertyGroup>
+    <!--to make sure localization can load dll when executing the update-locales-csv script.-->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- Hide content files from Visual Studio solution explorer for this package -->
+  <ItemGroup>
+    <!-- Filter only Compile items coming from the Ducky.Sdk package -->
+    <_DuckySdkCompileForVisibility
+      Include="@(Compile->WithMetadataValue('NuGetPackageId','Ducky.Sdk')->WithMetadataValue('NuGetItemType','Compile'))" />
+    <Compile Update="@(_DuckySdkCompileForVisibility)">
+      <Visible>false</Visible>
+    </Compile>
+  </ItemGroup>
+
+  <!-- Collect SDK library source files (works in repo dev; may not exist in consumer env) -->
+  <ItemGroup Condition=" '$(ModName)' != '' ">
+    <PngFiles Include="icons/**/*.png" />
+    <AssetsFiles Include="assets/**/*.*" />
+    <SDKlibFiles
+      Include="@(Compile->WithMetadataValue('NuGetPackageId','Ducky.Sdk')->WithMetadataValue('NuGetItemType','Compile'))" />
+  </ItemGroup>
+
+  <!-- Globally ensure .csx files are never compiled -->
+  <ItemGroup>
+    <_CsxToConvert Include="@(Compile->WithMetadataValue('Extension','.csx'))" />
+    <Compile Remove="@(_CsxToConvert)" />
+    <None Include="@(_CsxToConvert)">
+      <Visible>false</Visible>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(ExcludeSdkLib)' != 'true' ">
+    <!-- Remove them from Compile so they don't get compiled -->
+    <Compile Update="@(SDKlibFiles)" Link="Shared\SDKlibs\%(RecursiveDir)%(Filename)%(Extension)">
+      <Visible>false</Visible>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(ExcludeSdkLib)' == 'true' ">
+    <Compile Remove="@(SDKlibFiles)" />
+    <None Include="@(SDKlibFiles)" Link="Shared\SDKlibs\%(RecursiveDir)%(Filename)%(Extension)">
+      <Visible>false</Visible>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\TeamSoda.*" />
+    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Unity*" />
+    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\FOW*" />
+    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\SodaLocalization*" />
+    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\ItemStatsSystem.dll" />
+    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Newtonsoft.Json.dll" />
+    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\EasySave3.dll" />
+    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\UniTask.dll" />
+    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Eflatun.SceneReference.dll" />
+  </ItemGroup>
+
+</Project>

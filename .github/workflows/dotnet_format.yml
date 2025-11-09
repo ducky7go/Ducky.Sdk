@@ -1,0 +1,48 @@
+name: dotnet pr format
+
+on:
+  pull_request:
+    branches: ["main", "develop"]
+
+permissions:
+  contents: write
+  issues: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          # Look to see if there is a cache hit for the corresponding requirements file
+          key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget
+      - name: Run clean code
+        run: |
+          dotnet tool restore
+          dotnet restore Docky.Sdk.slnx
+          changed_files=$(git diff --name-status origin/main | grep -v '^D' | awk '{print $2}' | grep -v '.sln')
+
+          if [ -n "$changed_files" ]; then
+            dotnet tool run jb cleanupcode --verbosity=INFO --exclude='**Tests/**.*' --exclude='**.idea/**.*' $changed_files
+            git add .
+          fi
+          if [ -n "$(git status --porcelain)" ]; then
+              git config --global user.name 'ReSharper CLI CleanupCode GitHub Action'
+              git config --global user.email 'niceformate@nice.com'
+              git commit -m "Cleanup code by ReSharper CLI CleanupCode GitHub Action"
+              git push origin HEAD:${{ github.head_ref }}
+          else
+              echo "No changes detected"
+          fi

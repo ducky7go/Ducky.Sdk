@@ -1,0 +1,399 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Collections.Generic;
+
+// Usage: dotnet script update-locales-csv.csx <ProjectDir> <AssetsDir> <TargetAssembly>
+if (Args == null || Args.Count < 3)
+{
+    Console.Error.WriteLine("Usage: update-locales-csv.csx <ProjectDir> <AssetsDir> <TargetAssembly>");
+    return 1;
+}
+
+var projectDir = Args[0];
+var assetsDir = Args[1];
+var targetAssembly = Args[2];
+
+// locales directory will be resolved from assetsDir below
+string localesDir;
+
+Console.WriteLine($"Running update-locales-csv.csx\n  ProjectDir: {projectDir}\n  AssetsDir: {assetsDir}\n  TargetAssembly: {targetAssembly}");
+
+if (!File.Exists(targetAssembly))
+{
+    Console.WriteLine($"Warning: Target assembly not found: {targetAssembly}");
+    return 0;
+}
+
+List<string> keys = new();
+try
+{
+    var asm = Assembly.LoadFrom(targetAssembly);
+    bool foundLKeys = false;
+
+    foreach (var t in asm.GetTypes())
+    {
+        if (t.Name == "LKeys")
+        {
+            foundLKeys = true;
+            var allField = t.GetField("All", BindingFlags.Public | BindingFlags.Static);
+            if (allField != null)
+            {
+                var arr = allField.GetValue(null) as string[];
+                if (arr != null) keys.AddRange(arr);
+            }
+        }
+    }
+
+    if (!foundLKeys)
+    {
+        // fallback to scanning LK nested const string fields
+        foreach (var t in asm.GetTypes())
+        {
+            if (t.Name == "LK")
+            {
+                foreach (var nested in t.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
+                {
+                    var fields = nested.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
+                        .Where(f => f.IsLiteral && !f.IsInitOnly && f.FieldType == typeof(string));
+                    foreach (var f in fields)
+                    {
+                        var val = f.GetRawConstantValue() as string;
+                        if (!string.IsNullOrWhiteSpace(val)) keys.Add(val);
+                    }
+                }
+            }
+        }
+
+        if (keys.Count == 0)
+        {
+            Console.Error.WriteLine("No LKeys or LK keys found in assembly");
+            return 0;
+        }
+    }
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine($"Failed to load assembly or extract keys: {ex}");
+    return 1;
+}
+
+var distinctKeys = keys.Distinct().OrderBy(k => k).ToList();
+
+string JoinKeys(IEnumerable<string> ks) => string.Join('|', ks);
+
+// Compute CRC32 using internal implementation (no NuGet dependency)
+string ComputeCrc32Hex(string input)
+{
+    var table = MakeCrc32Table();
+    uint crc = 0xFFFFFFFFu;
+    var b = Encoding.UTF8.GetBytes(input ?? string.Empty);
+    foreach (var by in b)
+    {
+        var idx = (byte)((crc ^ by) & 0xFF);
+        crc = (crc >> 8) ^ table[idx];
+    }
+    crc ^= 0xFFFFFFFFu;
+    return crc.ToString("x8");
+}
+
+static uint[] MakeCrc32Table()
+{
+    uint[] table = new uint[256];
+    const uint poly = 0xEDB88320u;
+    for (uint i = 0; i < 256; i++)
+    {
+        uint crc = i;
+        for (int j = 0; j < 8; j++)
+        {
+            if ((crc & 1) != 0)
+                crc = (crc >> 1) ^ poly;
+            else
+                crc >>= 1;
+        }
+        table[i] = crc;
+    }
+    return table;
+}
+
+var allKeysJoined = JoinKeys(distinctKeys);
+var assemblyHash = ComputeCrc32Hex(allKeysJoined);
+
+Console.WriteLine($"Found hash: {assemblyHash}");
+Console.WriteLine($"Found {distinctKeys.Count} unique keys");
+
+var hashFile = Path.Combine(assetsDir, "keys.hash.txt");
+
+// If the caller passed the project assets folder or the Locales folder, choose the correct Locales path.
+// Behavior:
+// - If the provided assetsDir already points to a folder named 'Locales', use it.
+// - Else, if assetsDir/Locales exists, use that.
+// - Else, if assetsDir itself contains CSV files, use assetsDir (legacy layout).
+// - Otherwise use assetsDir/Locales (will be created later when writing files).
+{
+    var providedAssets = assetsDir; // original passed assetsDir
+    string chosen;
+    try
+    {
+        var providedInfo = new DirectoryInfo(providedAssets);
+        var providedName = providedInfo.Name ?? string.Empty;
+        if (string.Equals(providedName, "Locales", StringComparison.OrdinalIgnoreCase) && providedInfo.Exists)
+        {
+            chosen = providedInfo.FullName; // caller already pointed to Locales
+        }
+        else
+        {
+            var candidate = Path.Combine(providedAssets, "Locales");
+            if (Directory.Exists(candidate))
+            {
+                chosen = Path.GetFullPath(candidate); // typical assets/Locales exists
+            }
+            else if (providedInfo.Exists && Directory.GetFiles(providedAssets, "*.csv", SearchOption.TopDirectoryOnly).Any())
+            {
+                chosen = Path.GetFullPath(providedAssets); // assets dir itself holds CSVs
+            }
+            else
+            {
+                chosen = Path.GetFullPath(candidate); // fallback: use assets/Locales (may be created)
+            }
+        }
+    }
+    catch (Exception)
+    {
+        // In case of any path/IO issues, fallback to assets/Locales
+        chosen = Path.GetFullPath(Path.Combine(providedAssets, "Locales"));
+    }
+
+    // Normalize and assign
+    try
+    {
+        var prev = string.IsNullOrWhiteSpace(localesDir) ? string.Empty : Path.GetFullPath(localesDir);
+        var curr = Path.GetFullPath(chosen);
+        if (!string.Equals(prev, curr, StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine($"Note: resolved Locales directory to: {curr}");
+        }
+        localesDir = curr;
+    }
+    catch
+    {
+        localesDir = chosen;
+    }
+}
+
+// Determine language entries. Support two layouts:
+// 1) localesDir contains per-language CSV files directly (en.csv, fr.csv)
+// 2) localesDir contains language subdirectories (en/, fr/) with standalone files; CSVs are written at localesDir/<lang>.csv
+var languageEntries = new List<(string LangCode, string CsvPath, string LangDir)>();
+if (Directory.Exists(localesDir))
+{
+    // Look for CSV files directly under localesDir
+    var csvFilesRoot = Directory.GetFiles(localesDir, "*.csv", SearchOption.TopDirectoryOnly);
+    if (csvFilesRoot.Length > 0)
+    {
+        foreach (var csv in csvFilesRoot)
+        {
+            var code = Path.GetFileNameWithoutExtension(csv);
+            languageEntries.Add((code, csv, null));
+        }
+    }
+
+    // Also consider language subdirectories as languages if present
+    var subdirs = Directory.GetDirectories(localesDir, "*", SearchOption.TopDirectoryOnly);
+    foreach (var sd in subdirs)
+    {
+        var code = Path.GetFileName(sd);
+        var csvPath = Path.Combine(localesDir, code + ".csv");
+        // If we already have an entry for this code from root CSV, prefer the root CSV entry (avoid duplication)
+        if (!languageEntries.Any(e => string.Equals(e.LangCode, code, StringComparison.OrdinalIgnoreCase)))
+        {
+            languageEntries.Add((code, csvPath, sd));
+        }
+    }
+}
+
+// Pre-scan language entries to determine if any CSV is missing or empty
+bool needUpdateForMissing = false;
+foreach (var entry in languageEntries)
+{
+    if (!File.Exists(entry.CsvPath) || new FileInfo(entry.CsvPath).Length == 0)
+    {
+        needUpdateForMissing = true;
+        break;
+    }
+}
+
+// Additional check: detect obsolete keys present in existing CSVs that are not in distinctKeys.
+// If found, force an update so obsolete keys will be removed.
+int obsoleteKeysDetected = 0;
+var obsoletePerFile = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+if (Directory.Exists(localesDir))
+{
+    var keySet = new HashSet<string>(distinctKeys, StringComparer.Ordinal);
+    // Scan all CSVs under localesDir recursively to find any obsolete entries
+    foreach (var csvFile in Directory.GetFiles(localesDir, "*.csv", SearchOption.AllDirectories))
+    {
+        try
+        {
+            var lines = File.ReadAllLines(csvFile);
+            int fileObsolete = 0;
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (line.Trim().Equals("Key,Value", StringComparison.OrdinalIgnoreCase)) continue;
+                var idx = line.IndexOf(',');
+                if (idx < 0) continue;
+                var existingKey = line.Substring(0, idx);
+                if (!keySet.Contains(existingKey))
+                {
+                    fileObsolete++;
+                }
+            }
+            if (fileObsolete > 0)
+            {
+                obsoletePerFile[Path.GetFileName(csvFile)] = fileObsolete;
+                obsoleteKeysDetected += fileObsolete;
+                needUpdateForMissing = true;
+                Console.WriteLine($"Detected {fileObsolete} obsolete key(s) in {Path.GetFileName(csvFile)}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // ignore parse errors and continue
+            Console.WriteLine($"Warning: could not read CSV {csvFile}: {ex.Message}");
+        }
+    }
+}
+
+if (File.Exists(hashFile))
+{
+    var existingHash = File.ReadAllText(hashFile).Trim();
+    if (existingHash == assemblyHash && !needUpdateForMissing)
+    {
+        Console.WriteLine("Hash matches existing hash file and all CSVs exist; skipping CSV updates.");
+        // Print minimal stats
+        Console.WriteLine($"Stats: languages=0, csvsUpdated=0, totalKeys={distinctKeys.Count}, obsoleteKeysDetected=0, standaloneFilesIncluded=0, totalRowsWritten=0");
+        return 0;
+    }
+}
+
+// Ensure locales dir exists
+if (!Directory.Exists(localesDir)) Directory.CreateDirectory(localesDir);
+
+// Stats counters
+int languagesProcessed = 0;
+int csvsUpdated = 0;
+int totalStandaloneFilesIncluded = 0;
+int totalRowsWritten = 0;
+int totalKeys = distinctKeys.Count;
+
+// If no language entries were found, there's nothing to process
+if (languageEntries.Count == 0)
+{
+    Console.WriteLine("No language CSVs or language directories found under localesDir; nothing to update.");
+}
+
+// Process each language entry
+foreach (var entry in languageEntries)
+{
+    var langCode = entry.LangCode;
+    var csvPath = entry.CsvPath;
+    var langDir = entry.LangDir;
+
+    Console.WriteLine($"Processing language: {langCode}");
+    languagesProcessed++;
+
+    var csvMap = new Dictionary<string, string>();
+    if (File.Exists(csvPath))
+    {
+        var lines = File.ReadAllLines(csvPath);
+        foreach (var line in lines)
+        {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            if (line.Trim().Equals("Key,Value", StringComparison.OrdinalIgnoreCase)) continue;
+            // split on first comma
+            var idx = line.IndexOf(',');
+            if (idx < 0) continue;
+            var key = line.Substring(0, idx);
+            var value = line.Substring(idx + 1);
+            if (value.Length >= 2 && value[0] == '"' && value[^1] == '"')
+            {
+                value = value.Substring(1, value.Length - 2).Replace("\"\"" , '"'.ToString());
+            }
+            value = value.Replace("\"\"" , '"'.ToString());
+            csvMap[key] = value;
+        }
+    }
+
+    // Include standalone md/txt files in the lang folder (only if langDir is present)
+    var localStandaloneCount = 0;
+    if (!string.IsNullOrEmpty(langDir) && Directory.Exists(langDir))
+    {
+        var mdFiles = Directory.GetFiles(langDir, "*.md");
+        var txtFiles = Directory.GetFiles(langDir, "*.txt");
+        foreach (var f in mdFiles.Concat(txtFiles))
+        {
+            var filename = Path.GetFileName(f);
+            var key = Path.GetFileNameWithoutExtension(f);
+            csvMap[key] = filename;
+            localStandaloneCount++;
+            Console.WriteLine($"  Including standalone key in CSV with value=filename: {key} -> {filename}");
+        }
+    }
+    totalStandaloneFilesIncluded += localStandaloneCount;
+
+    var newRows = new List<(string Key, string Value)>();
+    foreach (var key in distinctKeys)
+    {
+        csvMap.TryGetValue(key, out var val);
+        newRows.Add((key, val ?? string.Empty));
+    }
+
+    var sorted = newRows.OrderBy(r => r.Key, StringComparer.Ordinal).ToList();
+
+    // Prepare new content and compare to existing to know whether we actually changed the file
+    var sbNew = new StringBuilder();
+    sbNew.AppendLine("Key,Value");
+    foreach (var r in sorted)
+    {
+        var v = r.Value?.Replace("\"", "\"\"") ?? string.Empty;
+        sbNew.AppendLine($"{r.Key},\"{v}\"");
+    }
+    var newContent = sbNew.ToString();
+    var oldContent = File.Exists(csvPath) ? File.ReadAllText(csvPath) : string.Empty;
+
+    if (!string.Equals(newContent, oldContent, StringComparison.Ordinal))
+    {
+        // Write CSV
+        Directory.CreateDirectory(Path.GetDirectoryName(csvPath) ?? localesDir);
+        File.WriteAllText(csvPath, newContent, new UTF8Encoding(false));
+        csvsUpdated++;
+        totalRowsWritten += sorted.Count;
+        Console.WriteLine($"  Updated {csvPath} ({sorted.Count} keys)");
+    }
+    else
+    {
+        // No changes
+        Console.WriteLine($"  No changes for {csvPath} ({sorted.Count} keys)");
+    }
+}
+
+// Save hash
+Directory.CreateDirectory(assetsDir);
+File.WriteAllText(hashFile, assemblyHash);
+Console.WriteLine($"Saved hash to: {hashFile}");
+Console.WriteLine("Update completed successfully");
+
+// Print stats summary
+Console.WriteLine("--- Update stats ---");
+Console.WriteLine($"Languages processed: {languagesProcessed}");
+Console.WriteLine($"CSVs updated:        {csvsUpdated}");
+Console.WriteLine($"Total keys:          {totalKeys}");
+Console.WriteLine($"Obsolete keys found: {obsoleteKeysDetected}");
+Console.WriteLine($"Standalone files:    {totalStandaloneFilesIncluded}");
+Console.WriteLine($"Total rows written:  {totalRowsWritten}");
+Console.WriteLine("---------------------");
+
+return 0;

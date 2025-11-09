@@ -1,0 +1,19 @@
+<Project>
+  <Import Project="Local.props" Condition="Exists('Local.props')" />
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>true</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <DuckovPath>$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
+    <DuckovWorkshopPath>$(SteamDir)steamapps/workshop/content/3167020/</DuckovWorkshopPath>
+    <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
+    <ManagedDirectory>$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>
+    <ImplicitUsings>true</ImplicitUsings>
+  </PropertyGroup>
+  <!-- Fail early if SteamDir is not provided -->
+  <Target Name="FailIfSteamDirMissing" BeforeTargets="PrepareForBuild;Restore" Condition="'$(CI)' != 'true'">
+    <Error Text="SteamDir property must be set. Provide it via Local.props or -p:SteamDir=/path/to/steam/"
+           Condition="'$(SteamDir)' == ''" />
+  </Target>
+</Project>

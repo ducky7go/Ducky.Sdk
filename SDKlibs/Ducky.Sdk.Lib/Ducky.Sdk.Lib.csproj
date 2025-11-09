@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../Local.props" Condition="Exists('../../Local.props')" />
+  <PropertyGroup>
+    <RootNamespace>Ducky.Sdk</RootNamespace>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <!-- to make sure no implicit usings are included -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <DuckovPath>$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
+    <DuckovWorkshopPath>$(SteamDir)steamapps/workshop/content/3167020/</DuckovWorkshopPath>
+    <!-- Resolve ManagedDirectory: if a repo root Managed folder exists, use it; otherwise fallback to game Managed -->
+    <_RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../'))</_RepoRoot>
+    <_ManagedDirCandidate>$([System.IO.Path]::Combine('$(_RepoRoot)','Managed'))</_ManagedDirCandidate>
+    <ManagedDirectory Condition="Exists('$(_ManagedDirCandidate)')">$(_ManagedDirCandidate)/</ManagedDirectory>
+    <ManagedDirectory Condition="'$(ManagedDirectory)' == ''">$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>
+    <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(ManagedDirectory)TeamSoda.*" />
+    <Reference Include="$(ManagedDirectory)Unity*" />
+    <Reference Include="$(ManagedDirectory)FOW*" />
+    <Reference Include="$(ManagedDirectory)SodaLocalization*" />
+    <Reference Include="$(ManagedDirectory)ItemStatsSystem.dll" />
+    <Reference Include="$(ManagedDirectory)Newtonsoft.Json.dll" />
+    <Reference Include="$(ManagedDirectory)EasySave3.dll" />
+  </ItemGroup>
+</Project>
