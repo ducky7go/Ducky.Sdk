@@ -11,7 +11,7 @@
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
   <!-- Fail early if SteamDir is not provided -->
-  <Target Name="FailIfSteamDirMissing" BeforeTargets="PrepareForBuild;Restore">
+  <Target Name="FailIfSteamDirMissing" BeforeTargets="PrepareForBuild;Restore" Condition="'$(CI)' != 'true'">
     <Error Text="SteamDir property must be set. Provide it via Local.props or -p:SteamDir=/path/to/steam/" Condition="'$(SteamDir)' == ''" />
   </Target>
 </Project>

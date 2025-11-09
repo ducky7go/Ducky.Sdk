@@ -5,13 +5,4 @@
         <LangVersion>preview</LangVersion>
         <Nullable>enable</Nullable>
     </PropertyGroup>
-    <ItemGroup>
-        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\TeamSoda.*"/>
-        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Unity*"/>
-        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\FOW*"/>
-        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\SodaLocalization*"/>
-        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\ItemStatsSystem.dll"/>
-        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Newtonsoft.Json.dll"/>
-        <Reference Include="$(DuckovPath)\Duckov_Data\Managed\EasySave3.dll"/>
-    </ItemGroup>
 </Project>
