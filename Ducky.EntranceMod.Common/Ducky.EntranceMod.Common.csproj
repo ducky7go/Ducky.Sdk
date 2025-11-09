@@ -1,22 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>netstandard2.1</TargetFramework>
-        <Nullable>enable</Nullable>
-        <LangVersion>preview</LangVersion>
-        <ImplicitUsings>true</ImplicitUsings>
-        <IsModLib>true</IsModLib>
-        <!-- Dynamic AssetsDir: allow external override; fallback derive from solution dir then project guess -->
-        <_SolutionDirBase Condition="'$(SolutionDir)' != ''">$(SolutionDir)</_SolutionDirBase>
-        <_SolutionDirBase Condition="'$(SolutionDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../'))</_SolutionDirBase>
-        <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(_SolutionDirBase)','Ducky.EntranceMod','assets'))</AssetsDir>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>true</ImplicitUsings>
+    <IsModLib>true</IsModLib>
+    <!-- Dynamic AssetsDir: allow external override; fallback derive from solution dir then project guess -->
+    <_SolutionDirBase Condition="'$(SolutionDir)' != ''">$(SolutionDir)</_SolutionDirBase>
+    <_SolutionDirBase Condition="'$(SolutionDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../'))</_SolutionDirBase>
+    <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(_SolutionDirBase)','Ducky.EntranceMod','assets'))</AssetsDir>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Ducky.Sdk">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Ducky.Sdk">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
 </Project>

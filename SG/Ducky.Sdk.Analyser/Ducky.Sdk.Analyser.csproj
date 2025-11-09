@@ -1,4 +1,3 @@
-
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <!-- Source generators must target netstandard2.0 for broad IDE compatibility -->
@@ -13,6 +12,6 @@
   <ItemGroup>
     <!-- Roslyn dependencies for incremental source generators -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" />
   </ItemGroup>
 </Project>
