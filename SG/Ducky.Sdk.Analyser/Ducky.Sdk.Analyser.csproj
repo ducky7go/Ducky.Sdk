@@ -9,6 +9,9 @@
     <OutputItemType>Analyzer</OutputItemType>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
+  <PropertyGroup>
+    <OutputPath>bin\</OutputPath>
+  </PropertyGroup>
   <ItemGroup>
     <!-- Roslyn dependencies for incremental source generators -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
