@@ -61,7 +61,7 @@
 
         <Message Text="Running update-locales-csv.csx via dotnet script..." Importance="high" />
         <Message Text="  ProjectDir: $(ProjectDir)" Importance="high" />
-        <Message Text="  AssetsDir: $(AssetsDir)" Importance="high" />
+        <Message Text="  AssetsDir Raw: $(AssetsDir)" Importance="high" />
         <Message Text="  TargetAssembly: $(TargetAssembly)" Importance="high" />
         <Message Text="  Script candidate (project): $(_ScriptInProject)" Importance="low" />
         <Message Text="  Script candidate (contentFiles): @(_UpdateLocalesScriptFromContent->'%(FullPath)')"
@@ -69,69 +69,89 @@
         <Message Text="  Chosen Script: $(UpdateScriptPath)" Importance="high" Condition="'$(UpdateScriptPath)' != ''" />
         <Warning Text="update-locales-csv.csx not found. Checked: $(_ScriptInProject); contentFiles. Skipping Exec."
                  Condition="'$(UpdateScriptPath)' == ''" />
+        <!-- 支持 AssetsDir 以分号分隔的多个目录：展开为 _AssetsDirList 项 -->
+        <ItemGroup Condition="'$(AssetsDir)' != ''">
+            <!-- 使用 MSBuild 的 Replace 和 Splitting 技巧：先将分号替换为 ;; 再借助 %(Identity) 展开。这里直接利用 @(AssetsDirSplit) 的 Include 逗号/分号分隔特性。 -->
+            <_AssetsDirList Include="$(AssetsDir)" />
+        </ItemGroup>
+        <Message Text="  Resolved AssetsDir Count: @(_AssetsDirList->Count())" Importance="high" Condition="'@(_AssetsDirList)' != ''" />
+        <Message Text="  AssetsDir Each: @(_AssetsDirList->'%(Identity)', ' | ')" Importance="high" Condition="'@(_AssetsDirList)' != ''" />
+        <!-- 计算每个目录的绝对路径，便于日志观测与排错 -->
+        <ItemGroup Condition="'@(_AssetsDirList)' != ''">
+            <_AssetsDirResolved Include="@(_AssetsDirList->'$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(ProjectDir)','%(Identity)'))))')" />
+        </ItemGroup>
+        <Message Text="  AssetsDir Absolute Each: @(_AssetsDirResolved->'%(Identity)', ' | ')" Importance="high" Condition="'@(_AssetsDirResolved)' != ''" />
+        <Warning Text="AssetsDir empty, skipping update-locales-csv execution." Condition="'$(AssetsDir)' == ''" />
+        <!-- 针对每个目录批处理执行脚本 -->
         <Exec
-            Command="dotnet script &quot;$(UpdateScriptPath)&quot; &quot;$(ProjectDir)&quot; &quot;$(AssetsDir)&quot; &quot;$(TargetAssembly)&quot;"
+            Command="dotnet script &quot;$(UpdateScriptPath)&quot; &quot;$(ProjectDir)&quot; &quot;%(_AssetsDirList.Identity)&quot; &quot;$(TargetAssembly)&quot;"
             ContinueOnError="true"
             IgnoreExitCode="false"
             WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="'$(UpdateScriptPath)' != ''" />
+            Condition="'$(UpdateScriptPath)' != '' AND '@(_AssetsDirList)' != ''">
+            <Output TaskParameter="ConsoleOutput" ItemName="_LocalesUpdateOutput" />
+        </Exec>
+        <Message Text="  update-locales-csv outputs: @(_LocalesUpdateOutput->'%(Identity)')" Importance="low" Condition="'@(_LocalesUpdateOutput)' != ''" />
     </Target>
 
-    <!-- 动态检测本项目直接声明的 NuGet PackageReference，并仅复制对应包的 DLL（不复制其传递依赖）。
-         从项目输出目录提取，避免依赖全局 DllStore。 -->
-    <Target Name="CopyDirectNuGetAssemblies" AfterTargets="Build"
-            Condition=" '$(DuckovPath)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
-        <!-- 目标目录 -->
+    <!-- 复制项目输出目录中不在 ManagedDirectory 的所有 DLL 到 Mod 的 Dependency 文件夹 -->
+    <Target Name="CopyMissingDependencies" AfterTargets="Build"
+            Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
+        <!-- 目标目录：Mod 的 Dependency 子文件夹 -->
         <PropertyGroup>
-            <_DestDir>$(ModsDirectory)$(ModName)/</_DestDir>
+            <_DestDir>$(ModsDirectory)$(ModName)/Dependency/</_DestDir>
         </PropertyGroup>
 
-        <!-- 收集需要排除的包：来自 Directory.Packages.props 的 GlobalPackageReference -->
+        <!-- 收集项目输出目录中的所有 DLL 文件（排除项目自身的输出 DLL） -->
         <ItemGroup>
-            <_GlobalPackages Include="@(GlobalPackageReference->'%(Identity)')" />
+            <_AllOutputDlls Include="$(TargetDir)*.dll" Exclude="$(TargetPath)" />
         </ItemGroup>
 
-        <!-- 收集直接声明的包名，排除全局包 -->
-        <ItemGroup>
-            <_DirectPackage Include="@(PackageReference->'%(Identity)')" Exclude="@(_GlobalPackages)" />
-        </ItemGroup>
-
-        <!-- 生成候选 DLL 名称（包名 + .dll） -->
-        <ItemGroup>
-            <_AssemblyFromPackage Include="@(_DirectPackage->'%(Identity).dll')" />
-        </ItemGroup>
-
-        <Message Text="[CopyDirectNuGetAssemblies] Direct packages (filtered): @(_DirectPackage->'%(Identity)')"
+        <Message Text="[CopyMissingDependencies] Found @(_AllOutputDlls->Count()) DLL(s) in output directory"
                  Importance="High" />
 
-        <!-- 匹配在项目输出目录（$(TargetDir)）中存在的文件 -->
+        <!-- 收集 ManagedDirectory 中的所有 DLL 文件名（仅文件名，不含路径） -->
         <ItemGroup>
-            <_SourceDll Include="$([System.IO.Path]::Combine('$(TargetDir)','%(_AssemblyFromPackage.Identity)'))"
-                        Condition=" '%(_AssemblyFromPackage.Identity)' != '' AND $([System.IO.File]::Exists($([System.IO.Path]::Combine('$(TargetDir)','%(_AssemblyFromPackage.Identity)')))) AND $([System.String]::Copy($([System.IO.Path]::GetExtension('%(_AssemblyFromPackage.Identity)')))) == '.dll' " />
+            <_ManagedDlls Include="$(ManagedDirectory)*.dll" />
+            <_ManagedDllNames Include="@(_ManagedDlls->'%(Filename)%(Extension)')" />
         </ItemGroup>
-        <Message Text="[CopyDirectNuGetAssemblies] Resolved source dll list: @(_SourceDll->'%(Identity)')"
-                 Importance="Low" Condition="@(_SourceDll) != ''" />
 
-        <MakeDir Directories="$(_DestDir)" Condition=" '@(_SourceDll)' != '' " />
+        <Message Text="[CopyMissingDependencies] ManagedDirectory: $(ManagedDirectory)"
+                 Importance="High" />
+        <Message Text="[CopyMissingDependencies] Found @(_ManagedDlls->Count()) DLL(s) in ManagedDirectory"
+                 Importance="High" />
 
-        <Copy SourceFiles="@(_SourceDll)"
+        <!-- 分离需要复制的 DLL 和已存在的 DLL -->
+        <ItemGroup>
+            <!-- 检查每个输出 DLL 是否在 ManagedDirectory 中存在 -->
+            <_DllsToCopy Include="@(_AllOutputDlls)"
+                         Condition=" !@(_ManagedDllNames->AnyHaveMetadataValue('Identity', '%(Filename)%(Extension)')) " />
+            <_SkippedDlls Include="@(_AllOutputDlls)"
+                          Condition=" @(_ManagedDllNames->AnyHaveMetadataValue('Identity', '%(Filename)%(Extension)')) " />
+        </ItemGroup>
+
+        <!-- 输出警告：跳过已在 ManagedDirectory 中存在的 DLL -->
+        <Warning Text="[CopyMissingDependencies] Skipping '%(Filename)%(Extension)' - already exists in ManagedDirectory"
+                 Condition=" '@(_SkippedDlls)' != '' " />
+
+        <!-- 创建目标目录 -->
+        <MakeDir Directories="$(_DestDir)" Condition=" '@(_DllsToCopy)' != '' " />
+
+        <!-- 复制不在 ManagedDirectory 中的 DLL -->
+        <Copy SourceFiles="@(_DllsToCopy)"
               DestinationFolder="$(_DestDir)"
               SkipUnchangedFiles="false"
               OverwriteReadOnlyFiles="true"
-              Condition=" '@(_SourceDll)' != '' ">
-            <Output TaskParameter="CopiedFiles" ItemName="_CopiedDlls" />
+              Condition=" '@(_DllsToCopy)' != '' ">
+            <Output TaskParameter="CopiedFiles" ItemName="_CopiedDependencies" />
         </Copy>
 
-        <Message Text="[CopyDirectNuGetAssemblies] Copied: @(_CopiedDlls->'%(Filename)%(Extension)')" Importance="High"
-                 Condition="@(_CopiedDlls) != ''" />
-
-        <!-- 计算遗漏的直接依赖 DLL（仅提示，不失败） -->
-        <ItemGroup>
-            <_MissingDll Include="@(_AssemblyFromPackage)"
-                         Exclude="@(_CopiedDlls->'%(Filename)%(Extension)')" />
-        </ItemGroup>
-
-        <Warning Text="[CopyDirectNuGetAssemblies] Missing dll(s) for direct packages: @(_MissingDll)"
-                 Condition="@(_MissingDll) != ''" />
+        <Message Text="[CopyMissingDependencies] Copied @(_CopiedDependencies->Count()) DLL(s) to Dependency folder: @(_CopiedDependencies->'%(Filename)%(Extension)', ', ')"
+                 Importance="High"
+                 Condition="@(_CopiedDependencies) != ''" />
+        
+        <Message Text="[CopyMissingDependencies] No dependencies to copy"
+                 Importance="High"
+                 Condition="@(_CopiedDependencies) == '' AND @(_DllsToCopy) == ''" />
     </Target>
 </Project>

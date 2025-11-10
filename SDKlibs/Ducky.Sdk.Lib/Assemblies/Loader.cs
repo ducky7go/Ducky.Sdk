@@ -126,7 +126,7 @@ public static class Loader
             }
         }
 
-        var dir = GetExecutingDirectory();
+        var dir = GetDependencyFolder();
 
         // Try load from files first
         foreach (var file in fileCandidates)
@@ -198,9 +198,15 @@ public static class Loader
             $"Unable to locate assemblies. Tried files: {string.Join(", ", fileCandidates)}; names: {string.Join(", ", assemblyNameCandidates)}");
     }
 
-    private static string GetExecutingDirectory()
+    private static string GetDependencyFolder()
     {
-        return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? string.Empty;
+        var modFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        if (!string.IsNullOrEmpty(modFolder))
+        {
+            return Path.Combine(modFolder, "Dependency");
+        }
+
+        return string.Empty;
     }
 
     private static Assembly? TryLoadFromFile(string path, string tag)

@@ -50,15 +50,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\TeamSoda.*" />
-    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\Unity*" />
-    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\FOW*" />
-    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\SodaLocalization*" />
-    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\ItemStatsSystem.dll" />
-    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\Newtonsoft.Json.dll" />
-    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\EasySave3.dll" />
-    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\UniTask.dll" />
-    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\Eflatun.SceneReference.dll" />
+    <Reference Include="$(ManagedDirectory)TeamSoda.*" />
+    <Reference Include="$(ManagedDirectory)Unity*" />
+    <Reference Include="$(ManagedDirectory)FOW*" />
+    <Reference Include="$(ManagedDirectory)SodaLocalization*" />
+    <Reference Include="$(ManagedDirectory)ItemStatsSystem.dll" />
+    <Reference Include="$(ManagedDirectory)Newtonsoft.Json.dll" />
+    <Reference Include="$(ManagedDirectory)EasySave3.dll" />
+    <Reference Include="$(ManagedDirectory)UniTask.dll" />
+    <Reference Include="$(ManagedDirectory)Eflatun.SceneReference.dll" />
   </ItemGroup>
 
 </Project>
