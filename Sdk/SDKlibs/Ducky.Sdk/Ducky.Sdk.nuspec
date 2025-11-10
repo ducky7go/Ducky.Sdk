@@ -16,7 +16,7 @@
     </metadata>
     <files>
         <!-- 映射 Roslyn 分析器 -->
-        <file src="../../SG/Ducky.Sdk.Analyser/bin/netstandard2.0/Ducky.Sdk.Analyser.dll" target="analyzers/cs" />
+        <file src="../../Ducky.Sdk.Analyser/bin/netstandard2.0/Ducky.Sdk.Analyser.dll" target="analyzers/cs" />
 
         <!-- 👇 Package all .cs files in the project, and place them in the contentFiles folder -->
         <file src="../Ducky.Sdk.Lib/**/*.cs" exclude="**/obj/**/*.cs" target="contentFiles/cs/netstandard2.1/Sdk/" />

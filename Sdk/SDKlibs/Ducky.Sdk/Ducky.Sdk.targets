@@ -37,8 +37,64 @@
         <RemoveDir Directories="$(ModsDirectory)$(ModName)" />
     </Target>
 
+    <!-- Pre-build: Extract localization keys from generated metadata to JSON -->
+    <Target Name="ExtractLKeysJson" AfterTargets="CoreCompile" BeforeTargets="UpdateLocalesCsv"
+            Condition="'$(_ShouldProcessLocalization)' == 'true'">
+        <PropertyGroup>
+            <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
+            <_ExtractScriptInProject>$(MSBuildThisFileDirectory)../scripts/extract-lkeys-json.csx</_ExtractScriptInProject>
+            <ExtractScriptPath Condition="$([System.IO.File]::Exists('$(_ExtractScriptInProject)'))">$(_ExtractScriptInProject)</ExtractScriptPath>
+        </PropertyGroup>
+
+        <ItemGroup Condition="'$(ExtractScriptPath)' == ''">
+            <_ExtractLKeysScriptFromContent Include="@(Compile)"
+                                            Condition="'%(Filename)%(Extension)' == 'extract-lkeys-json.csx'" />
+        </ItemGroup>
+
+        <PropertyGroup>
+            <ExtractScriptPath Condition="'$(ExtractScriptPath)' == '' AND '@(_ExtractLKeysScriptFromContent)' != ''">%(_ExtractLKeysScriptFromContent.FullPath)</ExtractScriptPath>
+            <!-- Fallback only: allow external override via /p:AssetsDir=... -->
+            <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
+            <LKeysJsonPath>$([System.IO.Path]::Combine('$(AssetsDir)','lkeys.json'))</LKeysJsonPath>
+            <!-- 使用 CompilerGeneratedFilesOutputPath，如果未设置则使用 IntermediateOutputPath -->
+            <_GeneratedFilesPath Condition="'$(CompilerGeneratedFilesOutputPath)' != ''">$(CompilerGeneratedFilesOutputPath)</_GeneratedFilesPath>
+            <_GeneratedFilesPath Condition="'$(_GeneratedFilesPath)' == ''">$(IntermediateOutputPath)</_GeneratedFilesPath>
+            <_GeneratedFilesFullPath>$([System.IO.Path]::GetFullPath('$(_GeneratedFilesPath)'))</_GeneratedFilesFullPath>
+        </PropertyGroup>
+
+        <Message Text="Extracting localization keys to JSON..." Importance="high" 
+                 Condition="'$(ExtractScriptPath)' != ''" />
+        <Message Text="  Script: $(ExtractScriptPath)" Importance="high" />
+        <Message Text="  Generated Files Dir: $(_GeneratedFilesFullPath)" Importance="high" />
+        <Message Text="  Output: $(LKeysJsonPath)" Importance="high" />
+
+        <Exec
+            Command="dotnet script &quot;$(ExtractScriptPath)&quot; &quot;$(_GeneratedFilesFullPath)&quot; &quot;$(LKeysJsonPath)&quot;"
+            ContinueOnError="true"
+            IgnoreExitCode="true"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="'$(ExtractScriptPath)' != ''">
+            <Output TaskParameter="ConsoleOutput" ItemName="_ExtractJsonOutput" />
+            <Output TaskParameter="ExitCode" PropertyName="_ExtractJsonExitCode" />
+        </Exec>
+
+        <!-- 退出码说明：
+             0 = 成功提取 JSON
+             2 = 项目没有本地化键（不是错误）
+             其他 = 实际错误 -->
+        <Message Text="No localization keys found in this project, skipping CSV generation" Importance="high" 
+                 Condition="'$(_ExtractJsonExitCode)' == '2'" />
+        
+        <Warning Text="Failed to extract localization keys (exit code $(_ExtractJsonExitCode))" 
+                 Condition="'$(_ExtractJsonExitCode)' != '0' AND '$(_ExtractJsonExitCode)' != '2' AND '$(_ExtractJsonExitCode)' != ''" />
+        
+        <Message Text="Localization keys extraction completed successfully" Importance="high" 
+                 Condition="'$(_ExtractJsonExitCode)' == '0'" />
+    </Target>
+
     <!-- Post-build: Update localization CSV files -->
-    <Target Name="UpdateLocalesCsv" AfterTargets="AfterBuild">
+    <Target Name="UpdateLocalesCsv" AfterTargets="AfterBuild" 
+            Condition="'$(_ShouldProcessLocalization)' == 'true' AND Exists('$(LKeysJsonPath)')">
         <PropertyGroup>
             <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
             <!-- 获取 NuGet 包的安装路径（$(MSBuildThisFileDirectory) 指向 .targets 所在目录，即 build/） -->

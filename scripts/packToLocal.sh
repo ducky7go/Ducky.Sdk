@@ -22,8 +22,8 @@ set -euo pipefail
 #   - Local nuget.config includes duckylocal source.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PKG_PROJ="${ROOT_DIR}/SDKlibs/Ducky.Sdk/Ducky.Sdk.csproj"
-NUSPEC_ORIG="${ROOT_DIR}/SDKlibs/Ducky.Sdk/Ducky.Sdk.nuspec"
+PKG_PROJ="${ROOT_DIR}/Sdk/SDKlibs/Ducky.Sdk/Ducky.Sdk.csproj"
+NUSPEC_ORIG="${ROOT_DIR}/Sdk/SDKlibs/Ducky.Sdk/Ducky.Sdk.nuspec"
 LOCAL_FEED="${ROOT_DIR}/duckylocal"
 PACKAGE_ID="Ducky.Sdk"
 PACKAGE_ID_LOWER="ducky.sdk"
@@ -88,7 +88,7 @@ log "Requested (effective) version: $OVERRIDE_VERSION"
 # Prepare nuspec to pack: if override differs, create temp nuspec with new version
 NUSPEC_TO_USE="$NUSPEC_ORIG"
 if [[ "$OVERRIDE_VERSION" != "$ORIG_VERSION" ]]; then
-  TEMP_NUSPEC="${ROOT_DIR}/SDKlibs/Ducky.Sdk/Ducky.Sdk.${OVERRIDE_VERSION}.nuspec"
+  TEMP_NUSPEC="${ROOT_DIR}/Sdk/SDKlibs/Ducky.Sdk/Ducky.Sdk.${OVERRIDE_VERSION}.nuspec"
   sed -E "s#<version>[^<]+</version>#<version>${OVERRIDE_VERSION}</version>#" "$NUSPEC_ORIG" > "$TEMP_NUSPEC"
   NUSPEC_TO_USE="$TEMP_NUSPEC"
   log "Created temp nuspec: $TEMP_NUSPEC"
@@ -97,16 +97,16 @@ fi
 # Optional build
 if $BUILD; then
   log "Building analyzer project (required for nuspec reference)"
-  dotnet build "$ROOT_DIR/SG/Ducky.Sdk.Analyser/Ducky.Sdk.Analyser.csproj" -c "$CONFIGURATION"
+  dotnet build "$ROOT_DIR/Sdk/Ducky.Sdk.Analyser/Ducky.Sdk.Analyser.csproj" -c "$CONFIGURATION"
   log "Building SDK package project"
   dotnet build "$PKG_PROJ" -c "$CONFIGURATION"
 fi
 
 # Optional tests (only if there is a tests project)
 if $RUN_TESTS; then
-  if [[ -d "$ROOT_DIR/Tests" ]] && find "$ROOT_DIR/Tests" -type f -name '*.csproj' -print -quit | grep -q .; then
+  if [[ -d "$ROOT_DIR/Sdk/Tests" ]] && find "$ROOT_DIR/Sdk/Tests" -type f -name '*.csproj' -print -quit | grep -q .; then
     log "Running tests"
-    dotnet test "$ROOT_DIR/Tests" -c "$CONFIGURATION" --no-build || warn "Tests failed; continuing"
+    dotnet test "$ROOT_DIR/Sdk/Tests" -c "$CONFIGURATION" --no-build || warn "Tests failed; continuing"
   else
     log "No test projects detected; skipping"
   fi

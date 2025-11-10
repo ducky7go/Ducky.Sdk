@@ -34,12 +34,15 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION="${GITHUB_REF#refs/tags/}"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "is_dev=false" >> $GITHUB_OUTPUT
             echo "Using tag version: $VERSION"
           else
-            # For branch builds, read version from nuspec
-            VERSION=$(grep -Po '(?<=<version>)[^<]+' SDKlibs/Ducky.Sdk/Ducky.Sdk.nuspec | head -1)
+            # For branch builds, read version from nuspec and add dev suffix with run number
+            BASE_VERSION=$(grep -Po '(?<=<version>)[^<]+' SDKlibs/Ducky.Sdk/Ducky.Sdk.nuspec | head -1)
+            VERSION="${BASE_VERSION}-dev.${{ github.run_number }}"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "Using nuspec version: $VERSION"
+            echo "is_dev=true" >> $GITHUB_OUTPUT
+            echo "Using dev version: $VERSION"
           fi
 
       - name: Build and pack using packToLocal script
@@ -55,6 +58,13 @@ jobs:
           fi
           echo "Generated packages:"
           ls -lh ./artifacts/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-${{ steps.get_version.outputs.version }}
+          path: ./artifacts/*.nupkg
+          retention-days: 30
 
       - name: Run push to nuget if it is a tag
         if: startsWith(github.ref, 'refs/tags/')

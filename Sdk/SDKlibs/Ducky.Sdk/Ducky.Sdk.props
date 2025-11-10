@@ -1,0 +1,119 @@
+<Project>
+  <PropertyGroup>
+    <!--to make sure localization can load dll when executing the update-locales-csv script.-->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    
+    <!-- 启用 Source Generator 生成文件到磁盘，以便 MSBuild targets 可以读取 -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <!-- 指定生成文件的输出目录（可选，默认是 obj/$(Configuration)/$(TargetFramework)/generated） -->
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <!-- Initialize SDK properties before build -->
+  <Target Name="InitializeDuckyFolders" BeforeTargets="BeforeBuild;BeforeResolveReferences">
+    <PropertyGroup>
+      <!-- DuckovFolder: if already specified externally, use it; otherwise require SteamFolder -->
+      <DuckovFolder Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' != '' ">$(SteamFolder)steamapps/common/Escape from Duckov/</DuckovFolder>
+      <ModsDirectory>$(DuckovFolder)Duckov_Data/Mods/</ModsDirectory>
+      <ManagedDirectory>$(DuckovFolder)Duckov_Data/Managed/</ManagedDirectory>
+      
+      <!-- 初始化本地化处理标志
+           ExcludeSdkLib='true' 明确表示不包含 SDK Lib（不处理本地化）
+           null 或 false 都表示包含（应该处理本地化） -->
+      <_ShouldProcessLocalization Condition="'$(ExcludeSdkLib)' != 'true'">true</_ShouldProcessLocalization>
+      <_ShouldProcessLocalization Condition="'$(ExcludeSdkLib)' == 'true'">false</_ShouldProcessLocalization>
+    </PropertyGroup>
+    
+    <Message Text="[Ducky.Sdk] SteamFolder: $(SteamFolder)" Importance="high" />
+    <Message Text="[Ducky.Sdk] DuckovFolder: $(DuckovFolder)" Importance="high" />
+    <Message Text="[Ducky.Sdk] ManagedDirectory: $(ManagedDirectory)" Importance="high" />
+  </Target>
+
+  <!-- Hide content files from Visual Studio solution explorer for this package -->
+  <ItemGroup>
+    <!-- Filter only Compile items coming from the Ducky.Sdk package -->
+    <_DuckySdkCompileForVisibility
+      Include="@(Compile->WithMetadataValue('NuGetPackageId','Ducky.Sdk')->WithMetadataValue('NuGetItemType','Compile'))" />
+    <Compile Update="@(_DuckySdkCompileForVisibility)">
+      <Visible>false</Visible>
+    </Compile>
+  </ItemGroup>
+
+  <!-- Collect SDK library source files (works in repo dev; may not exist in consumer env) -->
+  <ItemGroup Condition=" '$(ModName)' != '' ">
+    <PngFiles Include="icons/**/*.png" />
+    <AssetsFiles Include="assets/**/*.*" />
+    <SDKlibFiles
+      Include="@(Compile->WithMetadataValue('NuGetPackageId','Ducky.Sdk')->WithMetadataValue('NuGetItemType','Compile'))" />
+  </ItemGroup>
+
+  <!-- Globally ensure .csx files are never compiled -->
+  <ItemGroup>
+    <_CsxToConvert Include="@(Compile->WithMetadataValue('Extension','.csx'))" />
+    <Compile Remove="@(_CsxToConvert)" />
+    <None Include="@(_CsxToConvert)">
+      <Visible>false</Visible>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(ExcludeSdkLib)' != 'true' ">
+    <!-- Remove them from Compile so they don't get compiled -->
+    <Compile Update="@(SDKlibFiles)" Link="Shared\SDKlibs\%(RecursiveDir)%(Filename)%(Extension)">
+      <Visible>false</Visible>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(ExcludeSdkLib)' == 'true' ">
+    <Compile Remove="@(SDKlibFiles)" />
+    <None Include="@(SDKlibFiles)" Link="Shared\SDKlibs\%(RecursiveDir)%(Filename)%(Extension)">
+      <Visible>false</Visible>
+    </None>
+  </ItemGroup>
+
+  <!-- Dynamically find and add assembly references from ManagedDirectory -->
+  <Target Name="AddDuckyManagedReferences" BeforeTargets="BeforeResolveReferences" 
+          DependsOnTargets="InitializeDuckyFolders"
+          Condition=" '$(ManagedDirectory)' != '' AND Exists('$(ManagedDirectory)') ">
+    
+    <ItemGroup>
+      <!-- Find all TeamSoda DLLs -->
+      <_TeamSodaDlls Include="$(ManagedDirectory)TeamSoda*.dll" />
+      <!-- Find all Unity DLLs -->
+      <_UnityDlls Include="$(ManagedDirectory)Unity*.dll" />
+      <!-- Find all FOW DLLs -->
+      <_FOWDlls Include="$(ManagedDirectory)FOW*.dll" />
+      <!-- Find all SodaLocalization DLLs -->
+      <_SodaLocalizationDlls Include="$(ManagedDirectory)SodaLocalization*.dll" />
+      <!-- Specific required DLLs -->
+      <_SpecificDlls Include="$(ManagedDirectory)ItemStatsSystem.dll" Condition="Exists('$(ManagedDirectory)ItemStatsSystem.dll')" />
+      <_SpecificDlls Include="$(ManagedDirectory)Newtonsoft.Json.dll" Condition="Exists('$(ManagedDirectory)Newtonsoft.Json.dll')" />
+      <_SpecificDlls Include="$(ManagedDirectory)EasySave3.dll" Condition="Exists('$(ManagedDirectory)EasySave3.dll')" />
+      <_SpecificDlls Include="$(ManagedDirectory)UniTask.dll" Condition="Exists('$(ManagedDirectory)UniTask.dll')" />
+      <_SpecificDlls Include="$(ManagedDirectory)Eflatun.SceneReference.dll" Condition="Exists('$(ManagedDirectory)Eflatun.SceneReference.dll')" />
+      
+      <!-- Combine all found DLLs -->
+      <_AllManagedDlls Include="@(_TeamSodaDlls);@(_UnityDlls);@(_FOWDlls);@(_SodaLocalizationDlls);@(_SpecificDlls)" />
+    </ItemGroup>
+
+    <Message Text="[Ducky.Sdk] Found @(_AllManagedDlls->Count()) managed assemblies to reference" Importance="high" />
+    <Message Text="[Ducky.Sdk] References: @(_AllManagedDlls->'%(Filename)', ', ')" Importance="high" Condition="@(_AllManagedDlls->Count()) > 0" />
+    
+    <ItemGroup>
+      <Reference Include="@(_AllManagedDlls)">
+        <HintPath>%(Identity)</HintPath>
+        <Private>false</Private>
+      </Reference>
+    </ItemGroup>
+    
+    <Warning Text="[Ducky.Sdk] ManagedDirectory is set but no managed assemblies were found. Please check if the game is installed or run fetch_build_dependency.sh" 
+             Condition="@(_AllManagedDlls->Count()) == 0" />
+  </Target>
+
+  <!-- Fallback warning if ManagedDirectory doesn't exist -->
+  <Target Name="WarnMissingManagedDirectory" BeforeTargets="BeforeBuild"
+          DependsOnTargets="InitializeDuckyFolders"
+          Condition=" '$(ManagedDirectory)' == '' OR !Exists('$(ManagedDirectory)') ">
+    <Warning Text="[Ducky.Sdk] ManagedDirectory '$(ManagedDirectory)' does not exist. Game references will not be available." />
+  </Target>
+
+</Project>
