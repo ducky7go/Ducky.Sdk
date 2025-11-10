@@ -1,11 +1,12 @@
 branches:
   main:
-    mode: ContinuousDeployment
+    mode: ContinuousDelivery
     regex: ^main$
-    label: ""
+    label: "dev"
     increment: Patch
     prevent-increment:
       of-merged-branch: true
+      when-current-commit-tagged: true
     track-merge-target: false
     is-main-branch: true
   feature:

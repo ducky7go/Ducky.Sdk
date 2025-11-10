@@ -43,19 +43,20 @@ jobs:
         id: get_version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            # For tag builds, use the tag name
+            # For tag builds, use the tag name (formal release)
             VERSION="${GITHUB_REF#refs/tags/}"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "is_dev=false" >> $GITHUB_OUTPUT
             echo "Using tag version: $VERSION"
           else
-            # For branch builds, use GitVersion semver with metadata
-            VERSION="${{ steps.gitversion.outputs.semVer }}"
+            # For main branch builds, use fullSemVer which includes commit count
+            # Format: X.Y.Z-dev.N where N is commits since last tag
+            VERSION="${{ steps.gitversion.outputs.fullSemVer }}"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "is_dev=true" >> $GITHUB_OUTPUT
-            echo "Using GitVersion: $VERSION"
-            echo "Full version: ${{ steps.gitversion.outputs.fullSemVer }}"
-            echo "Informational version: ${{ steps.gitversion.outputs.informationalVersion }}"
+            echo "Using GitVersion dev build: $VERSION"
+            echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
+            echo "InformationalVersion: ${{ steps.gitversion.outputs.informationalVersion }}"
           fi
 
       - name: Build and pack using packToLocal script
