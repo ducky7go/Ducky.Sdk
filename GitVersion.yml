@@ -1,0 +1,29 @@
+mode: Mainline
+branches:
+  main:
+    regex: ^main$
+    tag: ""
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    source-branches: []
+    is-mainline: true
+  feature:
+    regex: ^features?[/-]
+    tag: "dev.{BranchName}"
+    increment: Minor
+    prevent-increment-of-merged-branch-version: false
+    track-merge-target: false
+    source-branches: ["main"]
+    is-mainline: false
+  develop:
+    regex: ^dev(elop)?(ment)?$
+    tag: "alpha"
+    increment: Minor
+    prevent-increment-of-merged-branch-version: false
+    track-merge-target: true
+    source-branches: []
+    is-mainline: false
+ignore:
+  sha: []
+merge-message-formats: {}
