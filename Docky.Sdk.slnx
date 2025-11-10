@@ -2,6 +2,7 @@
   <Folder Name="/.etc/">
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
+    <File Path="Local.props" />
   </Folder>
   <Project Path="SDKlibs\Ducky.Sdk.Lib\Ducky.Sdk.Lib.csproj" Type="Classic C#" />
   <Project Path="SDKlibs\Ducky.Sdk\Ducky.Sdk.csproj" Type="Classic C#" />

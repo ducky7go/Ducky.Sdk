@@ -2,6 +2,10 @@
   <PropertyGroup>
     <!--to make sure localization can load dll when executing the update-locales-csv script.-->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- DuckovFolder: if already specified externally, use it; otherwise require SteamFolder -->
+    <DuckovFolder Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' != '' ">$(SteamFolder)steamapps/common/Escape from Duckov/</DuckovFolder>
+    <ModsDirectory>$(DuckovFolder)Duckov_Data/Mods/</ModsDirectory>
+    <ManagedDirectory>$(DuckovFolder)Duckov_Data/Managed/</ManagedDirectory>
   </PropertyGroup>
 
   <!-- Hide content files from Visual Studio solution explorer for this package -->
@@ -46,15 +50,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\TeamSoda.*" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Unity*" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\FOW*" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\SodaLocalization*" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\ItemStatsSystem.dll" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Newtonsoft.Json.dll" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\EasySave3.dll" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\UniTask.dll" />
-    <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Eflatun.SceneReference.dll" />
+    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\TeamSoda.*" />
+    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\Unity*" />
+    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\FOW*" />
+    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\SodaLocalization*" />
+    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\ItemStatsSystem.dll" />
+    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\Newtonsoft.Json.dll" />
+    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\EasySave3.dll" />
+    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\UniTask.dll" />
+    <Reference Include="$(DuckovFolder)\Duckov_Data\Managed\Eflatun.SceneReference.dll" />
   </ItemGroup>
 
 </Project>

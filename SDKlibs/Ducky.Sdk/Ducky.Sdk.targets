@@ -1,6 +1,12 @@
 <Project>
+    <!-- Validation: At least one of DuckovFolder or SteamFolder must be set -->
+    <Target Name="ValidateDuckovFolder" BeforeTargets="BeforeBuild">
+        <Error Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' == '' " 
+            Text="Either DuckovFolder or SteamFolder must be specified. Please set one of them in your project or Local.props file." />
+    </Target>
+    
     <Target Name="CopyToDuckov" AfterTargets="Build"
-            Condition=" '$(DuckovPath)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
+            Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
         <!-- Ensure destination folder exists -->
         <MakeDir Directories="$(ModsDirectory)$(ModName)" />
 

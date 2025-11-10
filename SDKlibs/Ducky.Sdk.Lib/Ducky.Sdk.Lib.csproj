@@ -8,7 +8,6 @@
     <!-- to make sure no implicit usings are included -->
     <ImplicitUsings>disable</ImplicitUsings>
     <DuckovPath>$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
-    <DuckovWorkshopPath>$(SteamDir)steamapps/workshop/content/3167020/</DuckovWorkshopPath>
     <!-- Resolve ManagedDirectory: if a repo root Managed folder exists, use it; otherwise fallback to game Managed -->
     <_RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../'))</_RepoRoot>
     <_ManagedDirCandidate>$([System.IO.Path]::Combine('$(_RepoRoot)','Managed'))</_ManagedDirCandidate>
