@@ -5,19 +5,16 @@ branches:
     label: ""
     increment: Patch
     prevent-increment:
-      when-current-commit-tagged: false
+      of-merged-branch: true
     track-merge-target: false
-    source-branches: []
-    is-mainline: true
+    is-main-branch: true
   feature:
-    regex: ^features?[/-]
-    label: "dev-{BranchName}"
+    regex: ^features?[/-](?<BranchName>.+)
+    label: "{BranchName}"
     increment: Minor
     prevent-increment:
       when-current-commit-tagged: false
-    track-merge-target: false
     source-branches: ["main"]
-    is-mainline: false
   develop:
     regex: ^dev(elop)?(ment)?$
     label: "alpha"
@@ -25,7 +22,5 @@ branches:
     prevent-increment:
       when-current-commit-tagged: false
     track-merge-target: true
-    source-branches: []
-    is-mainline: false
 ignore:
   sha: []
