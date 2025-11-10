@@ -1,13 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <DuckovPath>$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
-    <!-- Resolve ManagedDirectory: if a repo root Managed folder exists, use it; otherwise fallback to game Managed -->
-    <_RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../'))</_RepoRoot>
+    <!-- Resolve ManagedDirectory: always prefer repo root Managed folder for tests -->
+    <_RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../../'))</_RepoRoot>
     <_ManagedDirCandidate>$([System.IO.Path]::Combine('$(_RepoRoot)','Managed'))</_ManagedDirCandidate>
     <ManagedDirectory Condition="Exists('$(_ManagedDirCandidate)')">$(_ManagedDirCandidate)/</ManagedDirectory>
-    <ManagedDirectory Condition="'$(ManagedDirectory)' == ''">$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>
-    <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
+    
+    <!-- Only use game directory if SteamDir is set and Managed folder doesn't exist -->
+    <DuckovPath Condition="'$(SteamDir)' != '' AND '$(ManagedDirectory)' == ''">$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
+    <ManagedDirectory Condition="'$(ManagedDirectory)' == '' AND '$(DuckovPath)' != ''">$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>
+    <ModsDirectory Condition="'$(DuckovPath)' != ''">$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
@@ -25,7 +27,8 @@
     <ProjectReference Include="..\..\SDKlibs\Ducky.Sdk.Lib\Ducky.Sdk.Lib.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!-- Only add references if ManagedDirectory exists -->
+  <ItemGroup Condition="'$(ManagedDirectory)' != '' AND Exists('$(ManagedDirectory)')">
     <Reference Include="$(ManagedDirectory)TeamSoda.*" />
     <Reference Include="$(ManagedDirectory)Unity*" />
     <Reference Include="$(ManagedDirectory)FOW*" />
@@ -34,5 +37,10 @@
     <Reference Include="$(ManagedDirectory)Newtonsoft.Json.dll" />
     <Reference Include="$(ManagedDirectory)EasySave3.dll" />
   </ItemGroup>
+
+  <!-- Warn if ManagedDirectory is not available -->
+  <Target Name="WarnMissingManagedDirectory" BeforeTargets="BeforeBuild" Condition="'$(ManagedDirectory)' == '' OR !Exists('$(ManagedDirectory)')">
+    <Warning Text="ManagedDirectory not found. Game assembly references will be skipped. Run fetch_build_dependency.sh to download them." />
+  </Target>
 
 </Project>
