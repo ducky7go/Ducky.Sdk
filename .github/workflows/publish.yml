@@ -38,7 +38,7 @@ jobs:
             echo "Using tag version: $VERSION"
           else
             # For branch builds, read version from nuspec and add dev suffix with run number
-            BASE_VERSION=$(grep -Po '(?<=<version>)[^<]+' SDKlibs/Ducky.Sdk/Ducky.Sdk.nuspec | head -1)
+            BASE_VERSION=$(grep -Po '(?<=<version>)[^<]+' Sdk/SDKlibs/Ducky.Sdk/Ducky.Sdk.nuspec | head -1)
             VERSION="${BASE_VERSION}-dev.${{ github.run_number }}"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "is_dev=true" >> $GITHUB_OUTPUT
