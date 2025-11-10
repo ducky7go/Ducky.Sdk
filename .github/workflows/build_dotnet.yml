@@ -27,17 +27,17 @@ jobs:
         with:
           path: ~/.nuget/packages
           # Look to see if there is a cache hit for the corresponding requirements file
-          key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('Sdk/Directory.Packages.props') }}
           restore-keys: |
             ${{ runner.os }}-nuget
       - name: Fetch build dependencies
         run: bash scripts/fetch_build_dependency.sh
       - name: Restore dependencies
         run: |
-          dotnet restore Docky.Sdk.slnx
+          dotnet restore Sdk/Docky.Sdk.slnx
       - name: Run dotnet test
         run: |
-          dotnet test Docky.Sdk.slnx --configuration Release --logger trx --results-directory ./TestResults
+          dotnet test Sdk/Docky.Sdk.slnx --configuration Release --logger trx --results-directory ./TestResults
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()

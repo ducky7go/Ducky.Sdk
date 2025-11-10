@@ -22,7 +22,7 @@ jobs:
         with:
           path: ~/.nuget/packages
           # Look to see if there is a cache hit for the corresponding requirements file
-          key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('Sdk/Directory.Packages.props') }}
           restore-keys: |
             ${{ runner.os }}-nuget
       - name: Fetch build dependencies
