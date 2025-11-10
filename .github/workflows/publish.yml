@@ -28,6 +28,16 @@ jobs:
       - name: Fetch build dependencies
         run: bash scripts/fetch_build_dependency.sh
 
+      - name: Get next version from Release Drafter
+        id: release_drafter
+        uses: release-drafter/release-drafter@v6
+        if: github.ref == 'refs/heads/main'
+        with:
+          publish: false
+          disable-releaser: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Extract version from tag
         id: get_version
         run: |
@@ -37,12 +47,16 @@ jobs:
             echo "is_dev=false" >> $GITHUB_OUTPUT
             echo "Using tag version: $VERSION"
           else
-            # For branch builds, read version from nuspec and add dev suffix with run number
-            BASE_VERSION=$(grep -Po '(?<=<version>)[^<]+' Sdk/SDKlibs/Ducky.Sdk/Ducky.Sdk.nuspec | head -1)
+            # For branch builds, use version from release drafter or fallback to nuspec
+            if [[ -n "${{ steps.release_drafter.outputs.resolved_version }}" ]]; then
+              BASE_VERSION="${{ steps.release_drafter.outputs.resolved_version }}"
+            else
+              BASE_VERSION=$(grep -Po '(?<=<version>)[^<]+' Sdk/SDKlibs/Ducky.Sdk/Ducky.Sdk.nuspec | head -1)
+            fi
             VERSION="${BASE_VERSION}-dev.${{ github.run_number }}"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "is_dev=true" >> $GITHUB_OUTPUT
-            echo "Using dev version: $VERSION"
+            echo "Using dev version: $VERSION (base: $BASE_VERSION)"
           fi
 
       - name: Build and pack using packToLocal script
