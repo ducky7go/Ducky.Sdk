@@ -1,10 +1,10 @@
 <Project>
     <!-- Validation: At least one of DuckovFolder or SteamFolder must be set -->
     <Target Name="ValidateDuckovFolder" BeforeTargets="BeforeBuild">
-        <Error Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' == '' " 
-            Text="Either DuckovFolder or SteamFolder must be specified. Please set one of them in your project or Local.props file." />
+        <Error Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' == '' "
+               Text="Either DuckovFolder or SteamFolder must be specified. Please set one of them in your project or Local.props file." />
     </Target>
-    
+
     <Target Name="CopyToDuckov" AfterTargets="Build"
             Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
         <!-- Ensure destination folder exists -->
@@ -62,7 +62,7 @@
             <_GeneratedFilesFullPath>$([System.IO.Path]::GetFullPath('$(_GeneratedFilesPath)'))</_GeneratedFilesFullPath>
         </PropertyGroup>
 
-        <Message Text="Extracting localization keys to JSON..." Importance="high" 
+        <Message Text="Extracting localization keys to JSON..." Importance="high"
                  Condition="'$(ExtractScriptPath)' != ''" />
         <Message Text="  Script: $(ExtractScriptPath)" Importance="high" />
         <Message Text="  Generated Files Dir: $(_GeneratedFilesFullPath)" Importance="high" />
@@ -82,18 +82,18 @@
              0 = 成功提取 JSON
              2 = 项目没有本地化键（不是错误）
              其他 = 实际错误 -->
-        <Message Text="No localization keys found in this project, skipping CSV generation" Importance="high" 
+        <Message Text="No localization keys found in this project, skipping CSV generation" Importance="high"
                  Condition="'$(_ExtractJsonExitCode)' == '2'" />
-        
-        <Warning Text="Failed to extract localization keys (exit code $(_ExtractJsonExitCode))" 
+
+        <Warning Text="Failed to extract localization keys (exit code $(_ExtractJsonExitCode))"
                  Condition="'$(_ExtractJsonExitCode)' != '0' AND '$(_ExtractJsonExitCode)' != '2' AND '$(_ExtractJsonExitCode)' != ''" />
-        
-        <Message Text="Localization keys extraction completed successfully" Importance="high" 
+
+        <Message Text="Localization keys extraction completed successfully" Importance="high"
                  Condition="'$(_ExtractJsonExitCode)' == '0'" />
     </Target>
 
     <!-- Post-build: Update localization CSV files -->
-    <Target Name="UpdateLocalesCsv" AfterTargets="AfterBuild" 
+    <Target Name="UpdateLocalesCsv" AfterTargets="AfterBuild"
             Condition="'$(_ShouldProcessLocalization)' == 'true' AND Exists('$(LKeysJsonPath)')">
         <PropertyGroup>
             <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
@@ -130,13 +130,17 @@
             <!-- 使用 MSBuild 的 Replace 和 Splitting 技巧：先将分号替换为 ;; 再借助 %(Identity) 展开。这里直接利用 @(AssetsDirSplit) 的 Include 逗号/分号分隔特性。 -->
             <_AssetsDirList Include="$(AssetsDir)" />
         </ItemGroup>
-        <Message Text="  Resolved AssetsDir Count: @(_AssetsDirList->Count())" Importance="high" Condition="'@(_AssetsDirList)' != ''" />
-        <Message Text="  AssetsDir Each: @(_AssetsDirList->'%(Identity)', ' | ')" Importance="high" Condition="'@(_AssetsDirList)' != ''" />
+        <Message Text="  Resolved AssetsDir Count: @(_AssetsDirList->Count())" Importance="high"
+                 Condition="'@(_AssetsDirList)' != ''" />
+        <Message Text="  AssetsDir Each: @(_AssetsDirList->'%(Identity)', ' | ')" Importance="high"
+                 Condition="'@(_AssetsDirList)' != ''" />
         <!-- 计算每个目录的绝对路径，便于日志观测与排错 -->
         <ItemGroup Condition="'@(_AssetsDirList)' != ''">
-            <_AssetsDirResolved Include="@(_AssetsDirList->'$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(ProjectDir)','%(Identity)'))))')" />
+            <_AssetsDirResolved
+                Include="@(_AssetsDirList->'$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(ProjectDir)','%(Identity)'))))')" />
         </ItemGroup>
-        <Message Text="  AssetsDir Absolute Each: @(_AssetsDirResolved->'%(Identity)', ' | ')" Importance="high" Condition="'@(_AssetsDirResolved)' != ''" />
+        <Message Text="  AssetsDir Absolute Each: @(_AssetsDirResolved->'%(Identity)', ' | ')" Importance="high"
+                 Condition="'@(_AssetsDirResolved)' != ''" />
         <Warning Text="AssetsDir empty, skipping update-locales-csv execution." Condition="'$(AssetsDir)' == ''" />
         <!-- 针对每个目录批处理执行脚本 -->
         <Exec
@@ -147,7 +151,8 @@
             Condition="'$(UpdateScriptPath)' != '' AND '@(_AssetsDirList)' != ''">
             <Output TaskParameter="ConsoleOutput" ItemName="_LocalesUpdateOutput" />
         </Exec>
-        <Message Text="  update-locales-csv outputs: @(_LocalesUpdateOutput->'%(Identity)')" Importance="low" Condition="'@(_LocalesUpdateOutput)' != ''" />
+        <Message Text="  update-locales-csv outputs: @(_LocalesUpdateOutput->'%(Identity)')" Importance="low"
+                 Condition="'@(_LocalesUpdateOutput)' != ''" />
     </Target>
 
     <!-- 复制项目输出目录中不在 ManagedDirectory 的所有 DLL 到 Mod 的 Dependency 文件夹 -->
@@ -187,8 +192,9 @@
         </ItemGroup>
 
         <!-- 输出警告：跳过已在 ManagedDirectory 中存在的 DLL -->
-        <Warning Text="[CopyMissingDependencies] Skipping '%(Filename)%(Extension)' - already exists in ManagedDirectory"
-                 Condition=" '@(_SkippedDlls)' != '' " />
+        <Warning
+            Text="[CopyMissingDependencies] Skipping '%(Filename)%(Extension)' - already exists in ManagedDirectory"
+            Condition=" '@(_SkippedDlls)' != '' " />
 
         <!-- 创建目标目录 -->
         <MakeDir Directories="$(_DestDir)" Condition=" '@(_DllsToCopy)' != '' " />
@@ -202,10 +208,11 @@
             <Output TaskParameter="CopiedFiles" ItemName="_CopiedDependencies" />
         </Copy>
 
-        <Message Text="[CopyMissingDependencies] Copied @(_CopiedDependencies->Count()) DLL(s) to Dependency folder: @(_CopiedDependencies->'%(Filename)%(Extension)', ', ')"
-                 Importance="High"
-                 Condition="@(_CopiedDependencies) != ''" />
-        
+        <Message
+            Text="[CopyMissingDependencies] Copied @(_CopiedDependencies->Count()) DLL(s) to Dependency folder: @(_CopiedDependencies->'%(Filename)%(Extension)', ', ')"
+            Importance="High"
+            Condition="@(_CopiedDependencies) != ''" />
+
         <Message Text="[CopyMissingDependencies] No dependencies to copy"
                  Importance="High"
                  Condition="@(_CopiedDependencies) == '' AND @(_DllsToCopy) == ''" />
