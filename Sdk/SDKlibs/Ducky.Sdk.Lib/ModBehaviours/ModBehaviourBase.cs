@@ -1,5 +1,6 @@
 using System;
 using Duckov.Modding;
+using Ducky.Sdk.Assemblies;
 using Ducky.Sdk.GameApis;
 using Ducky.Sdk.Localizations;
 using Ducky.Sdk.Logging;

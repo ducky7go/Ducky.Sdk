@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Ducky.Sdk.Logging;
 using UnityEngine;
+using Newtonsoft.Json.Linq;
 
 namespace Ducky.Sdk.Assemblies;
 
@@ -268,5 +269,94 @@ public static class Loader
         }
 
         return null;
+    }
+
+    public static void LoadDependenciesFromDepsJson()
+    {
+        var depFolder = GetDependencyFolder();
+        var assemblyName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
+        var depsJsonPath = Path.Combine(depFolder, $"{assemblyName}.deps.json");
+        LoadDependenciesFromDepsJson(depsJsonPath);
+    }
+
+    // 自动加载依赖项：解析 deps.json 并按顺序加载 DLL
+    public static void LoadDependenciesFromDepsJson(string depsJsonPath)
+    {
+        if (!File.Exists(depsJsonPath))
+        {
+            Log.Debug($"[Loader/DepsJson] deps.json 文件不存在: {depsJsonPath}");
+            return;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(depsJsonPath);
+            var root = JObject.Parse(json);
+
+            // 解析 targets 节点
+            var targets = root["targets"] as JObject;
+            if (targets == null)
+            {
+                Log.Warn($"[Loader/DepsJson] 未找到 targets 节点");
+                return;
+            }
+
+            // 取第一个 target（一般为 .NETStandard,Version=v2.1/）
+            var target = targets.Properties().FirstOrDefault(x => x.Name == ".NETStandard,Version=v2.1/")?.Value as JObject;
+            if (target == null)
+            {
+                Log.Warn($"[Loader/DepsJson] 未找到 .NETStandard,Version=v2.1/ 目标");
+                return;
+            }
+
+            // 按 dependencies 顺序遍历
+            foreach (var lib in target.Properties())
+            {
+                var libObj = lib.Value as JObject;
+                if (libObj == null) continue;
+                if (libObj["dependencies"] == null) continue;
+
+                // 当前库的 runtime DLL
+                var runtime = libObj["runtime"] as JObject;
+                if (runtime != null)
+                {
+                    foreach (var dll in runtime.Properties())
+                    {
+                        var dllName = dll.Name;
+                        // 检查是否已加载
+                        var loaded = AppDomain.CurrentDomain.GetAssemblies()
+                            .Any(a => Path.GetFileName(a.Location).Equals(dllName, StringComparison.OrdinalIgnoreCase));
+                        if (loaded)
+                        {
+                            Log.Debug($"[Loader/DepsJson] 已加载: {dllName}");
+                            continue;
+                        }
+                        // 依赖文件路径
+                        var depFolder = GetDependencyFolder();
+                        var dllPath = Path.Combine(depFolder, dllName);
+                        if (File.Exists(dllPath))
+                        {
+                            try
+                            {
+                                Assembly.LoadFrom(dllPath);
+                                Log.Debug($"[Loader/DepsJson] 加载依赖: {dllPath}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Debug($"[Loader/DepsJson] 加载失败: {dllPath} - {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            Log.Debug($"[Loader/DepsJson] 未找到 DLL: {dllPath}");
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Debug($"[Loader/DepsJson] 解析或加载失败: {ex.Message}");
+        }
     }
 }

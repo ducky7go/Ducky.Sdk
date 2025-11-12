@@ -4,7 +4,7 @@ set -euo pipefail
 # packToLocal.sh
 # Build and pack the Ducky.Sdk NuGet package into the local ./duckylocal source directory.
 # Usage:
-#   ./scripts/packToLocal.sh [--version x.y.z] [--no-build] [--skip-tests] [--configuration Debug|Release] [--no-clear-cache] [--clear-all-caches]
+#   ./scripts/packToLocal.sh [--version x.y.z] [--no-build] [--skip-tests] [--configuration Debug|Release] [--no-clear-cache] [--clear-all-caches] [--purge-all-versions]
 #
 # The script will:
 #   1. Ensure ./duckylocal exists
@@ -34,6 +34,7 @@ CONFIGURATION="Debug"
 TEMP_NUSPEC=""
 CLEAR_CACHE=true
 CLEAR_ALL_CACHES=false
+PURGE_ALL_VERSIONS=false
 
 function log() { printf "[packToLocal] %s\n" "$*"; }
 function warn() { printf "[packToLocal][WARN] %s\n" "$*"; }
@@ -54,6 +55,8 @@ while [[ $# -gt 0 ]]; do
       CLEAR_CACHE=false; shift;;
     --clear-all-caches)
       CLEAR_ALL_CACHES=true; shift;;
+    --purge-all-versions)
+      PURGE_ALL_VERSIONS=true; shift;;
     -h|--help)
       sed -n '2,80p' "$0"; exit 0;;
     *) err "Unknown arg: $1"; exit 1;;
@@ -104,11 +107,22 @@ fi
 
 # Optional tests (only if there is a tests project)
 if $RUN_TESTS; then
-  if [[ -d "$ROOT_DIR/Sdk/Tests" ]] && find "$ROOT_DIR/Sdk/Tests" -type f -name '*.csproj' -print -quit | grep -q .; then
-    log "Running tests"
-    dotnet test "$ROOT_DIR/Sdk/Tests" -c "$CONFIGURATION" --no-build || warn "Tests failed; continuing"
+  TESTS_DIR="$ROOT_DIR/Sdk/Tests"
+  if [[ -d "$TESTS_DIR" ]]; then
+    # Find test project files
+    TEST_PROJECTS=$(find "$TESTS_DIR" -type f -name '*.csproj' 2>/dev/null || true)
+    if [[ -n "$TEST_PROJECTS" ]]; then
+      log "Running tests"
+      # Test each project individually to avoid MSB1003 error
+      while IFS= read -r proj; do
+        log "Testing: $proj"
+        dotnet test "$proj" -c "$CONFIGURATION" --no-build || warn "Tests failed for $proj; continuing"
+      done <<< "$TEST_PROJECTS"
+    else
+      log "No test projects detected; skipping"
+    fi
   else
-    log "No test projects detected; skipping"
+    log "Tests directory not found; skipping"
   fi
 fi
 
@@ -121,21 +135,26 @@ fi
 
 # Clear caches to avoid stale packages being restored
 if $CLEAR_CACHE; then
-  # Find global-packages location
   GP_LINE=$(dotnet nuget locals global-packages --list | tr -d '\r' || true)
   GP_DIR=$(printf "%s" "$GP_LINE" | sed -E 's/.*global-packages: *//')
   if [[ -n "$GP_DIR" && -d "$GP_DIR" ]]; then
-    PKG_CACHE_DIR="$GP_DIR/$PACKAGE_ID_LOWER/$OVERRIDE_VERSION"
-    if [[ -d "$PKG_CACHE_DIR" ]]; then
-      log "Clearing global-packages cache for ${PACKAGE_ID} ${OVERRIDE_VERSION}: $PKG_CACHE_DIR"
-      rm -rf "$PKG_CACHE_DIR"
+    VERSION_DIR="$GP_DIR/$PACKAGE_ID_LOWER/$OVERRIDE_VERSION"
+    if [[ -d "$VERSION_DIR" ]]; then
+      log "Removing version-specific cache: $VERSION_DIR"
+      rm -rf "$VERSION_DIR"
     else
-      log "No global-packages cache found for ${PACKAGE_ID} ${OVERRIDE_VERSION}"
+      log "No version-specific global-packages cache for ${PACKAGE_ID} ${OVERRIDE_VERSION}"
+    fi
+    if $PURGE_ALL_VERSIONS; then
+      ALL_DIR="$GP_DIR/$PACKAGE_ID_LOWER"
+      if [[ -d "$ALL_DIR" ]]; then
+        log "Purging ALL cached versions of ${PACKAGE_ID}: $ALL_DIR"
+        rm -rf "$ALL_DIR"
+      fi
     fi
   else
     warn "Could not resolve global-packages directory from: $GP_LINE"
   fi
-
   if $CLEAR_ALL_CACHES; then
     log "Clearing NuGet http-cache and temp caches (may be slow)"
     dotnet nuget locals http-cache --clear || warn "Failed to clear http-cache"

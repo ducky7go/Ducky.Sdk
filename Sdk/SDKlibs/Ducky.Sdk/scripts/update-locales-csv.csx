@@ -1,3 +1,5 @@
+// NOTE: Nullable reference types disabled for dotnet-script compatibility; removing nullable annotations.
+#nullable disable
 using System;
 using System.IO;
 using System.Linq;
@@ -5,6 +7,19 @@ using System.Text;
 using System.Collections.Generic;
 
 // Usage: dotnet script update-locales-csv.csx <ProjectDir> <AssetsDir> <TargetAssembly>
+// Robust Args resolution: find args after the .csx script path
+List<string> GetScriptArgs()
+{
+    var all = Environment.GetCommandLineArgs();
+    var idx = Array.FindIndex(all, s => s.EndsWith(".csx", StringComparison.OrdinalIgnoreCase));
+    if (idx >= 0 && idx + 1 < all.Length)
+    {
+        return all.Skip(idx + 1).ToList();
+    }
+    // Fallback: best effort (may include host exe at [0])
+    return all.Skip(1).ToList();
+}
+var Args = GetScriptArgs();
 if (Args == null || Args.Count < 3)
 {
     Console.Error.WriteLine("Usage: update-locales-csv.csx <ProjectDir> <AssetsDir> <TargetAssembly>");
@@ -16,7 +31,7 @@ var assetsDir = Args[1];
 var targetAssembly = Args[2];
 
 // locales directory will be resolved from assetsDir below
-string localesDir;
+string localesDir = string.Empty;
 
 Console.WriteLine($"Running update-locales-csv.csx\n  ProjectDir: {projectDir}\n  AssetsDir: {assetsDir}\n  TargetAssembly: {targetAssembly}");
 
@@ -27,6 +42,8 @@ if (!File.Exists(targetAssembly))
 }
 
 List<string> keys = new();
+Dictionary<string, string> keyFileExtensions = new(); // key -> file extension
+List<string> supportedLanguages = null; // will populate if attribute exists
 
 // 从 JSON 文件读取 keys
 var jsonKeyFile = Path.Combine(assetsDir, "lkeys.json");
@@ -45,18 +62,59 @@ try
     using var doc = System.Text.Json.JsonDocument.Parse(jsonContent);
     var root = doc.RootElement;
     
+    // Read supported languages if present
+    if (root.TryGetProperty("supportedLanguages", out var langsArray))
+    {
+        supportedLanguages = new List<string>();
+        foreach (var langElement in langsArray.EnumerateArray())
+        {
+            var lang = langElement.GetString();
+            if (!string.IsNullOrWhiteSpace(lang))
+            {
+                supportedLanguages.Add(lang.ToLowerInvariant());
+            }
+        }
+        Console.WriteLine($"Found {supportedLanguages.Count} supported languages: {string.Join(", ", supportedLanguages)}");
+    }
+    
     if (root.TryGetProperty("keys", out var keysArray))
     {
         foreach (var keyElement in keysArray.EnumerateArray())
         {
-            var key = keyElement.GetString();
-            if (!string.IsNullOrWhiteSpace(key))
+            if (keyElement.ValueKind == System.Text.Json.JsonValueKind.String)
             {
-                keys.Add(key);
+                // Simple string key
+                var key = keyElement.GetString();
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    keys.Add(key);
+                }
+            }
+            else if (keyElement.ValueKind == System.Text.Json.JsonValueKind.Object)
+            {
+                // Key with file extension
+                if (keyElement.TryGetProperty("key", out var keyProp))
+                {
+                    var key = keyProp.GetString();
+                    if (!string.IsNullOrWhiteSpace(key))
+                    {
+                        keys.Add(key);
+                        
+                        if (keyElement.TryGetProperty("fileExtension", out var extProp))
+                        {
+                            var ext = extProp.GetString();
+                            if (!string.IsNullOrWhiteSpace(ext))
+                            {
+                                keyFileExtensions[key] = ext;
+                                Console.WriteLine($"  Key '{key}' marked as file reference with extension '.{ext}'");
+                            }
+                        }
+                    }
+                }
             }
         }
         
-        Console.WriteLine($"Loaded {keys.Count} keys from JSON file");
+        Console.WriteLine($"Loaded {keys.Count} keys from JSON file ({keyFileExtensions.Count} with file references)");
     }
     else
     {
@@ -179,12 +237,25 @@ var hashFile = Path.Combine(assetsDir, "keys.hash.txt");
     }
 }
 
-// Determine language entries. Support two layouts:
-// 1) localesDir contains per-language CSV files directly (en.csv, fr.csv)
-// 2) localesDir contains language subdirectories (en/, fr/) with standalone files; CSVs are written at localesDir/<lang>.csv
+// Determine language entries based on LanguageSupport attribute or existing files
 var languageEntries = new List<(string LangCode, string CsvPath, string LangDir)>();
-if (Directory.Exists(localesDir))
+
+if (supportedLanguages != null && supportedLanguages.Count > 0)
 {
+    // Use specified languages from LanguageSupport attribute
+    Console.WriteLine($"Using languages specified in LanguageSupport attribute: {string.Join(", ", supportedLanguages)}");
+    foreach (var langCode in supportedLanguages)
+    {
+        var csvPath = Path.Combine(localesDir, langCode + ".csv");
+        var langDir = Path.Combine(localesDir, langCode);
+        languageEntries.Add((langCode, csvPath, langDir));
+    }
+}
+else if (Directory.Exists(localesDir))
+{
+    // Fallback: discover from existing files
+    Console.WriteLine("No LanguageSupport attribute found, discovering languages from existing files...");
+    
     // Look for CSV files directly under localesDir
     var csvFilesRoot = Directory.GetFiles(localesDir, "*.csv", SearchOption.TopDirectoryOnly);
     if (csvFilesRoot.Length > 0)
@@ -192,7 +263,9 @@ if (Directory.Exists(localesDir))
         foreach (var csv in csvFilesRoot)
         {
             var code = Path.GetFileNameWithoutExtension(csv);
-            languageEntries.Add((code, csv, null));
+            // Even if discovered from root CSVs, create/use a language subdirectory to hold file-based translations
+            var langDirCandidate = Path.Combine(localesDir, code);
+            languageEntries.Add((code, csv, langDirCandidate));
         }
     }
 
@@ -208,6 +281,18 @@ if (Directory.Exists(localesDir))
             languageEntries.Add((code, csvPath, sd));
         }
     }
+}
+else
+{
+    // No existing files and no LanguageSupport attribute - default to English and Chinese
+    Console.WriteLine("No existing Locales directory and no LanguageSupport attribute, defaulting to: en, zh");
+    var csvPathEn = Path.Combine(localesDir, "en.csv");
+    var langDirEn = Path.Combine(localesDir, "en");
+    languageEntries.Add(("en", csvPathEn, langDirEn));
+
+    var csvPathZh = Path.Combine(localesDir, "zh.csv");
+    var langDirZh = Path.Combine(localesDir, "zh");
+    languageEntries.Add(("zh", csvPathZh, langDirZh));
 }
 
 // Pre-scan language entries to determine if any CSV is missing or empty
@@ -340,11 +425,53 @@ foreach (var entry in languageEntries)
     }
     totalStandaloneFilesIncluded += localStandaloneCount;
 
+    // Ensure language directory exists for file references (create it proactively)
+    if (!string.IsNullOrEmpty(langDir))
+    {
+        Directory.CreateDirectory(langDir);
+        Console.WriteLine($"  Ensured language directory exists: {langDir}");
+    }
+
     var newRows = new List<(string Key, string Value)>();
+    var filesCreated = 0;
+    
     foreach (var key in distinctKeys)
     {
         csvMap.TryGetValue(key, out var val);
-        newRows.Add((key, val ?? string.Empty));
+        
+        // Check if this key should use a file reference
+        if (keyFileExtensions.TryGetValue(key, out var fileExt))
+        {
+            // Use the key itself as filename (not the id)
+            var fileName = $"{key}.{fileExt}";
+            
+            // Create the file in the language directory
+            if (!string.IsNullOrEmpty(langDir))
+            {
+                var filePath = Path.Combine(langDir, fileName);
+                
+                // Only create file if it doesn't exist (preserve manual edits)
+                if (!File.Exists(filePath))
+                {
+                    // Create with default content (the key itself as placeholder)
+                    File.WriteAllText(filePath, val ?? key, new UTF8Encoding(false));
+                    filesCreated++;
+                    Console.WriteLine($"  Created translation file: {fileName}");
+                }
+                else
+                {
+                    Console.WriteLine($"  Translation file already exists (preserved): {fileName}");
+                }
+            }
+            
+            // In CSV, store the filename as the value
+            newRows.Add((key, fileName));
+        }
+        else
+        {
+            // Normal string value
+            newRows.Add((key, val ?? string.Empty));
+        }
     }
 
     var sorted = newRows.OrderBy(r => r.Key, StringComparer.Ordinal).ToList();
@@ -367,12 +494,19 @@ foreach (var entry in languageEntries)
         File.WriteAllText(csvPath, newContent, new UTF8Encoding(false));
         csvsUpdated++;
         totalRowsWritten += sorted.Count;
-        Console.WriteLine($"  Updated {csvPath} ({sorted.Count} keys)");
+        Console.WriteLine($"  Updated {csvPath} ({sorted.Count} keys, {filesCreated} files created)");
     }
     else
     {
-        // No changes
-        Console.WriteLine($"  No changes for {csvPath} ({sorted.Count} keys)");
+        // No changes to CSV but may have created files
+        if (filesCreated > 0)
+        {
+            Console.WriteLine($"  No changes to {csvPath} but created {filesCreated} translation file(s)");
+        }
+        else
+        {
+            Console.WriteLine($"  No changes for {csvPath} ({sorted.Count} keys)");
+        }
     }
 }
 

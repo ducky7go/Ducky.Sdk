@@ -1,8 +1,5 @@
 <Project>
   <PropertyGroup>
-    <!--to make sure localization can load dll when executing the update-locales-csv script.-->
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-
     <!-- 启用 Source Generator 生成文件到磁盘，以便 MSBuild targets 可以读取 -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <!-- 指定生成文件的输出目录（可选，默认是 obj/$(Configuration)/$(TargetFramework)/generated） -->
@@ -10,7 +7,7 @@
   </PropertyGroup>
 
   <!-- Initialize SDK properties before build -->
-  <Target Name="InitializeDuckyFolders" BeforeTargets="BeforeBuild;BeforeResolveReferences">
+  <Target Name="InitializeDuckySdkProperties" BeforeTargets="BeforeBuild;BeforeResolveReferences">
     <PropertyGroup>
       <!-- DuckovFolder: if already specified externally, use it; otherwise require SteamFolder -->
       <DuckovFolder Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' != '' ">$(SteamFolder)steamapps/common/Escape from Duckov/</DuckovFolder>
@@ -22,11 +19,17 @@
            null 或 false 都表示包含（应该处理本地化） -->
       <_ShouldProcessLocalization Condition="'$(ExcludeSdkLib)' != 'true'">true</_ShouldProcessLocalization>
       <_ShouldProcessLocalization Condition="'$(ExcludeSdkLib)' == 'true'">false</_ShouldProcessLocalization>
+
+      <!-- 启用 ILRepack 合并，默认开启 -->
+      <EnableILRepack Condition="'$(EnableILRepack)' == ''">true</EnableILRepack>
+      <!--to make sure localization can load dll when executing the update-locales-csv script.-->
+      <CopyLocalLockFileAssemblies Condition="'$(CopyLocalLockFileAssemblies)' == ''">true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <Message Text="[Ducky.Sdk] SteamFolder: $(SteamFolder)" Importance="high" />
     <Message Text="[Ducky.Sdk] DuckovFolder: $(DuckovFolder)" Importance="high" />
     <Message Text="[Ducky.Sdk] ManagedDirectory: $(ManagedDirectory)" Importance="high" />
+    <Message Text="[Ducky.Sdk] EnableILRepack: $(EnableILRepack)" Importance="high" />
   </Target>
 
   <!-- Hide content files from Visual Studio solution explorer for this package -->
@@ -47,15 +50,6 @@
       Include="@(Compile->WithMetadataValue('NuGetPackageId','Ducky.Sdk')->WithMetadataValue('NuGetItemType','Compile'))" />
   </ItemGroup>
 
-  <!-- Globally ensure .csx files are never compiled -->
-  <ItemGroup>
-    <_CsxToConvert Include="@(Compile->WithMetadataValue('Extension','.csx'))" />
-    <Compile Remove="@(_CsxToConvert)" />
-    <None Include="@(_CsxToConvert)">
-      <Visible>false</Visible>
-    </None>
-  </ItemGroup>
-
   <ItemGroup Condition=" '$(ExcludeSdkLib)' != 'true' ">
     <!-- Remove them from Compile so they don't get compiled -->
     <Compile Update="@(SDKlibFiles)" Link="Shared\SDKlibs\%(RecursiveDir)%(Filename)%(Extension)">
@@ -72,7 +66,7 @@
 
   <!-- Dynamically find and add assembly references from ManagedDirectory -->
   <Target Name="AddDuckyManagedReferences" BeforeTargets="BeforeResolveReferences"
-          DependsOnTargets="InitializeDuckyFolders"
+          DependsOnTargets="InitializeDuckySdkProperties"
           Condition=" '$(ManagedDirectory)' != '' AND Exists('$(ManagedDirectory)') ">
 
     <ItemGroup>
@@ -116,7 +110,7 @@
 
   <!-- Fallback warning if ManagedDirectory doesn't exist -->
   <Target Name="WarnMissingManagedDirectory" BeforeTargets="BeforeBuild"
-          DependsOnTargets="InitializeDuckyFolders"
+    DependsOnTargets="InitializeDuckySdkProperties"
           Condition=" '$(ManagedDirectory)' == '' OR !Exists('$(ManagedDirectory)') ">
     <Warning
       Text="[Ducky.Sdk] ManagedDirectory '$(ManagedDirectory)' does not exist. Game references will not be available." />

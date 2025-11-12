@@ -1,19 +1,19 @@
-﻿using Ducky.EntranceMod.Common;
-using Ducky.Sdk.Localizations;
+﻿using Ducky.Sdk.Assemblies;
+using Ducky.Sdk.ModBehaviours;
 using Ducky.Sdk.Logging;
 
-namespace Ducky.EntranceMod
-{
-    public class ModBehaviour : MyModBase
-    {
-        protected override void ModEnabled()
-        {
-            Log.Info("Ducky.EntranceMod Mod Enabled" + L.UI.NiceWelcomeMessage);
-        }
 
-        protected override void ModDisabled()
-        {
-            Log.Info("Ducky.EntranceMod Mod Disabled");
-        }
+namespace Ducky.EntranceMod;
+
+public class ModBehaviour : ModBehaviourBase
+{
+    protected override void ModEnabled()
+    {
+        Log.Info("Mod Enabled");
+    }
+
+    protected override void ModDisabled()
+    {
+        Log.Info("Mod Disabled");
     }
 }

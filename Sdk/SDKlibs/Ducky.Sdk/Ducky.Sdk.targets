@@ -5,6 +5,122 @@
                Text="Either DuckovFolder or SteamFolder must be specified. Please set one of them in your project or Local.props file." />
     </Target>
 
+    <!-- Generate preview.png identicon if missing -->
+    <Target Name="GeneratePreview" BeforeTargets="CopyToDuckov"
+            Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
+        <PropertyGroup>
+            <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
+            <_GeneratePreviewScriptInProject>$(MSBuildThisFileDirectory)../scripts/generate-preview.csx</_GeneratePreviewScriptInProject>
+            <GeneratePreviewScriptPath Condition="$([System.IO.File]::Exists('$(_GeneratePreviewScriptInProject)'))">$(_GeneratePreviewScriptInProject)</GeneratePreviewScriptPath>
+            <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
+            <_PreviewPngPath>$([System.IO.Path]::Combine('$(AssetsDir)','preview.png'))</_PreviewPngPath>
+        </PropertyGroup>
+
+        <ItemGroup Condition="'$(GeneratePreviewScriptPath)' == ''">
+            <_GeneratePreviewScriptFromContent Include="@(Compile)"
+                                              Condition="'%(Filename)%(Extension)' == 'generate-preview.csx'" />
+        </ItemGroup>
+
+        <PropertyGroup>
+            <GeneratePreviewScriptPath Condition="'$(GeneratePreviewScriptPath)' == '' AND '@(_GeneratePreviewScriptFromContent)' != ''">%(_GeneratePreviewScriptFromContent.FullPath)</GeneratePreviewScriptPath>
+        </PropertyGroup>
+
+        <Message Text="[GeneratePreview] Checking for preview.png in assets..." Importance="high"
+                 Condition="'$(GeneratePreviewScriptPath)' != '' AND !Exists('$(_PreviewPngPath)')" />
+        <Message Text="  Assets Dir: $(AssetsDir)" Importance="high"
+                 Condition="'$(GeneratePreviewScriptPath)' != '' AND !Exists('$(_PreviewPngPath)')" />
+
+        <Exec Command="dotnet script &quot;$(GeneratePreviewScriptPath)&quot; &quot;$(AssetsDir)&quot;"
+              ContinueOnError="true"
+              IgnoreExitCode="true"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="'$(GeneratePreviewScriptPath)' != '' AND !Exists('$(_PreviewPngPath)')">
+            <Output TaskParameter="ExitCode" PropertyName="_GeneratePreviewExitCode" />
+        </Exec>
+
+        <Message Text="[GeneratePreview] Generation completed (exit code: $(_GeneratePreviewExitCode))" Importance="high"
+                 Condition="'$(_GeneratePreviewExitCode)' != ''" />
+        <Message Text="[GeneratePreview] Script failed with exit code $(_GeneratePreviewExitCode), but continuing build" Importance="high"
+                 Condition="'$(_GeneratePreviewExitCode)' != '0' AND '$(_GeneratePreviewExitCode)' != ''" />
+    </Target>
+
+    <!-- Ensure info.ini exists in assets directory before any operations -->
+    <Target Name="EnsureInfoIni" BeforeTargets="CollectFromMod;CopyToDuckov;Build"
+            Condition=" '$(ModName)' != '' ">
+        <PropertyGroup>
+            <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
+            <_EnsureInfoScriptInProject>$(MSBuildThisFileDirectory)../scripts/ensure-info-ini.csx</_EnsureInfoScriptInProject>
+            <EnsureInfoScriptPath Condition="$([System.IO.File]::Exists('$(_EnsureInfoScriptInProject)'))">$(_EnsureInfoScriptInProject)</EnsureInfoScriptPath>
+            <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
+        </PropertyGroup>
+
+        <ItemGroup Condition="'$(EnsureInfoScriptPath)' == ''">
+            <_EnsureInfoScriptFromContent Include="@(Compile)"
+                                          Condition="'%(Filename)%(Extension)' == 'ensure-info-ini.csx'" />
+        </ItemGroup>
+
+        <PropertyGroup>
+            <EnsureInfoScriptPath Condition="'$(EnsureInfoScriptPath)' == '' AND '@(_EnsureInfoScriptFromContent)' != ''">%(_EnsureInfoScriptFromContent.FullPath)</EnsureInfoScriptPath>
+        </PropertyGroup>
+
+        <Message Text="[EnsureInfoIni] Checking for info.ini in assets directory..." Importance="high"
+                 Condition="'$(EnsureInfoScriptPath)' != ''" />
+
+        <Exec Command="dotnet script &quot;$(EnsureInfoScriptPath)&quot; &quot;$(AssetsDir)&quot; &quot;$(ModName)&quot;"
+              ContinueOnError="true"
+              IgnoreExitCode="true"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="'$(EnsureInfoScriptPath)' != ''">
+            <Output TaskParameter="ExitCode" PropertyName="_EnsureInfoExitCode" />
+        </Exec>
+
+        <Message Text="[EnsureInfoIni] Check completed (exit code: $(_EnsureInfoExitCode))" Importance="high"
+                 Condition="'$(_EnsureInfoExitCode)' != ''" />
+        <Message Text="[EnsureInfoIni] Script failed with exit code $(_EnsureInfoExitCode), but continuing build" Importance="high"
+                 Condition="'$(_EnsureInfoExitCode)' != '0' AND '$(_EnsureInfoExitCode)' != ''" />
+    </Target>
+
+    <!-- Collect publishedFileId from deployed mod back to source assets before copying -->
+    <Target Name="CollectFromMod" BeforeTargets="CopyToDuckov"
+            Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' AND '$(_ShouldProcessLocalization)' == 'true' ">
+        <PropertyGroup>
+            <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
+            <_CollectScriptInProject>$(MSBuildThisFileDirectory)../scripts/collect-from-mod.csx</_CollectScriptInProject>
+            <CollectScriptPath Condition="$([System.IO.File]::Exists('$(_CollectScriptInProject)'))">$(_CollectScriptInProject)</CollectScriptPath>
+            <!-- Fallback only: allow external override via /p:AssetsDir=... -->
+            <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
+            <_DeployedModDir>$(ModsDirectory)$(ModName)</_DeployedModDir>
+        </PropertyGroup>
+
+        <ItemGroup Condition="'$(CollectScriptPath)' == ''">
+            <_CollectScriptFromContent Include="@(Compile)"
+                                       Condition="'%(Filename)%(Extension)' == 'collect-from-mod.csx'" />
+        </ItemGroup>
+
+        <PropertyGroup>
+            <CollectScriptPath Condition="'$(CollectScriptPath)' == '' AND '@(_CollectScriptFromContent)' != ''">%(_CollectScriptFromContent.FullPath)</CollectScriptPath>
+        </PropertyGroup>
+
+        <Message Text="[CollectFromMod] Syncing publishedFileId from deployed mod to source assets..." Importance="high"
+                 Condition="'$(CollectScriptPath)' != '' AND Exists('$(_DeployedModDir)')" />
+        <Message Text="  Script: $(CollectScriptPath)" Importance="high" Condition="'$(CollectScriptPath)' != ''" />
+        <Message Text="  Deployed Mod: $(_DeployedModDir)" Importance="high" Condition="Exists('$(_DeployedModDir)')" />
+        <Message Text="  Assets Dir: $(AssetsDir)" Importance="high" Condition="'$(CollectScriptPath)' != ''" />
+
+        <Exec Command="dotnet script &quot;$(CollectScriptPath)&quot; &quot;$(_DeployedModDir)&quot; &quot;$(AssetsDir)&quot;"
+              ContinueOnError="true"
+              IgnoreExitCode="true"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="'$(CollectScriptPath)' != '' AND Exists('$(_DeployedModDir)')">
+            <Output TaskParameter="ExitCode" PropertyName="_CollectExitCode" />
+        </Exec>
+
+        <Message Text="[CollectFromMod] Sync completed (exit code: $(_CollectExitCode))" Importance="high"
+                 Condition="'$(_CollectExitCode)' != ''" />
+        <Warning Text="[CollectFromMod] Script failed with exit code $(_CollectExitCode)"
+                 Condition="'$(_CollectExitCode)' != '0' AND '$(_CollectExitCode)' != ''" />
+    </Target>
+
     <Target Name="CopyToDuckov" AfterTargets="Build"
             Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
         <!-- Ensure destination folder exists -->
@@ -15,20 +131,19 @@
               DestinationFiles="@(AssetsFiles->'$(ModsDirectory)$(ModName)/%(RecursiveDir)%(Filename)%(Extension)')"
               SkipUnchangedFiles="false" />
 
-        <!-- copy description.md if exists -->
-        <Copy SourceFiles="@(DescriptionMd)"
-              DestinationFiles="@(DescriptionMd->'$(ModsDirectory)$(ModName)/description.md')"
-              SkipUnchangedFiles="false" />
-
-        <!-- copy preview.png if exists -->
-        <Copy SourceFiles="@(PreviewPng)"
-              DestinationFiles="@(PreviewPng->'$(ModsDirectory)$(ModName)/preview.png')"
-              SkipUnchangedFiles="false" />
-
         <!-- Copy the project output DLL -->
         <Copy SourceFiles="$(TargetPath)"
               DestinationFolder="$(ModsDirectory)$(ModName)/"
               SkipUnchangedFiles="false" />
+
+        <!-- Copy deps.json to mod output folder if exists -->
+        <ItemGroup>
+            <_DepsJsonFile Include="$(TargetDir)$(TargetName).deps.json" Condition="Exists('$(TargetDir)$(TargetName).deps.json')" />
+        </ItemGroup>
+        <Copy SourceFiles="@(_DepsJsonFile)"
+              DestinationFolder="$(ModsDirectory)$(ModName)/"
+              SkipUnchangedFiles="false"
+              Condition="@(_DepsJsonFile) != ''" />
 
     </Target>
 
@@ -155,51 +270,34 @@
                  Condition="'@(_LocalesUpdateOutput)' != ''" />
     </Target>
 
-    <!-- 复制项目输出目录中不在 ManagedDirectory 的所有 DLL 到 Mod 的 Dependency 文件夹 -->
-    <Target Name="CopyMissingDependencies" AfterTargets="Build"
-            Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
-        <!-- 目标目录：Mod 的 Dependency 子文件夹 -->
-        <PropertyGroup>
-            <_DestDir>$(ModsDirectory)$(ModName)/Dependency/</_DestDir>
-        </PropertyGroup>
-
+    <!-- 依赖收集逻辑独立为 CollectModDependencies Target -->
+    <Target Name="CollectModDependencies">
         <!-- 收集项目输出目录中的所有 DLL 文件（排除项目自身的输出 DLL） -->
         <ItemGroup>
             <_AllOutputDlls Include="$(TargetDir)*.dll" Exclude="$(TargetPath)" />
         </ItemGroup>
-
-        <Message Text="[CopyMissingDependencies] Found @(_AllOutputDlls->Count()) DLL(s) in output directory"
-                 Importance="High" />
-
         <!-- 收集 ManagedDirectory 中的所有 DLL 文件名（仅文件名，不含路径） -->
         <ItemGroup>
             <_ManagedDlls Include="$(ManagedDirectory)*.dll" />
             <_ManagedDllNames Include="@(_ManagedDlls->'%(Filename)%(Extension)')" />
         </ItemGroup>
-
-        <Message Text="[CopyMissingDependencies] ManagedDirectory: $(ManagedDirectory)"
-                 Importance="High" />
-        <Message Text="[CopyMissingDependencies] Found @(_ManagedDlls->Count()) DLL(s) in ManagedDirectory"
-                 Importance="High" />
-
-        <!-- 分离需要复制的 DLL 和已存在的 DLL -->
+        <!-- 分离需要复制和可合并的 DLL -->
         <ItemGroup>
-            <!-- 检查每个输出 DLL 是否在 ManagedDirectory 中存在 -->
             <_DllsToCopy Include="@(_AllOutputDlls)"
                          Condition=" !@(_ManagedDllNames->AnyHaveMetadataValue('Identity', '%(Filename)%(Extension)')) " />
-            <_SkippedDlls Include="@(_AllOutputDlls)"
-                          Condition=" @(_ManagedDllNames->AnyHaveMetadataValue('Identity', '%(Filename)%(Extension)')) " />
+            <_DllsToPack Include="@(_AllOutputDlls)" />
         </ItemGroup>
+    </Target>
 
-        <!-- 输出警告：跳过已在 ManagedDirectory 中存在的 DLL -->
-        <Warning
-            Text="[CopyMissingDependencies] Skipping '%(Filename)%(Extension)' - already exists in ManagedDirectory"
-            Condition=" '@(_SkippedDlls)' != '' " />
-
-        <!-- 创建目标目录 -->
+    <!-- 复制项目输出目录中不在 ManagedDirectory 的所有 DLL 到 Mod 的 Dependency 文件夹 -->
+    <Target Name="CopyMissingDependencies" AfterTargets="Build"
+            DependsOnTargets="CollectModDependencies"
+            Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
+        <PropertyGroup>
+            <_DestDir>$(ModsDirectory)$(ModName)/Dependency/</_DestDir>
+        </PropertyGroup>
+        <Message Text="[CopyMissingDependencies] Found @(_DllsToCopy->Count()) DLL(s) to copy" Importance="High" />
         <MakeDir Directories="$(_DestDir)" Condition=" '@(_DllsToCopy)' != '' " />
-
-        <!-- 复制不在 ManagedDirectory 中的 DLL -->
         <Copy SourceFiles="@(_DllsToCopy)"
               DestinationFolder="$(_DestDir)"
               SkipUnchangedFiles="false"
@@ -207,14 +305,38 @@
               Condition=" '@(_DllsToCopy)' != '' ">
             <Output TaskParameter="CopiedFiles" ItemName="_CopiedDependencies" />
         </Copy>
-
         <Message
             Text="[CopyMissingDependencies] Copied @(_CopiedDependencies->Count()) DLL(s) to Dependency folder: @(_CopiedDependencies->'%(Filename)%(Extension)', ', ')"
             Importance="High"
             Condition="@(_CopiedDependencies) != ''" />
-
         <Message Text="[CopyMissingDependencies] No dependencies to copy"
                  Importance="High"
                  Condition="@(_CopiedDependencies) == '' AND @(_DllsToCopy) == ''" />
+    </Target>
+
+    <!-- 新增 PackModWithILRepack Target，合并主 DLL 和依赖项 -->
+    <Target Name="PackModWithILRepack" AfterTargets="Build"
+            DependsOnTargets="CollectModDependencies"
+            Condition=" '$(EnableILRepack)' == 'true' AND '$(DuckovFolder)' != '' AND '$(ModName)' != '' ">
+        <PropertyGroup>
+            <_FinalModDll>$(ModsDirectory)$(ModName)/$(ModName).dll</_FinalModDll>
+            <_TempPackedDll>$(ModsDirectory)$(ModName)/$(ModName).packed.tmp.dll</_TempPackedDll>
+            <!-- 构建带引号的依赖 DLL 列表 -->
+            <_DllsToPackList>@(_DllsToPack->'&quot;%(FullPath)&quot;', ' ')</_DllsToPackList>
+        </PropertyGroup>
+        <Message Text="[PackModWithILRepack] Merging mod DLL and dependencies into $(_FinalModDll)" Importance="High" />
+        <Message Text="[PackModWithILRepack] Primary DLL: $(TargetPath)" Importance="High" />
+        <Message Text="[PackModWithILRepack] Dependencies to merge: @(_DllsToPack->'%(Filename)%(Extension)', ', ')" Importance="High" />
+        <Message Text="[PackModWithILRepack] Generated command args: $(_DllsToPackList)" Importance="High" />
+        
+        <!-- 先输出到临时文件 -->
+        <Exec Command="ilrepack /out:&quot;$(_TempPackedDll)&quot; &quot;$(TargetPath)&quot; $(_DllsToPackList) /internalize /wildcards /log /verbose /lib:&quot;$(ManagedDirectory)&quot;" />
+        
+        <!-- 用临时文件覆盖原文件 -->
+        <Copy SourceFiles="$(_TempPackedDll)" DestinationFiles="$(_FinalModDll)" OverwriteReadOnlyFiles="true" />
+        <Message Text="[PackModWithILRepack] Successfully merged all assemblies into $(_FinalModDll)" Importance="High" />
+        
+        <!-- 删除临时文件 -->
+        <Delete Files="$(_TempPackedDll)" />
     </Target>
 </Project>

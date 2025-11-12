@@ -11,19 +11,40 @@ set -euo pipefail
 #   4. Restores and rebuilds the Docky.Sdk.Sample.slnx solution
 #
 # Usage:
-#   ./scripts/rebuild_samples.sh
+#   ./scripts/rebuild_samples.sh [--version x.y.z] [--purge-all-versions] [--clear-all-caches]
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PACK_SCRIPT="${ROOT_DIR}/scripts/packToLocal.sh"
 SAMPLES_DIR="${ROOT_DIR}/Samples"
 SAMPLE_SOLUTION="${SAMPLES_DIR}/Docky.Sdk.Sample.slnx"
 VERSION="0.0.1"
+PURGE_ALL_VERSIONS=false
+CLEAR_ALL_CACHES=false
+FORWARD_PACK_FLAGS=()
 PACKAGE_ID="Ducky.Sdk"
 PACKAGE_ID_LOWER="ducky.sdk"
 
 function log() { printf "[rebuild_samples] %s\n" "$*"; }
 function warn() { printf "[rebuild_samples][WARN] %s\n" "$*"; }
 function err() { printf "[rebuild_samples][ERROR] %s\n" "$*" >&2; exit 1; }
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --version)
+      VERSION="$2"; shift 2;;
+    --purge-all-versions)
+      PURGE_ALL_VERSIONS=true; shift;;
+    --clear-all-caches)
+      CLEAR_ALL_CACHES=true; shift;;
+    --skip-tests|--no-build)
+      FORWARD_PACK_FLAGS+=("$1"); shift;;
+    --configuration)
+      FORWARD_PACK_FLAGS+=("--configuration" "$2"); shift 2;;
+    -h|--help)
+      sed -n '2,80p' "$0"; exit 0;;
+    *) err "Unknown arg: $1";;
+  esac
+done
 
 # Check prerequisites
 [[ -f "$PACK_SCRIPT" ]] || err "packToLocal.sh not found: $PACK_SCRIPT"
@@ -32,36 +53,21 @@ function err() { printf "[rebuild_samples][ERROR] %s\n" "$*" >&2; exit 1; }
 
 # Step 1: Pack Ducky.Sdk version 0.0.1 to local feed
 log "Step 1: Packing Ducky.Sdk version ${VERSION} to local feed"
-bash "$PACK_SCRIPT" --version "$VERSION" --configuration Debug || err "Failed to pack Ducky.Sdk"
+PACK_ARGS=(--version "$VERSION" --configuration Debug)
+${PURGE_ALL_VERSIONS} && PACK_ARGS+=(--purge-all-versions)
+${CLEAR_ALL_CACHES} && PACK_ARGS+=(--clear-all-caches)
+PACK_ARGS+=("${FORWARD_PACK_FLAGS[@]}")
+bash "$PACK_SCRIPT" "${PACK_ARGS[@]}" || err "Failed to pack Ducky.Sdk"
 
-# Step 2: Clear NuGet caches for the package to ensure fresh installation
-log "Step 2: Clearing NuGet caches for ${PACKAGE_ID} ${VERSION}"
-
-# Clear global-packages cache for this specific package/version
-GP_LINE=$(dotnet nuget locals global-packages --list | tr -d '\r' || true)
-GP_DIR=$(printf "%s" "$GP_LINE" | sed -E 's/.*global-packages: *//')
-
-if [[ -n "$GP_DIR" && -d "$GP_DIR" ]]; then
-  PKG_CACHE_DIR="$GP_DIR/$PACKAGE_ID_LOWER/$VERSION"
-  if [[ -d "$PKG_CACHE_DIR" ]]; then
-    log "Removing cached package: $PKG_CACHE_DIR"
-    rm -rf "$PKG_CACHE_DIR"
-  fi
-  
-  # Also clear the entire package cache (all versions) to be thorough
-  PKG_ALL_VERSIONS="$GP_DIR/$PACKAGE_ID_LOWER"
-  if [[ -d "$PKG_ALL_VERSIONS" ]]; then
-    log "Removing all cached versions of ${PACKAGE_ID}: $PKG_ALL_VERSIONS"
-    rm -rf "$PKG_ALL_VERSIONS"
-  fi
-else
-  warn "Could not determine global-packages directory"
-fi
-
-# Clear http-cache and temp to ensure no stale metadata
-log "Clearing NuGet http-cache and temp caches"
+# Step 2: Additional cache cleanup (packToLocal already cleared some caches)
+log "Step 2: Verifying cache cleanup and clearing additional MSBuild caches"
+# Clear http-cache to ensure no stale package metadata
+log "Clearing NuGet http-cache to ensure fresh package metadata"
 dotnet nuget locals http-cache --clear || warn "Failed to clear http-cache"
-dotnet nuget locals temp --clear || warn "Failed to clear temp cache"
+if $CLEAR_ALL_CACHES; then
+  log "Clearing NuGet temp caches"
+  dotnet nuget locals temp --clear || warn "Failed to clear temp cache"
+fi
 
 # Step 3: Recursively delete bin and obj directories in Samples folder
 log "Step 3: Cleaning bin and obj directories in Samples folder"
@@ -78,7 +84,8 @@ fi
 # Step 4: Restore NuGet packages for the solution
 log "Step 4: Restoring NuGet packages for sample solution"
 cd "$SAMPLES_DIR"
-dotnet restore "$SAMPLE_SOLUTION" --force || err "Failed to restore sample solution"
+# Use --force-evaluate to bypass MSBuild cache and --no-cache to skip NuGet cache during restore
+dotnet restore "$SAMPLE_SOLUTION" --force --no-cache || err "Failed to restore sample solution"
 
 # Step 5: Rebuild the solution
 log "Step 5: Rebuilding sample solution"

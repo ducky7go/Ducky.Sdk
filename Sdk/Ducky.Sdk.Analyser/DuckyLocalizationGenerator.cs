@@ -61,6 +61,32 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
             return null;
         }
 
+        // Check for LanguageSupport attribute on LK class
+        List<string>? supportedLanguages = null;
+        foreach (var attr in symbol.GetAttributes())
+        {
+            if (attr.AttributeClass?.Name == "LanguageSupportAttribute")
+            {
+                // Extract language codes from attribute
+                if (attr.ConstructorArguments.Length > 0)
+                {
+                    var arg = attr.ConstructorArguments[0];
+                    if (arg.Kind == TypedConstantKind.Array && arg.Values.Length > 0)
+                    {
+                        supportedLanguages = new List<string>();
+                        foreach (var langValue in arg.Values)
+                        {
+                            if (langValue.Value is string langCode && !string.IsNullOrWhiteSpace(langCode))
+                            {
+                                supportedLanguages.Add(langCode.ToLowerInvariant());
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+
         var groups = new List<GroupDescriptor>();
         foreach (var nested in symbol.GetTypeMembers())
         {
@@ -78,10 +104,32 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
                 {
                     var name = field.Name;
                     var value = field.ConstantValue as string ?? string.Empty;
-                    if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(value))
+                    if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value))
                     {
-                        entries.Add(new EntryDescriptor(name, value));
+                        continue;
                     }
+
+                    // Check for TranslateFile attribute
+                    string? fileExtension = null;
+                    foreach (var attr in field.GetAttributes())
+                    {
+                        if (attr.AttributeClass?.Name == "TranslateFileAttribute")
+                        {
+                            // Extract file extension from attribute
+                            if (attr.ConstructorArguments.Length > 0)
+                            {
+                                var ext = attr.ConstructorArguments[0].Value as string;
+                                fileExtension = string.IsNullOrWhiteSpace(ext) ? "txt" : ext!.TrimStart('.');
+                            }
+                            else
+                            {
+                                fileExtension = "txt"; // default
+                            }
+                            break;
+                        }
+                    }
+
+                    entries.Add(new EntryDescriptor(name, value, fileExtension));
                 }
             }
 
@@ -96,7 +144,7 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
             return null;
         }
 
-        return new LKDescriptor(ns, groups);
+        return new LKDescriptor(ns, groups, supportedLanguages);
     }
 
     /// <summary>
@@ -149,13 +197,15 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
     /// </summary>
     private static void EmitKeyListAndHash(Microsoft.CodeAnalysis.SourceProductionContext spc, LKDescriptor lk)
     {
-        // 收集所有 key（排除重复）
-        var allKeys = lk.Groups
+        // 收集所有 key 和它们的元数据
+        var allEntries = lk.Groups
             .SelectMany(g => g.Entries)
-            .Select(e => e.Value)
-            .Distinct()
-            .OrderBy(x => x)
+            .GroupBy(e => e.Value)
+            .Select(g => g.First()) // 去重，保留第一个
+            .OrderBy(e => e.Value)
             .ToList();
+
+        var allKeys = allEntries.Select(e => e.Value).ToList();
 
         // 生成 hash
         var hash = ComputeSha256(string.Join("|", allKeys));
@@ -166,11 +216,38 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
         json.AppendLine($"  \"namespace\": \"{EscapeJson(lk.Namespace)}\",");
         json.AppendLine($"  \"hash\": \"{EscapeJson(hash)}\",");
         json.AppendLine($"  \"keyCount\": {allKeys.Count},");
-        json.AppendLine("  \"keys\": [");
-        for (int i = 0; i < allKeys.Count; i++)
+        
+        // Add supported languages if specified
+        if (lk.SupportedLanguages != null && lk.SupportedLanguages.Count > 0)
         {
-            var comma = i < allKeys.Count - 1 ? "," : "";
-            json.AppendLine($"    \"{EscapeJson(allKeys[i])}\"{comma}");
+            json.AppendLine("  \"supportedLanguages\": [");
+            for (int i = 0; i < lk.SupportedLanguages.Count; i++)
+            {
+                var comma = i < lk.SupportedLanguages.Count - 1 ? "," : "";
+                json.AppendLine($"    \"{EscapeJson(lk.SupportedLanguages[i])}\"{comma}");
+            }
+            json.AppendLine("  ],");
+        }
+        
+        json.AppendLine("  \"keys\": [");
+        for (int i = 0; i < allEntries.Count; i++)
+        {
+            var entry = allEntries[i];
+            var comma = i < allEntries.Count - 1 ? "," : "";
+
+            if (entry.FileExtension != null)
+            {
+                // Key with file reference
+                json.AppendLine("    {");
+                json.AppendLine($"      \"key\": \"{EscapeJson(entry.Value)}\",");
+                json.AppendLine($"      \"fileExtension\": \"{EscapeJson(entry.FileExtension)}\"");
+                json.AppendLine("    }" + comma);
+            }
+            else
+            {
+                // Simple string key
+                json.AppendLine($"    \"{EscapeJson(entry.Value)}\"{comma}");
+            }
         }
         json.AppendLine("  ]");
         json.Append("}");
@@ -282,10 +359,11 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private sealed record LKDescriptor(string Namespace, IReadOnlyList<GroupDescriptor> Groups)
+    private sealed record LKDescriptor(string Namespace, IReadOnlyList<GroupDescriptor> Groups, IReadOnlyList<string>? SupportedLanguages)
     {
         public string Namespace { get; } = Namespace;
         public IReadOnlyList<GroupDescriptor> Groups { get; } = Groups;
+        public IReadOnlyList<string>? SupportedLanguages { get; } = SupportedLanguages;
     }
 
     private sealed record GroupDescriptor(string Name, IReadOnlyList<EntryDescriptor> Entries)
@@ -294,9 +372,13 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
         public IReadOnlyList<EntryDescriptor> Entries { get; } = Entries;
     }
 
-    private sealed record EntryDescriptor(string Name, string Value)
+    private sealed record EntryDescriptor(string Name, string Value, string? FileExtension)
     {
         public string Name { get; } = Name;
         public string Value { get; } = Value;
+        /// <summary>
+        /// If not null, indicates this key should use a file reference with the specified extension.
+        /// </summary>
+        public string? FileExtension { get; } = FileExtension;
     }
 }
