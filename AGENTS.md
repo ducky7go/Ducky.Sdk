@@ -8,7 +8,9 @@
 - Build-time deployment to game directories
 - Automated mod metadata generation (info.ini, preview.png)
 - Assembly merging via ILRepack for single-DLL distribution
+- Optional Harmony runtime patching support (0Harmony)
 - Strongly-typed mod development patterns
+- Automatic NuGet dependency copying and merging
 
 ## Architecture
 
@@ -163,6 +165,18 @@ The SDK base class auto-initializes:
 </PropertyGroup>
 ```
 
+**Harmony support** (optional runtime patching):
+```xml
+<PropertyGroup>
+  <ModName>Ducky.MyHarmonyMod</ModName>
+  <IncludeHarmony>true</IncludeHarmony> <!-- Adds 0Harmony.dll reference -->
+</PropertyGroup>
+```
+When `IncludeHarmony=true`:
+- 0Harmony.dll is referenced from SDK's `tools/` directory
+- All dependencies are automatically merged into the final mod DLL via ILRepack
+- No need to manually manage Harmony installation or deployment
+
 ### Build Outputs and Deployment
 
 On build, the SDK's `.targets` file executes these steps in order:
@@ -170,9 +184,16 @@ On build, the SDK's `.targets` file executes these steps in order:
 1. **EnsureInfoIni** - Generates basic `info.ini` if missing (with name, displayName, description)
 2. **GeneratePreview** - Creates 256x256 identicon-style `preview.png` based on mod name hash (if missing)
 3. **CollectFromMod** - Syncs `publishedFileId` from deployed mod back to source `info.ini` (for Steam Workshop)
-4. **CopyToDuckov** - Deploys assets/ folder (info.ini, description.md, preview.png, Locales/) to game's Mods directory
-5. **CopyMissingDependencies** - Copies non-game DLLs to `Dependency/` subfolder
-6. **PackModWithILRepack** - (Optional, if `EnableILRepack=true`) Merges all assemblies into single DLL
+4. **CopyToDuckov** - Cleans and deploys to game directory:
+   - **Deletes** entire mod folder to ensure clean state
+   - Deploys assets/ folder (info.ini, description.md, preview.png, Locales/)
+   - Copies final mod DLL
+5. **CopyMissingDependencies** - (Only if `EnableILRepack=false`) Copies non-game DLLs to `Dependency/` subfolder
+6. **PackModWithILRepack** - (Default, `EnableILRepack=true`) Merges all assemblies into single DLL:
+   - Creates temporary folder `.ilrepack_temp/` for merging
+   - Merges primary DLL + all NuGet dependencies (excluding game assemblies)
+   - Copies merged DLL to final location with clean assembly name
+   - Removes temporary folder
 
 Set `<DeployMod>false</DeployMod>` to disable auto-deployment during development.
 
@@ -196,6 +217,111 @@ The SDK automatically generates missing mod metadata:
 - Reads `publishedFileId` from deployed mod's info.ini
 - Writes back to source assets/info.ini if not present
 - Enables version control of Steam Workshop IDs
+
+## Advanced Features
+
+### Harmony Runtime Patching
+
+The SDK provides optional Harmony support for runtime IL manipulation and method patching:
+
+**Enabling Harmony**:
+```xml
+<PropertyGroup>
+  <IncludeHarmony>true</IncludeHarmony>
+</PropertyGroup>
+```
+
+**What happens when enabled**:
+1. SDK adds a reference to `0Harmony.dll` from the NuGet package's `tools/` directory
+2. All Harmony dependencies are automatically discovered and copied to output
+3. During deployment, ILRepack merges 0Harmony.dll and all dependencies into the final mod DLL
+4. The merged assembly has a clean name without any `.packed.tmp` suffixes
+
+**Example Harmony usage**:
+```csharp
+using HarmonyLib;
+
+public class ModBehaviour : ModBehaviourBase
+{
+    private Harmony _harmony;
+    
+    protected override void ModEnabled()
+    {
+        _harmony = new Harmony("com.yourname.modname");
+        _harmony.PatchAll(); // Apply all [HarmonyPatch] attributes
+    }
+    
+    protected override void ModDisabled()
+    {
+        _harmony?.UnpatchAll();
+    }
+}
+
+[HarmonyPatch(typeof(SomeGameClass), nameof(SomeGameClass.SomeMethod))]
+public static class SomeGameClass_SomeMethod_Patch
+{
+    static void Prefix(/* method parameters */)
+    {
+        // Code runs before original method
+    }
+}
+```
+
+**Harmony benefits**:
+- No game source code modifications needed
+- Patches are applied at runtime
+- Multiple mods can patch the same methods
+- Easy to enable/disable via mod loader
+
+### Assembly Merging with ILRepack
+
+The SDK uses ILRepack to merge all mod assemblies into a single DLL for easier distribution and reduced mod conflicts.
+
+**How it works**:
+1. **Dependency Collection** (`CollectModDependencies` target):
+   - Scans output directory for all DLL files
+   - Excludes game assemblies from `Managed/` directory
+   - Identifies NuGet dependencies via `CopyLocalLockFileAssemblies=true`
+
+2. **Library Path Resolution**:
+   - Project output directory (all copied dependencies)
+   - Game's Managed directory (Unity, TeamSoda assemblies)
+   - All reference assembly directories (from `@(ReferencePath)`)
+   - NuGet runtime assemblies (from `@(RuntimeCopyLocalItems)`)
+
+3. **Merging Process** (`PackModWithILRepack` target):
+   - Creates temporary folder `.ilrepack_temp/` in mod directory
+   - Runs ILRepack with `/internalize` to make dependencies internal
+   - Output: `ModName.dll` in temp folder (clean assembly name)
+   - Copies merged DLL to final location
+   - Deletes temporary folder
+
+4. **Clean Deployment** (`CopyToDuckov` target):
+   - **Deletes entire mod folder** before each deployment
+   - Ensures no stale files or old dependencies
+   - Copies only: merged DLL, assets, localization files
+
+**Configuration**:
+```xml
+<PropertyGroup>
+  <!-- Enable/disable ILRepack (default: true) -->
+  <EnableILRepack>true</EnableILRepack>
+  
+  <!-- When false, copies dependencies to Dependency/ subfolder instead -->
+  <EnableILRepack>false</EnableILRepack>
+</PropertyGroup>
+```
+
+**Benefits**:
+- Single DLL distribution (easier to manage)
+- No dependency version conflicts between mods
+- Internalized dependencies (no namespace pollution)
+- Smaller mod footprint (no separate dependency files)
+
+**Typical merged assembly size**:
+- Without dependencies: ~100KB
+- With Harmony + R3 + Serilog: ~4.2MB
+- All dependencies are properly embedded and internalized
 
 ## Code Patterns and Conventions
 
@@ -243,7 +369,9 @@ ModOptions.ForAllMods.Set("key", value);
 - **$(DuckovFolder)** - Computed game directory path
 - **$(ModName)** - Mod identifier (required)
 - **$(DeployMod)** - Set to `false` to skip deployment
-- **$(EnableILRepack)** - Set to `true` to enable assembly merging
+- **$(EnableILRepack)** - Enable assembly merging (default: `true`)
+- **$(IncludeHarmony)** - Enable Harmony support (default: `false`)
+- **$(CopyLocalLockFileAssemblies)** - Copy NuGet dependencies to output (default: `true`, set in SDK)
 - **$(AssetsDir)** - Custom assets directory (defaults to `assets/`)
 
 ### ContentFiles Visibility
@@ -257,7 +385,10 @@ SDK sources are hidden from Solution Explorer:
 ## Testing Strategy
 
 - Unit tests in `Sdk/Tests/Ducky.Sdk.Lib.Tests/`
-- Sample projects serve as integration tests (`Samples/Ducky.SingleProject/`, `Samples/Ducky.EntranceMod/`)
+- Sample projects serve as integration tests:
+  - `Samples/Ducky.SingleProject/` - Single-project mod
+  - `Samples/Ducky.EntranceMod/` - Multi-project mod (entry + common library)
+  - `Samples/Ducky.TryHarmony/` - Harmony integration example
 - Use `rebuild_samples.sh` to validate end-to-end SDK workflow
 
 ## Package Versioning
@@ -270,14 +401,16 @@ SDK sources are hidden from Solution Explorer:
 1. **"SteamDir property must be set"** - Create `Samples/Local.props` with `<SteamFolder>`
 2. **Stale NuGet cache after SDK changes** - Always use `./scripts/rebuild_samples.sh` which clears:
    - Version-specific global-packages cache
-   - HTTP metadata cache
+   - HTTP metadata cache (ensures fresh package info)
    - All bin/obj directories
 3. **Missing game assemblies** - Run `fetch_build_dependency.sh` before building
 4. **Localization keys missing in CSV** - Generator creates `LKeys.All` array; MSBuild task validates CSV completeness
 5. **Mod not deploying** - Check `$(DeployMod)` property and `$(DuckovFolder)` path validity
 6. **Preview.png not generating** - Ensure `info.ini` exists with `name` field; check build logs for script errors
-7. **ILRepack not merging** - Set `<EnableILRepack>true</EnableILRepack>` in project file and ensure ilrepack is installed globally
-8. **Old SDK cached during development** - Use `--purge-all-versions` flag or manually delete `~/.nuget/packages/ducky.sdk/`
+7. **ILRepack not merging** - Ensure ilrepack is installed globally: `dotnet tool install -g dotnet-ilrepack`
+8. **Dependencies not being merged** - Ensure `CopyLocalLockFileAssemblies=true` is set (SDK sets this by default)
+9. **Old SDK cached during development** - Use `--purge-all-versions` flag or manually delete `~/.nuget/packages/ducky.sdk/`
+10. **Assembly name contains .packed.tmp** - Fixed in current version; SDK uses temporary folder approach
 
 ## Localization Attributes
 
