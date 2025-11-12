@@ -24,7 +24,7 @@
       <EnableILRepack Condition="'$(EnableILRepack)' == ''">true</EnableILRepack>
       <!--to make sure localization can load dll when executing the update-locales-csv script.-->
       <CopyLocalLockFileAssemblies Condition="'$(CopyLocalLockFileAssemblies)' == ''">true</CopyLocalLockFileAssemblies>
-      
+
       <!-- 是否包含 Harmony 支持，默认不包含 -->
       <IncludeHarmony Condition="'$(IncludeHarmony)' == ''">false</IncludeHarmony>
     </PropertyGroup>
@@ -35,29 +35,29 @@
     <Message Text="[Ducky.Sdk] EnableILRepack: $(EnableILRepack)" Importance="high" />
     <Message Text="[Ducky.Sdk] IncludeHarmony: $(IncludeHarmony)" Importance="high" />
   </Target>
-  
+
   <!-- Add Harmony reference and dependencies when IncludeHarmony is true -->
   <ItemGroup Condition=" '$(IncludeHarmony)' == 'true' ">
     <PackageReference Include="Mono.Cecil" Version="0.11.6" />
     <PackageReference Include="MonoMod.Utils" Version="25.0.11" />
   </ItemGroup>
-  
+
   <Target Name="AddHarmonyReference" BeforeTargets="BeforeResolveReferences"
           Condition=" '$(IncludeHarmony)' == 'true' ">
     <PropertyGroup>
       <_HarmonyDllPath>$(MSBuildThisFileDirectory)../tools/0Harmony.dll</_HarmonyDllPath>
     </PropertyGroup>
-    
+
     <ItemGroup>
       <Reference Include="0Harmony" Condition="Exists('$(_HarmonyDllPath)')">
         <HintPath>$(_HarmonyDllPath)</HintPath>
         <Private>true</Private>
       </Reference>
     </ItemGroup>
-    
-    <Message Text="[Ducky.Sdk] Adding Harmony reference from $(_HarmonyDllPath)" Importance="high" 
+
+    <Message Text="[Ducky.Sdk] Adding Harmony reference from $(_HarmonyDllPath)" Importance="high"
              Condition="Exists('$(_HarmonyDllPath)')" />
-    <Warning Text="[Ducky.Sdk] IncludeHarmony is true but 0Harmony.dll not found at $(_HarmonyDllPath)" 
+    <Warning Text="[Ducky.Sdk] IncludeHarmony is true but 0Harmony.dll not found at $(_HarmonyDllPath)"
              Condition="!Exists('$(_HarmonyDllPath)')" />
   </Target>
 
