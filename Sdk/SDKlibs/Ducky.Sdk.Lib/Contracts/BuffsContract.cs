@@ -4,28 +4,29 @@ using System.Collections.Generic;
 using System.Linq;
 using Duckov.Buffs;
 using Duckov.Utilities;
+using Ducky.Sdk.GameApis;
 using Ducky.Sdk.Logging;
 using Ducky.Sdk.Options;
 using Ducky.Sdk.Utils;
 using UnityEngine;
 
-namespace Ducky.Sdk.GameApis;
+namespace Ducky.Sdk.Contracts;
 
-public class BuffRegistrator : MonoBehaviour
+public class BuffsContract : MonoBehaviour
 {
     private const int BuffIdRegionSize = 10_000;
     private const int StartingBuffId = 1500000;
     private const string BuffRegionOptionKey = "BuffIdRegion";
-    private static readonly BuffRegistrator _instance;
+    private static readonly BuffsContract _instance;
 
-    static BuffRegistrator()
+    static BuffsContract()
     {
         var go = new GameObject("BuffRegistrator");
-        _instance = go.AddComponent<BuffRegistrator>();
+        _instance = go.AddComponent<BuffsContract>();
         DontDestroyOnLoad(go);
     }
 
-    public static BuffRegistrator Instance => _instance;
+    public static BuffsContract Instance => _instance;
 
     private static readonly ConcurrentDictionary<Type, Buff> _buffs = new();
     private static int _maxBuffId = 1000456;

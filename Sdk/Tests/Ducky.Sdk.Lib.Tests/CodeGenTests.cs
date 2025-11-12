@@ -8,7 +8,7 @@ namespace Ducky.Sdk.Lib.Tests;
 
 public class CodeGenTests
 {
-    [Test]
+    // [Test]
     public void GenerateGetSetForFields()
     {
         var types = new[]
@@ -19,6 +19,7 @@ public class CodeGenTests
             typeof(ItemAgent_Gun)
         };
         var outDir = Path.GetFullPath("../../../../../SDKlibs/Ducky.Sdk.Lib/GameApis");
+        const bool forceOverwrite = true; // Set to true to regenerate existing files
 
         Directory.CreateDirectory(outDir);
 
@@ -27,7 +28,7 @@ public class CodeGenTests
             var className = type.Name;
             var fileName = $"{className}Extensions.cs";
             var filePath = Path.Combine(outDir, fileName);
-            if (File.Exists(filePath))
+            if (File.Exists(filePath) && !forceOverwrite)
             {
                 Console.WriteLine($"Skipped (exists): {filePath}");
                 continue;
@@ -36,7 +37,14 @@ public class CodeGenTests
             var sb = new StringBuilder();
 
             // 生成文件头
-            sb.AppendLine($"using {type.Namespace};");
+            sb.AppendLine("using System;");
+            sb.AppendLine("using System.Runtime.CompilerServices;");
+
+            // 只在命名空间非空时添加 using
+            if (!string.IsNullOrEmpty(type.Namespace))
+            {
+                sb.AppendLine($"using {type.Namespace};");
+            }
 
             // 如果有静态字段，需要引入 FieldExtensions
             var hasStaticFields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public)
@@ -47,6 +55,7 @@ public class CodeGenTests
                 sb.AppendLine("using Ducky.Sdk.GameApis;");
             }
 
+            sb.AppendLine();
             sb.AppendLine("namespace Ducky.Sdk.GameApis;");
             sb.AppendLine();
             sb.AppendLine("// ReSharper disable once InconsistentNaming");
@@ -97,6 +106,7 @@ public class CodeGenTests
                     if (!hasProperty)
                     {
                         // 生成 Getter 方法
+                        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
                         if (useObject)
                         {
                             sb.AppendLine(
@@ -113,9 +123,10 @@ public class CodeGenTests
                         sb.AppendLine();
                     }
 
-                    // 始终生成 Setter 方法
+                    // 始终生成 Setter 方法 (Fluent API - leverages SetField fluent return)
+                    sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
                     sb.AppendLine(
-                        $"    public static void Set{methodNameSuffix}(this {className} target, {paramType} value) =>");
+                        $"    public static {className} Set{methodNameSuffix}(this {className} target, {paramType} value) =>");
                     sb.AppendLine($"        target.SetField(\"{fieldName}\", value);");
                     sb.AppendLine();
                 }
@@ -142,6 +153,7 @@ public class CodeGenTests
                     }
 
                     // 生成静态 Getter 方法
+                    sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
                     if (useObject)
                     {
                         sb.AppendLine($"    public static {paramType} GetStatic{methodNameSuffix}() =>");
@@ -156,18 +168,25 @@ public class CodeGenTests
 
                     sb.AppendLine();
 
-                    // 生成静态 Setter 方法
+                    // 生成静态 Setter 方法 (Fluent API - returns Type for potential chaining)
+                    sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
                     if (useObject)
                     {
-                        sb.AppendLine($"    public static void SetStatic{methodNameSuffix}({paramType} value) =>");
+                        sb.AppendLine($"    public static Type SetStatic{methodNameSuffix}({paramType} value)");
+                        sb.AppendLine("    {");
                         sb.AppendLine(
                             $"        FieldExtensions.SetStaticField(typeof({className}), \"{fieldName}\", value);");
+                        sb.AppendLine($"        return typeof({className});");
+                        sb.AppendLine("    }");
                     }
                     else
                     {
-                        sb.AppendLine($"    public static void SetStatic{methodNameSuffix}({paramType} value) =>");
+                        sb.AppendLine($"    public static Type SetStatic{methodNameSuffix}({paramType} value)");
+                        sb.AppendLine("    {");
                         sb.AppendLine(
                             $"        FieldExtensions.SetStaticField<{className}, {paramType}>(\"{fieldName}\", value);");
+                        sb.AppendLine($"        return typeof({className});");
+                        sb.AppendLine("    }");
                     }
 
                     sb.AppendLine();

@@ -4,10 +4,13 @@
     <File Path="Directory.Packages.props" />
   </Folder>
   <Folder Name="/MultilayerProjectMod/">
-    <Project Path="Ducky.EntranceMod.Common\Ducky.EntranceMod.Common.csproj" Type="Classic C#" />
-    <Project Path="Ducky.EntranceMod\Ducky.EntranceMod.csproj" Type="Classic C#" />
+    <Project Path="Ducky.EntranceMod.Common\Ducky.EntranceMod.Common.csproj" Type="C#" />
+    <Project Path="Ducky.EntranceMod\Ducky.EntranceMod.csproj" Type="C#" />
   </Folder>
   <Folder Name="/SingleProjectMod/">
-    <Project Path="Ducky.SingleProject\Ducky.SingleProject.csproj" Type="Classic C#" />
+    <Project Path="Ducky.SingleProject\Ducky.SingleProject.csproj" Type="C#" />
+  </Folder>
+  <Folder Name="/TryHarmony/">
+    <Project Path="Ducky.TryHarmony/Ducky.TryHarmony.csproj" />
   </Folder>
 </Solution>

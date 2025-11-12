@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Ducky.Sdk.GameApis;
 
@@ -409,28 +410,42 @@ public static class FieldExtensions
     }
 
     // Generic setter/getter helpers (extension methods)
-    public static void SetField<TTarget, TValue>(this TTarget target, string fieldName, TValue value)
-        => GetTypedSetter<TTarget, TValue>(fieldName)(target, value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TTarget SetField<TTarget, TValue>(this TTarget target, string fieldName, TValue value)
+    {
+        GetTypedSetter<TTarget, TValue>(fieldName)(target, value);
+        return target;
+    }
 
-    public static void SetField<TTarget>(this TTarget target, string fieldName, object value)
-        => GetObjectSetter<TTarget>(fieldName)(target, value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TTarget SetField<TTarget>(this TTarget target, string fieldName, object value)
+    {
+        GetObjectSetter<TTarget>(fieldName)(target, value);
+        return target;
+    }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TValue GetField<TTarget, TValue>(this TTarget target, string fieldName)
         => GetTypedGetter<TTarget, TValue>(fieldName)(target);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static object GetField<TTarget>(this TTarget target, string fieldName)
         => GetObjectGetter<TTarget>(fieldName)(target);
 
     // Static convenience helpers
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetStaticField<TTarget, TValue>(string fieldName, TValue value)
         => GetStaticTypedSetter<TTarget, TValue>(fieldName)(value);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetStaticField(this Type targetType, string fieldName, object value)
         => GetStaticObjectSetter(targetType, fieldName)(value);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TValue GetStaticField<TTarget, TValue>(string fieldName)
         => GetStaticTypedGetter<TTarget, TValue>(fieldName)();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static object GetStaticField(this Type targetType, string fieldName)
         => GetStaticObjectGetter(targetType, fieldName)();
 }

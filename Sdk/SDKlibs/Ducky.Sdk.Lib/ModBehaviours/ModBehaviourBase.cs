@@ -1,6 +1,7 @@
 using System;
 using Duckov.Modding;
 using Ducky.Sdk.Assemblies;
+using Ducky.Sdk.Contracts;
 using Ducky.Sdk.GameApis;
 using Ducky.Sdk.Localizations;
 using Ducky.Sdk.Logging;
@@ -27,7 +28,7 @@ public abstract class ModBehaviourBase : ModBehaviour
             Log.Debug("Enabling mod behaviour: {ModBehaviour}", GetType().Name);
             L.Instance.SetLanguage(LocalizationManager.CurrentLanguage);
             Log.Debug("Set localization language to: {Language}", LocalizationManager.CurrentLanguage);
-            BuffRegistrator.Instance.EnsureBuffIdRegion(); // ensure BuffRegistrator is initialized
+            BuffsContract.Instance.EnsureBuffIdRegion(); // ensure BuffRegistrator is initialized
             Log.Debug("Ensured BuffRegistrator is initialized.");
             ModEnabled();
         }

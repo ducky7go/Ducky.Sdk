@@ -324,13 +324,38 @@
             <!-- 构建带引号的依赖 DLL 列表 -->
             <_DllsToPackList>@(_DllsToPack->'&quot;%(FullPath)&quot;', ' ')</_DllsToPackList>
         </PropertyGroup>
+
+        <!-- 收集所有可能包含依赖项的目录 -->
+        <ItemGroup>
+            <!-- 1. 项目输出目录（包含所有复制的依赖项） -->
+            <_ILRepackLibDirs Include="$(TargetDir)" />
+            <!-- 2. ManagedDirectory（游戏的托管程序集） -->
+            <_ILRepackLibDirs Include="$(ManagedDirectory)" Condition=" '$(ManagedDirectory)' != '' AND Exists('$(ManagedDirectory)') " />
+            <!-- 3. 收集所有引用程序集的目录（去重） -->
+            <_ILRepackLibDirs Include="@(ReferencePath->'%(RootDir)%(Directory)')" />
+            <!-- 4. NuGet 包的运行时程序集目录 -->
+            <_ILRepackLibDirs Include="@(RuntimeCopyLocalItems->'%(RootDir)%(Directory)')" />
+        </ItemGroup>
+
+        <!-- 去重并构建 /lib 参数列表 -->
+        <RemoveDuplicates Inputs="@(_ILRepackLibDirs)">
+            <Output TaskParameter="Filtered" ItemName="_UniqueLibDirs" />
+        </RemoveDuplicates>
+
+        <PropertyGroup>
+            <!-- 构建 /lib 参数：每个目录添加 /lib:"path" -->
+            <_LibPathArgs>@(_UniqueLibDirs->'/lib:&quot;%(Identity)&quot;', ' ')</_LibPathArgs>
+        </PropertyGroup>
+
         <Message Text="[PackModWithILRepack] Merging mod DLL and dependencies into $(_FinalModDll)" Importance="High" />
         <Message Text="[PackModWithILRepack] Primary DLL: $(TargetPath)" Importance="High" />
         <Message Text="[PackModWithILRepack] Dependencies to merge: @(_DllsToPack->'%(Filename)%(Extension)', ', ')" Importance="High" />
-        <Message Text="[PackModWithILRepack] Generated command args: $(_DllsToPackList)" Importance="High" />
+        <Message Text="[PackModWithILRepack] Library search paths (@(_UniqueLibDirs->Count()) directories):" Importance="High" />
+        <Message Text="  - %(_UniqueLibDirs.Identity)" Importance="High" />
+        <Message Text="[PackModWithILRepack] Generated lib args: $(_LibPathArgs)" Importance="High" />
         
-        <!-- 先输出到临时文件 -->
-        <Exec Command="ilrepack /out:&quot;$(_TempPackedDll)&quot; &quot;$(TargetPath)&quot; $(_DllsToPackList) /internalize /wildcards /log /verbose /lib:&quot;$(ManagedDirectory)&quot;" />
+        <!-- 先输出到临时文件，使用收集的所有 lib 路径 -->
+        <Exec Command="ilrepack /out:&quot;$(_TempPackedDll)&quot; &quot;$(TargetPath)&quot; $(_DllsToPackList) /internalize /wildcards /log /verbose $(_LibPathArgs)" />
         
         <!-- 用临时文件覆盖原文件 -->
         <Copy SourceFiles="$(_TempPackedDll)" DestinationFiles="$(_FinalModDll)" OverwriteReadOnlyFiles="true" />
