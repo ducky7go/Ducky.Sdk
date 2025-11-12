@@ -4,7 +4,7 @@ using Ducky.Sdk.Contracts;
 using Ducky.Sdk.GameApis;
 using Ducky.Sdk.ModBehaviours;
 using Ducky.Sdk.Utils;
-// using Serilog;
+using Serilog;
 using Log = Ducky.Sdk.Logging.Log;
 
 namespace Ducky.TryHarmony;
@@ -18,10 +18,10 @@ public class ModBehaviour : ModBehaviourBase
     {
         var executingAssembly = System.Reflection.Assembly.GetExecutingAssembly();
         var logFolder = Path.Combine(Path.GetDirectoryName(executingAssembly.Location));
-        // Serilog.Log.Logger = new Serilog.LoggerConfiguration()
-        //     .MinimumLevel.Debug()
-        //     .WriteTo.File(Path.Combine(logFolder, "Ducky.TryHarmony.log"), rollingInterval: RollingInterval.Day)
-        //     .CreateLogger();
+        Serilog.Log.Logger = new Serilog.LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.File(Path.Combine(logFolder, "Ducky.TryHarmony.log"), rollingInterval: RollingInterval.Day)
+            .CreateLogger();
 
         var modName = Helper.GetModName();
         var harmony = new HarmonyLib.Harmony(modName);

@@ -4,6 +4,9 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <!-- 指定生成文件的输出目录（可选，默认是 obj/$(Configuration)/$(TargetFramework)/generated） -->
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+    
+    <!-- 确保 NuGet 依赖的 DLL 被复制到输出目录，以便 ILRepack 可以合并它们 -->
+    <CopyLocalLockFileAssemblies Condition="'$(CopyLocalLockFileAssemblies)' == ''">true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <!-- Initialize SDK properties before build -->
@@ -22,8 +25,6 @@
 
       <!-- 启用 ILRepack 合并，默认开启 -->
       <EnableILRepack Condition="'$(EnableILRepack)' == ''">true</EnableILRepack>
-      <!--to make sure localization can load dll when executing the update-locales-csv script.-->
-      <CopyLocalLockFileAssemblies Condition="'$(CopyLocalLockFileAssemblies)' == ''">true</CopyLocalLockFileAssemblies>
 
       <!-- 是否包含 Harmony 支持，默认不包含 -->
       <IncludeHarmony Condition="'$(IncludeHarmony)' == ''">false</IncludeHarmony>
@@ -36,17 +37,6 @@
     <Message Text="[Ducky.Sdk] IncludeHarmony: $(IncludeHarmony)" Importance="high" />
   </Target>
 
-  <!-- Add Harmony reference and dependencies when IncludeHarmony is true -->
-  <ItemGroup Condition=" '$(IncludeHarmony)' == 'true' AND '$(ManagePackageVersionsCentrally)' != 'true' ">
-    <PackageReference Include="Mono.Cecil" Version="0.11.6" />
-    <PackageReference Include="MonoMod.Utils" Version="25.0.11" />
-  </ItemGroup>
-
-  <!-- Add Harmony dependencies without version when using Central Package Management -->
-  <ItemGroup Condition=" '$(IncludeHarmony)' == 'true' AND '$(ManagePackageVersionsCentrally)' == 'true' ">
-    <PackageReference Include="Mono.Cecil" />
-    <PackageReference Include="MonoMod.Utils" />
-  </ItemGroup>
 
   <Target Name="AddHarmonyReference" BeforeTargets="BeforeResolveReferences"
           Condition=" '$(IncludeHarmony)' == 'true' ">
