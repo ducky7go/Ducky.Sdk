@@ -2,7 +2,6 @@
 using Duckov.Utilities;
 using Ducky.Sdk.Contracts;
 using Ducky.Sdk.GameApis;
-using Ducky.Sdk.Localizations;
 using Ducky.Sdk.Logging;
 using Ducky.Sdk.ModBehaviours;
 using Ducky.Sdk.Utils;
