@@ -83,6 +83,7 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
                         }
                     }
                 }
+
                 break;
             }
         }
@@ -125,6 +126,7 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
                             {
                                 fileExtension = "txt"; // default
                             }
+
                             break;
                         }
                     }
@@ -216,7 +218,7 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
         json.AppendLine($"  \"namespace\": \"{EscapeJson(lk.Namespace)}\",");
         json.AppendLine($"  \"hash\": \"{EscapeJson(hash)}\",");
         json.AppendLine($"  \"keyCount\": {allKeys.Count},");
-        
+
         // Add supported languages if specified
         if (lk.SupportedLanguages != null && lk.SupportedLanguages.Count > 0)
         {
@@ -226,9 +228,10 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
                 var comma = i < lk.SupportedLanguages.Count - 1 ? "," : "";
                 json.AppendLine($"    \"{EscapeJson(lk.SupportedLanguages[i])}\"{comma}");
             }
+
             json.AppendLine("  ],");
         }
-        
+
         json.AppendLine("  \"keys\": [");
         for (int i = 0; i < allEntries.Count; i++)
         {
@@ -249,6 +252,7 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
                 json.AppendLine($"    \"{EscapeJson(entry.Value)}\"{comma}");
             }
         }
+
         json.AppendLine("  ]");
         json.Append("}");
 
@@ -272,12 +276,12 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
         code.AppendLine("{");
         code.AppendLine("    /// <summary>JSON metadata - DO NOT MODIFY</summary>");
         code.AppendLine("    internal const string JsonData = @\"");
-        
+
         // 将 JSON 转义后嵌入到 C# 字符串字面量中（使用逐字字符串 @"..."）
         // 在逐字字符串中，只需要将 " 转义为 ""
         var escapedJson = jsonContent.Replace("\"", "\"\"");
         code.Append(escapedJson);
-        
+
         code.AppendLine("\";");
         code.AppendLine();
         code.AppendLine($"    internal const string Hash = \"{EscapeString(hash)}\";");
@@ -316,6 +320,7 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
                     break;
             }
         }
+
         return sb.ToString();
     }
 
@@ -359,7 +364,10 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private sealed record LKDescriptor(string Namespace, IReadOnlyList<GroupDescriptor> Groups, IReadOnlyList<string>? SupportedLanguages)
+    private sealed record LKDescriptor(
+        string Namespace,
+        IReadOnlyList<GroupDescriptor> Groups,
+        IReadOnlyList<string>? SupportedLanguages)
     {
         public string Namespace { get; } = Namespace;
         public IReadOnlyList<GroupDescriptor> Groups { get; } = Groups;
@@ -376,6 +384,7 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
     {
         public string Name { get; } = Name;
         public string Value { get; } = Value;
+
         /// <summary>
         /// If not null, indicates this key should use a file reference with the specified extension.
         /// </summary>

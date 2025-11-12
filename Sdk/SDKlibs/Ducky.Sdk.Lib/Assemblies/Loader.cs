@@ -302,7 +302,8 @@ public static class Loader
             }
 
             // 取第一个 target（一般为 .NETStandard,Version=v2.1/）
-            var target = targets.Properties().FirstOrDefault(x => x.Name == ".NETStandard,Version=v2.1/")?.Value as JObject;
+            var target =
+                targets.Properties().FirstOrDefault(x => x.Name == ".NETStandard,Version=v2.1/")?.Value as JObject;
             if (target == null)
             {
                 Log.Warn($"[Loader/DepsJson] 未找到 .NETStandard,Version=v2.1/ 目标");
@@ -331,6 +332,7 @@ public static class Loader
                             Log.Debug($"[Loader/DepsJson] 已加载: {dllName}");
                             continue;
                         }
+
                         // 依赖文件路径
                         var depFolder = GetDependencyFolder();
                         var dllPath = Path.Combine(depFolder, dllName);

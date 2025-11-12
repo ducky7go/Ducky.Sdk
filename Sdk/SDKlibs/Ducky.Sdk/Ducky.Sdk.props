@@ -110,7 +110,7 @@
 
   <!-- Fallback warning if ManagedDirectory doesn't exist -->
   <Target Name="WarnMissingManagedDirectory" BeforeTargets="BeforeBuild"
-    DependsOnTargets="InitializeDuckySdkProperties"
+          DependsOnTargets="InitializeDuckySdkProperties"
           Condition=" '$(ManagedDirectory)' == '' OR !Exists('$(ManagedDirectory)') ">
     <Warning
       Text="[Ducky.Sdk] ManagedDirectory '$(ManagedDirectory)' does not exist. Game references will not be available." />

@@ -15,7 +15,8 @@ public static class BuffsDataExtensions
         target.GetField<GameplayDataSettings.BuffsData, List<Buff>>("allBuffs");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.BuffsData SetAllBuffs(this GameplayDataSettings.BuffsData target, List<Buff> value) =>
+    public static GameplayDataSettings.BuffsData SetAllBuffs(this GameplayDataSettings.BuffsData target,
+        List<Buff> value) =>
         target.SetField("allBuffs", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -23,11 +24,13 @@ public static class BuffsDataExtensions
         target.SetField("baseBuff", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.BuffsData SetBleedSBuff(this GameplayDataSettings.BuffsData target, Buff value) =>
+    public static GameplayDataSettings.BuffsData
+        SetBleedSBuff(this GameplayDataSettings.BuffsData target, Buff value) =>
         target.SetField("bleedSBuff", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.BuffsData SetBoneCrackBuff(this GameplayDataSettings.BuffsData target, Buff value) =>
+    public static GameplayDataSettings.BuffsData SetBoneCrackBuff(this GameplayDataSettings.BuffsData target,
+        Buff value) =>
         target.SetField("boneCrackBuff", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -59,7 +62,8 @@ public static class BuffsDataExtensions
         target.SetField("thirsty", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.BuffsData SetUnlimitBleedBuff(this GameplayDataSettings.BuffsData target, Buff value) =>
+    public static GameplayDataSettings.BuffsData SetUnlimitBleedBuff(this GameplayDataSettings.BuffsData target,
+        Buff value) =>
         target.SetField("unlimitBleedBuff", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -67,7 +71,8 @@ public static class BuffsDataExtensions
         target.GetField<GameplayDataSettings.BuffsData, Buff>("weight_Heavy");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.BuffsData SetWeightHeavy(this GameplayDataSettings.BuffsData target, Buff value) =>
+    public static GameplayDataSettings.BuffsData
+        SetWeightHeavy(this GameplayDataSettings.BuffsData target, Buff value) =>
         target.SetField("weight_Heavy", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -75,7 +80,8 @@ public static class BuffsDataExtensions
         target.GetField<GameplayDataSettings.BuffsData, Buff>("weight_Light");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.BuffsData SetWeightLight(this GameplayDataSettings.BuffsData target, Buff value) =>
+    public static GameplayDataSettings.BuffsData
+        SetWeightLight(this GameplayDataSettings.BuffsData target, Buff value) =>
         target.SetField("weight_Light", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,7 +89,8 @@ public static class BuffsDataExtensions
         target.GetField<GameplayDataSettings.BuffsData, Buff>("weight_Overweight");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.BuffsData SetWeightOverweight(this GameplayDataSettings.BuffsData target, Buff value) =>
+    public static GameplayDataSettings.BuffsData SetWeightOverweight(this GameplayDataSettings.BuffsData target,
+        Buff value) =>
         target.SetField("weight_Overweight", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -91,11 +98,11 @@ public static class BuffsDataExtensions
         target.GetField<GameplayDataSettings.BuffsData, Buff>("weight_SuperHeavy");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.BuffsData SetWeightSuperHeavy(this GameplayDataSettings.BuffsData target, Buff value) =>
+    public static GameplayDataSettings.BuffsData SetWeightSuperHeavy(this GameplayDataSettings.BuffsData target,
+        Buff value) =>
         target.SetField("weight_SuperHeavy", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static GameplayDataSettings.BuffsData SetWoundBuff(this GameplayDataSettings.BuffsData target, Buff value) =>
         target.SetField("woundBuff", value);
-
 }

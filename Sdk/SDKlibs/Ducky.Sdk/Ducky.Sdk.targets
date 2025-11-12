@@ -18,11 +18,14 @@
 
         <ItemGroup Condition="'$(GeneratePreviewScriptPath)' == ''">
             <_GeneratePreviewScriptFromContent Include="@(Compile)"
-                                              Condition="'%(Filename)%(Extension)' == 'generate-preview.csx'" />
+                                               Condition="'%(Filename)%(Extension)' == 'generate-preview.csx'" />
         </ItemGroup>
 
         <PropertyGroup>
-            <GeneratePreviewScriptPath Condition="'$(GeneratePreviewScriptPath)' == '' AND '@(_GeneratePreviewScriptFromContent)' != ''">%(_GeneratePreviewScriptFromContent.FullPath)</GeneratePreviewScriptPath>
+            <GeneratePreviewScriptPath
+                Condition="'$(GeneratePreviewScriptPath)' == '' AND '@(_GeneratePreviewScriptFromContent)' != ''">
+                %(_GeneratePreviewScriptFromContent.FullPath)
+            </GeneratePreviewScriptPath>
         </PropertyGroup>
 
         <Message Text="[GeneratePreview] Checking for preview.png in assets..." Importance="high"
@@ -38,10 +41,13 @@
             <Output TaskParameter="ExitCode" PropertyName="_GeneratePreviewExitCode" />
         </Exec>
 
-        <Message Text="[GeneratePreview] Generation completed (exit code: $(_GeneratePreviewExitCode))" Importance="high"
+        <Message Text="[GeneratePreview] Generation completed (exit code: $(_GeneratePreviewExitCode))"
+                 Importance="high"
                  Condition="'$(_GeneratePreviewExitCode)' != ''" />
-        <Message Text="[GeneratePreview] Script failed with exit code $(_GeneratePreviewExitCode), but continuing build" Importance="high"
-                 Condition="'$(_GeneratePreviewExitCode)' != '0' AND '$(_GeneratePreviewExitCode)' != ''" />
+        <Message
+            Text="[GeneratePreview] Script failed with exit code $(_GeneratePreviewExitCode), but continuing build"
+            Importance="high"
+            Condition="'$(_GeneratePreviewExitCode)' != '0' AND '$(_GeneratePreviewExitCode)' != ''" />
     </Target>
 
     <!-- Ensure info.ini exists in assets directory before any operations -->
@@ -60,23 +66,28 @@
         </ItemGroup>
 
         <PropertyGroup>
-            <EnsureInfoScriptPath Condition="'$(EnsureInfoScriptPath)' == '' AND '@(_EnsureInfoScriptFromContent)' != ''">%(_EnsureInfoScriptFromContent.FullPath)</EnsureInfoScriptPath>
+            <EnsureInfoScriptPath
+                Condition="'$(EnsureInfoScriptPath)' == '' AND '@(_EnsureInfoScriptFromContent)' != ''">
+                %(_EnsureInfoScriptFromContent.FullPath)
+            </EnsureInfoScriptPath>
         </PropertyGroup>
 
         <Message Text="[EnsureInfoIni] Checking for info.ini in assets directory..." Importance="high"
                  Condition="'$(EnsureInfoScriptPath)' != ''" />
 
-        <Exec Command="dotnet script &quot;$(EnsureInfoScriptPath)&quot; &quot;$(AssetsDir)&quot; &quot;$(ModName)&quot;"
-              ContinueOnError="true"
-              IgnoreExitCode="true"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="'$(EnsureInfoScriptPath)' != ''">
+        <Exec
+            Command="dotnet script &quot;$(EnsureInfoScriptPath)&quot; &quot;$(AssetsDir)&quot; &quot;$(ModName)&quot;"
+            ContinueOnError="true"
+            IgnoreExitCode="true"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="'$(EnsureInfoScriptPath)' != ''">
             <Output TaskParameter="ExitCode" PropertyName="_EnsureInfoExitCode" />
         </Exec>
 
         <Message Text="[EnsureInfoIni] Check completed (exit code: $(_EnsureInfoExitCode))" Importance="high"
                  Condition="'$(_EnsureInfoExitCode)' != ''" />
-        <Message Text="[EnsureInfoIni] Script failed with exit code $(_EnsureInfoExitCode), but continuing build" Importance="high"
+        <Message Text="[EnsureInfoIni] Script failed with exit code $(_EnsureInfoExitCode), but continuing build"
+                 Importance="high"
                  Condition="'$(_EnsureInfoExitCode)' != '0' AND '$(_EnsureInfoExitCode)' != ''" />
     </Target>
 
@@ -101,17 +112,19 @@
             <CollectScriptPath Condition="'$(CollectScriptPath)' == '' AND '@(_CollectScriptFromContent)' != ''">%(_CollectScriptFromContent.FullPath)</CollectScriptPath>
         </PropertyGroup>
 
-        <Message Text="[CollectFromMod] Syncing publishedFileId from deployed mod to source assets..." Importance="high"
+        <Message Text="[CollectFromMod] Syncing publishedFileId from deployed mod to source assets..."
+                 Importance="high"
                  Condition="'$(CollectScriptPath)' != '' AND Exists('$(_DeployedModDir)')" />
         <Message Text="  Script: $(CollectScriptPath)" Importance="high" Condition="'$(CollectScriptPath)' != ''" />
         <Message Text="  Deployed Mod: $(_DeployedModDir)" Importance="high" Condition="Exists('$(_DeployedModDir)')" />
         <Message Text="  Assets Dir: $(AssetsDir)" Importance="high" Condition="'$(CollectScriptPath)' != ''" />
 
-        <Exec Command="dotnet script &quot;$(CollectScriptPath)&quot; &quot;$(_DeployedModDir)&quot; &quot;$(AssetsDir)&quot;"
-              ContinueOnError="true"
-              IgnoreExitCode="true"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="'$(CollectScriptPath)' != '' AND Exists('$(_DeployedModDir)')">
+        <Exec
+            Command="dotnet script &quot;$(CollectScriptPath)&quot; &quot;$(_DeployedModDir)&quot; &quot;$(AssetsDir)&quot;"
+            ContinueOnError="true"
+            IgnoreExitCode="true"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="'$(CollectScriptPath)' != '' AND Exists('$(_DeployedModDir)')">
             <Output TaskParameter="ExitCode" PropertyName="_CollectExitCode" />
         </Exec>
 
@@ -138,7 +151,8 @@
 
         <!-- Copy deps.json to mod output folder if exists -->
         <ItemGroup>
-            <_DepsJsonFile Include="$(TargetDir)$(TargetName).deps.json" Condition="Exists('$(TargetDir)$(TargetName).deps.json')" />
+            <_DepsJsonFile Include="$(TargetDir)$(TargetName).deps.json"
+                           Condition="Exists('$(TargetDir)$(TargetName).deps.json')" />
         </ItemGroup>
         <Copy SourceFiles="@(_DepsJsonFile)"
               DestinationFolder="$(ModsDirectory)$(ModName)/"
@@ -330,7 +344,8 @@
             <!-- 1. 项目输出目录（包含所有复制的依赖项） -->
             <_ILRepackLibDirs Include="$(TargetDir)" />
             <!-- 2. ManagedDirectory（游戏的托管程序集） -->
-            <_ILRepackLibDirs Include="$(ManagedDirectory)" Condition=" '$(ManagedDirectory)' != '' AND Exists('$(ManagedDirectory)') " />
+            <_ILRepackLibDirs Include="$(ManagedDirectory)"
+                              Condition=" '$(ManagedDirectory)' != '' AND Exists('$(ManagedDirectory)') " />
             <!-- 3. 收集所有引用程序集的目录（去重） -->
             <_ILRepackLibDirs Include="@(ReferencePath->'%(RootDir)%(Directory)')" />
             <!-- 4. NuGet 包的运行时程序集目录 -->
@@ -349,18 +364,21 @@
 
         <Message Text="[PackModWithILRepack] Merging mod DLL and dependencies into $(_FinalModDll)" Importance="High" />
         <Message Text="[PackModWithILRepack] Primary DLL: $(TargetPath)" Importance="High" />
-        <Message Text="[PackModWithILRepack] Dependencies to merge: @(_DllsToPack->'%(Filename)%(Extension)', ', ')" Importance="High" />
-        <Message Text="[PackModWithILRepack] Library search paths (@(_UniqueLibDirs->Count()) directories):" Importance="High" />
+        <Message Text="[PackModWithILRepack] Dependencies to merge: @(_DllsToPack->'%(Filename)%(Extension)', ', ')"
+                 Importance="High" />
+        <Message Text="[PackModWithILRepack] Library search paths (@(_UniqueLibDirs->Count()) directories):"
+                 Importance="High" />
         <Message Text="  - %(_UniqueLibDirs.Identity)" Importance="High" />
         <Message Text="[PackModWithILRepack] Generated lib args: $(_LibPathArgs)" Importance="High" />
-        
+
         <!-- 先输出到临时文件，使用收集的所有 lib 路径 -->
-        <Exec Command="ilrepack /out:&quot;$(_TempPackedDll)&quot; &quot;$(TargetPath)&quot; $(_DllsToPackList) /internalize /wildcards /log /verbose $(_LibPathArgs)" />
-        
+        <Exec
+            Command="ilrepack /out:&quot;$(_TempPackedDll)&quot; &quot;$(TargetPath)&quot; $(_DllsToPackList) /internalize /wildcards /log /verbose $(_LibPathArgs)" />
+
         <!-- 用临时文件覆盖原文件 -->
         <Copy SourceFiles="$(_TempPackedDll)" DestinationFiles="$(_FinalModDll)" OverwriteReadOnlyFiles="true" />
         <Message Text="[PackModWithILRepack] Successfully merged all assemblies into $(_FinalModDll)" Importance="High" />
-        
+
         <!-- 删除临时文件 -->
         <Delete Files="$(_TempPackedDll)" />
     </Target>
