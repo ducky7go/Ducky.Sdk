@@ -1,14 +1,13 @@
 ﻿<Solution>
   <Folder Name="/.etc/">
     <File Path="Directory.Build.props" />
-    <File Path="Directory.Packages.props" />
   </Folder>
   <Folder Name="/MultilayerProjectMod/">
-    <Project Path="Ducky.EntranceMod.Common\Ducky.EntranceMod.Common.csproj" Type="C#" />
-    <Project Path="Ducky.EntranceMod\Ducky.EntranceMod.csproj" Type="C#" />
+    <Project Path="Ducky.EntranceMod.Common\Ducky.EntranceMod.Common.csproj" />
+    <Project Path="Ducky.EntranceMod\Ducky.EntranceMod.csproj" />
   </Folder>
   <Folder Name="/SingleProjectMod/">
-    <Project Path="Ducky.SingleProject\Ducky.SingleProject.csproj" Type="C#" />
+    <Project Path="Ducky.SingleProject\Ducky.SingleProject.csproj" />
   </Folder>
   <Folder Name="/TryHarmony/">
     <Project Path="Ducky.TryHarmony/Ducky.TryHarmony.csproj" />

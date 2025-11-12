@@ -24,5 +24,8 @@
         <!-- 👇 Hide content files from Visual Studio solution explorer  -->
         <file src="Ducky.Sdk.props" target="build/Ducky.Sdk.props" />
         <file src="Ducky.Sdk.targets" target="build/Ducky.Sdk.targets" />
+        
+        <!-- 打包 0Harmony.dll 到 tools 目录，供条件引用（不会自动添加引用） -->
+        <file src="0Harmony.dll" target="tools/0Harmony.dll" />
     </files>
 </package>

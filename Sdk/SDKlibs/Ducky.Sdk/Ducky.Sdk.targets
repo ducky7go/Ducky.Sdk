@@ -306,7 +306,7 @@
     <!-- 复制项目输出目录中不在 ManagedDirectory 的所有 DLL 到 Mod 的 Dependency 文件夹 -->
     <Target Name="CopyMissingDependencies" AfterTargets="Build"
             DependsOnTargets="CollectModDependencies"
-            Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' ">
+            Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' AND '$(EnableILRepack)' != 'true' ">
         <PropertyGroup>
             <_DestDir>$(ModsDirectory)$(ModName)/Dependency/</_DestDir>
         </PropertyGroup>
