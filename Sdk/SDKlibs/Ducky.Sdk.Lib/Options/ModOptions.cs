@@ -22,10 +22,16 @@ public class ModOptions
     public const string FolderName = "Ducky";
 
     /// <summary>
-    /// ForThis 实例：每个mod独立的配置文件
-    /// 路径: Application.persistentDataPath/Ducky/ModLocalConfig/ModName.json
+    /// ForName 实例：每个mod独立的配置文件
+    /// 路径: Application.persistentDataPath/Ducky/ModConfigForName/ModName.json
     /// </summary>
-    public static readonly ModOptions ForThis = new(GetLocalFilePath);
+    public static readonly ModOptions ForName = new(GetLocalFileForModName);
+
+    /// <summary>
+    /// ForId 实例：每个mod独立的配置文件（使用ModId命名）
+    /// 路径: Application.persistentDataPath/Ducky/ModConfigForId/ModId.json
+    /// </summary>
+    public static readonly ModOptions ForId = new(GetLocalFileForModId);
 
     /// <summary>
     /// ForAllMods 实例：所有mod共享的配置文件
@@ -41,11 +47,18 @@ public class ModOptions
     /// <summary>
     /// 获取本mod专属配置文件路径
     /// </summary>
-    private static string GetLocalFilePath()
+    private static string GetLocalFileForModName()
     {
-        var folder = Path.Combine(Application.persistentDataPath, FolderName, "ModLocalConfig");
+        var folder = Path.Combine(Application.persistentDataPath, FolderName, "ModConfigForName");
         var modName = Helper.GetModName();
         return Path.Combine(folder, modName + ".json");
+    }
+
+    private static string GetLocalFileForModId()
+    {
+        var folder = Path.Combine(Application.persistentDataPath, FolderName, "ModConfigForId");
+        var modId = Helper.GetModId();
+        return Path.Combine(folder, modId + ".json");
     }
 
     /// <summary>
@@ -217,32 +230,32 @@ public class ModOptions
     /// <summary>
     /// 获取配置文件夹完整路径 (ForLocal)
     /// </summary>
-    public static string GetFolderPath() => ForThis.GetConfigFolderPath();
+    public static string GetFolderPath() => ForName.GetConfigFolderPath();
 
     /// <summary>
     /// 获取配置文件完整路径 (ForLocal)
     /// </summary>
-    public static string GetFilePath() => ForThis.GetConfigFilePath();
+    public static string GetFilePath() => ForName.GetConfigFilePath();
 
     /// <summary>
     /// 检查配置文件是否存在 (ForLocal)
     /// </summary>
-    public static bool Exists() => ForThis.ConfigExists();
+    public static bool Exists() => ForName.ConfigExists();
 
     /// <summary>
     /// 保存配置 (ForLocal)
     /// </summary>
-    public static bool Save<T>(string key, T data) => ForThis.SaveConfig(key, data);
+    public static bool Save<T>(string key, T data) => ForName.SaveConfig(key, data);
 
     /// <summary>
     /// 读取配置 (ForLocal)
     /// </summary>
-    public static T? Load<T>(string key, T? defaultValue = default) => ForThis.LoadConfig(key, defaultValue);
+    public static T? Load<T>(string key, T? defaultValue = default) => ForName.LoadConfig(key, defaultValue);
 
     /// <summary>
     /// 删除配置文件 (ForLocal)
     /// </summary>
-    public static bool Delete() => ForThis.DeleteConfig();
+    public static bool Delete() => ForName.DeleteConfig();
 
     #endregion
 }

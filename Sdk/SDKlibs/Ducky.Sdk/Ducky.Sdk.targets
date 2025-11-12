@@ -339,6 +339,8 @@
             <_DllsToPackList>@(_DllsToPack->'&quot;%(FullPath)&quot;', ' ')</_DllsToPackList>
         </PropertyGroup>
 
+        <MakeDir Directories="$(ModsDirectory)$(ModName)" />
+
         <!-- 收集所有可能包含依赖项的目录 -->
         <ItemGroup>
             <!-- 1. 项目输出目录（包含所有复制的依赖项） -->
