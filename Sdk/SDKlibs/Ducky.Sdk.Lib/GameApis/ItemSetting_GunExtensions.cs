@@ -1,6 +1,13 @@
 using System;
 using System.Runtime.CompilerServices;
 using Duckov.Buffs;
+using ItemStatsSystem;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Threading;
+using UnityEngine;
+using UnityEngine.Events;
 
 namespace Ducky.Sdk.GameApis;
 
@@ -48,13 +55,12 @@ public static class ItemSetting_GunExtensions
     public static ItemSetting_Gun SetElement(this ItemSetting_Gun target, ElementTypes value) =>
         target.SetField("element", value);
 
-    // Field 'muzzleFxPfb' uses object type (actual type: GameObject)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static object GetMuzzleFxPfb(this ItemSetting_Gun target) =>
-        target.GetField<ItemSetting_Gun>("muzzleFxPfb");
+    public static GameObject GetMuzzleFxPfb(this ItemSetting_Gun target) =>
+        target.GetField<ItemSetting_Gun, GameObject>("muzzleFxPfb");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ItemSetting_Gun SetMuzzleFxPfb(this ItemSetting_Gun target, object value) =>
+    public static ItemSetting_Gun SetMuzzleFxPfb(this ItemSetting_Gun target, GameObject value) =>
         target.SetField("muzzleFxPfb", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,4 +94,5 @@ public static class ItemSetting_GunExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ItemSetting_Gun SetTriggerMode(this ItemSetting_Gun target, ItemSetting_Gun.TriggerModes value) =>
         target.SetField("triggerMode", value);
+
 }
