@@ -112,9 +112,10 @@
       <_SpecificDlls Include="$(ManagedDirectory)UniTask.dll" Condition="Exists('$(ManagedDirectory)UniTask.dll')" />
       <_SpecificDlls Include="$(ManagedDirectory)Eflatun.SceneReference.dll"
                      Condition="Exists('$(ManagedDirectory)Eflatun.SceneReference.dll')" />
-
+      <_SpecificDlls Include="$(ManagedDirectory)com.rlabrecque.steamworks.net.dll"
+                     Condition="Exists('$(ManagedDirectory)com.rlabrecque.steamworks.net.dll')" />
       <!-- Combine all found DLLs -->
-      <_AllManagedDlls Include="@(_TeamSodaDlls);@(_UnityDlls);@(_FOWDlls);@(_SodaLocalizationDlls);@(_SpecificDlls)" />
+      <_AllManagedDlls Include="@(_TeamSodaDlls);@(_UnityDlls);@(_FOWDlls);@(_SodaLocalizationDlls);@(_SpecificDlls);" />
     </ItemGroup>
 
     <Message Text="[Ducky.Sdk] Found @(_AllManagedDlls->Count()) managed assemblies to reference" Importance="high" />

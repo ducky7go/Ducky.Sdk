@@ -5,12 +5,14 @@ using Ducky.Sdk.GameApis;
 using Ducky.Sdk.ModBehaviours;
 using Ducky.Sdk.Utils;
 using Serilog;
+using Steamworks;
 using Log = Ducky.Sdk.Logging.Log;
 
 namespace Ducky.TryHarmony;
 
 public class ModBehaviour : ModBehaviourBase
 {
+    public SteamAPICall_t _handle;
     private HarmonyLib.Harmony _harmony = null!;
     private int _buffId;
 

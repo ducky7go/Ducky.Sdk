@@ -302,7 +302,8 @@
         <ItemGroup>
             <_DllsToCopy Include="@(_AllOutputDlls)"
                          Condition=" !@(_ManagedDllNames->AnyHaveMetadataValue('Identity', '%(Filename)%(Extension)')) " />
-            <_DllsToPack Include="@(_AllOutputDlls)" />
+            <_DllsToPack Include="@(_AllOutputDlls)"
+                            Condition=" !@(_ManagedDllNames->AnyHaveMetadataValue('Identity', '%(Filename)%(Extension)')) " />
         </ItemGroup>
     </Target>
 
