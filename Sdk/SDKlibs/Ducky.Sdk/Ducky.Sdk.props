@@ -4,7 +4,7 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <!-- 指定生成文件的输出目录（可选，默认是 obj/$(Configuration)/$(TargetFramework)/generated） -->
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
-    
+
     <!-- 确保 NuGet 依赖的 DLL 被复制到输出目录，以便 ILRepack 可以合并它们 -->
     <CopyLocalLockFileAssemblies Condition="'$(CopyLocalLockFileAssemblies)' == ''">true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
