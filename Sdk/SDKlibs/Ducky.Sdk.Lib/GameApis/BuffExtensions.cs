@@ -1,8 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Duckov.Buffs;
 using ItemStatsSystem;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Threading;
+using UnityEngine;
 using UnityEngine.Events;
 
 namespace Ducky.Sdk.GameApis;
@@ -11,13 +15,12 @@ namespace Ducky.Sdk.GameApis;
 public static class BuffExtensions
 {
     // Instance field accessors
-    // Field 'buffFxPfb' uses object type (actual type: GameObject)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static object GetBuffFxPfb(this Buff target) =>
-        target.GetField<Buff>("buffFxPfb");
+    public static GameObject GetBuffFxPfb(this Buff target) =>
+        target.GetField<Buff, GameObject>("buffFxPfb");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Buff SetBuffFxPfb(this Buff target, object value) =>
+    public static Buff SetBuffFxPfb(this Buff target, GameObject value) =>
         target.SetField("buffFxPfb", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -68,9 +71,8 @@ public static class BuffExtensions
     public static Buff SetHide(this Buff target, bool value) =>
         target.SetField("hide", value);
 
-    // Field 'icon' uses object type (actual type: Sprite)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Buff SetIcon(this Buff target, object value) =>
+    public static Buff SetIcon(this Buff target, Sprite value) =>
         target.SetField("icon", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

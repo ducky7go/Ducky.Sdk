@@ -1,5 +1,10 @@
 using System;
 using System.Runtime.CompilerServices;
+using ItemStatsSystem;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -25,13 +30,12 @@ public static class ItemAgent_GunExtensions
     public static ItemAgent_Gun SetHandheldSocket(this ItemAgent_Gun target, HandheldSocketTypes value) =>
         target.SetField("handheldSocket", value);
 
-    // Field 'loadedVisualObject' uses object type (actual type: GameObject)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static object GetLoadedVisualObject(this ItemAgent_Gun target) =>
-        target.GetField<ItemAgent_Gun>("loadedVisualObject");
+    public static GameObject GetLoadedVisualObject(this ItemAgent_Gun target) =>
+        target.GetField<ItemAgent_Gun, GameObject>("loadedVisualObject");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ItemAgent_Gun SetLoadedVisualObject(this ItemAgent_Gun target, object value) =>
+    public static ItemAgent_Gun SetLoadedVisualObject(this ItemAgent_Gun target, GameObject value) =>
         target.SetField("loadedVisualObject", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -42,13 +46,12 @@ public static class ItemAgent_GunExtensions
     public static ItemAgent_Gun SetOnInitializdEvent(this ItemAgent_Gun target, UnityEvent value) =>
         target.SetField("OnInitializdEvent", value);
 
-    // Field 'setActiveIfMainCharacter' uses object type (actual type: GameObject)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static object GetSetActiveIfMainCharacter(this ItemAgent_Gun target) =>
-        target.GetField<ItemAgent_Gun>("setActiveIfMainCharacter");
+    public static GameObject GetSetActiveIfMainCharacter(this ItemAgent_Gun target) =>
+        target.GetField<ItemAgent_Gun, GameObject>("setActiveIfMainCharacter");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ItemAgent_Gun SetSetActiveIfMainCharacter(this ItemAgent_Gun target, object value) =>
+    public static ItemAgent_Gun SetSetActiveIfMainCharacter(this ItemAgent_Gun target, GameObject value) =>
         target.SetField("setActiveIfMainCharacter", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

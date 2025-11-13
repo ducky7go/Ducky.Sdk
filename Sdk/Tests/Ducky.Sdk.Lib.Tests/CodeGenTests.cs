@@ -1,25 +1,79 @@
 ﻿using System.Reflection;
 using System.Text;
+using Duckov;
 using Duckov.Buffs;
+using Duckov.Buildings;
+using Duckov.Crops;
+using Duckov.Modding;
+using Duckov.UI;
 using Duckov.Utilities;
+using FOW;
+using ItemStatsSystem;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 namespace Ducky.Sdk.Lib.Tests;
 
 public class CodeGenTests
 {
-    // [Test]
+    [Test]
     public void GenerateGetSetForFields()
     {
         var types = new[]
         {
-            typeof(Buff),
+            typeof(GameplayDataSettings.TagsData),
+            typeof(GameplayDataSettings.PrefabsData),
+            typeof(UIPrefabsReference),
+            typeof(GameplayDataSettings.ItemAssetsData),
+            typeof(GameplayDataSettings.StringListsData),
+            typeof(GameplayDataSettings.LayersData),
+            typeof(GameplayDataSettings.SceneManagementData),
+            typeof(GameplayDataSettings.SceneManagementData),
             typeof(GameplayDataSettings.BuffsData),
+            typeof(GameplayDataSettings.QuestsData),
+            typeof(GameplayDataSettings.EconomyData),
+            typeof(GameplayDataSettings.UIStyleData),
+            typeof(InputActionAsset),
+            typeof(BuildingDataCollection),
+            typeof(CustomFaceData),
+            typeof(CraftingFormulaCollection),
+            typeof(DecomposeDatabase),
+            typeof(StatInfoDatabase),
+            typeof(StockShopDatabase),
+            typeof(GameplayDataSettings.LootingData),
+            typeof(CropDatabase),
+            typeof(GameplayDataSettings.SpritesData),
+            typeof(GameplayDataSettings.CharacterRandomPresets),
+
+            typeof(Buff),
             typeof(ItemSetting_Gun),
-            typeof(ItemAgent_Gun)
+            typeof(ItemAgent_Gun),
+            typeof(ItemAgent_MeleeWeapon),
+            typeof(ItemAgent_Kazoo),
+            typeof(ItemAgent),
+            typeof(ItemAgentHolder),
+            typeof(FogOfWarPass),
+            typeof(LevelManager),
+            typeof(SceneLoader),
+            typeof(SceneManager),
+            typeof(Health),
+            typeof(ModManager),
+            typeof(SteamManager),
+            typeof(Effect),
+            typeof(Item),
+            typeof(SkillBase),
+            typeof(Skill_Grenade),
+            typeof(EXPManager),
+            typeof(DamageInfo),
+            typeof(CharacterBuffManager),
+            typeof(CharacterMainControl),
+            typeof(CharacterItemControl),
+            typeof(CharacterSkillKeeper),
+            typeof(ExplosionManager)
         };
         var outDir = Path.GetFullPath("../../../../../SDKlibs/Ducky.Sdk.Lib/GameApis");
-        const bool forceOverwrite = true; // Set to true to regenerate existing files
+        const bool forceOverwrite = false; // Set to true to regenerate existing files
 
         Directory.CreateDirectory(outDir);
 
@@ -40,10 +94,59 @@ public class CodeGenTests
             sb.AppendLine("using System;");
             sb.AppendLine("using System.Runtime.CompilerServices;");
 
-            // 只在命名空间非空时添加 using
+            // 收集需要额外添加的 using（考虑 List 和泛型参数的命名空间）
+            var extraNamespaces = new HashSet<string>();
+            // 扫描字段与属性类型以获取可能需要的命名空间
+            var memberTypes = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance |
+                                             BindingFlags.Static)
+                .Select(f => f.FieldType)
+                .Concat(type
+                    .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance |
+                                   BindingFlags.Static)
+                    .Select(p => p.PropertyType))
+                .Where(t => t != null)
+                .Distinct()
+                .ToList();
+
+            foreach (var mt in memberTypes)
+            {
+                if (mt.IsArray)
+                {
+                    var elem = mt.GetElementType();
+                    if (!string.IsNullOrEmpty(elem?.Namespace)) extraNamespaces.Add(elem.Namespace);
+                }
+
+                if (mt.IsGenericType)
+                {
+                    // 对泛型参数尝试引入它们的命名空间
+                    foreach (var ga in mt.GetGenericArguments())
+                    {
+                        if (!string.IsNullOrEmpty(ga.Namespace))
+                            extraNamespaces.Add(ga.Namespace);
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(mt.Namespace))
+                        extraNamespaces.Add(mt.Namespace);
+                }
+            }
+
+            extraNamespaces.Add("System.Collections.Generic");
+            extraNamespaces.Add("System.Collections.ObjectModel");
+            extraNamespaces.Add("UnityEngine.Events");
+
+            // 只在命名空间非空时添加 using（始终确保 type 自身的命名空间被引入，避免重复）
             if (!string.IsNullOrEmpty(type.Namespace))
             {
                 sb.AppendLine($"using {type.Namespace};");
+                extraNamespaces.Remove(type.Namespace);
+            }
+
+            // 添加额外的 using（按排序确保稳定输出）
+            foreach (var nsName in extraNamespaces.OrderBy(n => n))
+            {
+                sb.AppendLine($"using {nsName};");
             }
 
             // 如果有静态字段，需要引入 FieldExtensions
@@ -226,64 +329,70 @@ public class CodeGenTests
 
     private static string GetFriendlyTypeName(Type type)
     {
-        // 处理常见类型
+        // Handle arrays
+        if (type.IsArray)
+        {
+            var elem = type.GetElementType();
+            return $"{GetFriendlyTypeName(elem)}[]";
+        }
+
+        // Common built-in types
         if (type == typeof(int)) return "int";
         if (type == typeof(float)) return "float";
         if (type == typeof(bool)) return "bool";
         if (type == typeof(string)) return "string";
         if (type == typeof(void)) return "void";
 
-        // 处理泛型类型
+        // Nullable<T> -> T?
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+        {
+            var arg = type.GetGenericArguments()[0];
+            return $"{GetFriendlyTypeName(arg)}?";
+        }
+
+        // Generic types (general handling)
         if (type.IsGenericType)
         {
-            var genericType = type.GetGenericTypeDefinition();
+            var genericDef = type.GetGenericTypeDefinition();
             var genericArgs = type.GetGenericArguments();
 
-            if (genericType == typeof(List<>))
-            {
-                return $"List<{GetFriendlyTypeName(genericArgs[0])}>";
-            }
+            // Get base name without `1 suffix
+            var name = genericDef.Name;
+            var tick = name.IndexOf('`');
+            if (tick >= 0) name = name.Substring(0, tick);
 
-            if (genericType == typeof(Dictionary<,>))
-            {
-                return $"Dictionary<{GetFriendlyTypeName(genericArgs[0])}, {GetFriendlyTypeName(genericArgs[1])}>";
-            }
+            var args = string.Join(", ", genericArgs.Select(a => GetFriendlyTypeName(a)));
+            return $"{name}<{args}>";
         }
 
-        // 处理嵌套类型
+        // Nested types: format DeclaringType.FriendlyName
         if (type.IsNested)
         {
-            var declaringType = type.DeclaringType;
-            return $"{declaringType?.Name}.{type.Name}";
+            var declaring = type.DeclaringType;
+            var declaringName = declaring != null ? GetFriendlyTypeName(declaring) : declaring?.Name;
+            return $"{declaringName}.{type.Name}";
         }
 
-        // 处理 Unity/游戏类型，某些类型可能不公开，使用 object
+        // Unity/game types or internal types: fallback to object when not visible
         if (type.Namespace != null &&
             (type.Namespace.StartsWith("UnityEngine") ||
              type.Namespace.StartsWith("Duckov") ||
              type.Namespace.StartsWith("ItemStatsSystem")))
         {
-            // 对于已知的公开类型，使用其名称
             if (type.IsPublic || type.IsNestedPublic)
             {
                 return type.Name;
             }
 
-            // 对于不公开的类型（如 Sprite, GameObject 等内部类型），使用 object
             return "object";
         }
 
+        // Fallback to simple name
         return type.Name;
     }
 
     private static bool ShouldUseObjectType(Type type)
     {
-        // Unity 类型如 Sprite, GameObject 等在某些上下文中不可见，使用 object
-        var typeName = type.Name;
-        return typeName == "Sprite" ||
-               typeName == "GameObject" ||
-               typeName == "Transform" ||
-               typeName == "Component" ||
-               (!type.IsPublic && !type.IsNestedPublic);
+        return false;
     }
 }
