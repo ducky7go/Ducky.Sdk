@@ -17,7 +17,7 @@ public static class EconomyDataExtensions
         target.GetField<GameplayDataSettings.EconomyData, List<int>>("unlockItemByDefault");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.EconomyData SetUnlockItemByDefault(this GameplayDataSettings.EconomyData target, List<int> value) =>
+    public static GameplayDataSettings.EconomyData SetUnlockItemByDefault(this GameplayDataSettings.EconomyData target,
+        List<int> value) =>
         target.SetField("unlockItemByDefault", value);
-
 }

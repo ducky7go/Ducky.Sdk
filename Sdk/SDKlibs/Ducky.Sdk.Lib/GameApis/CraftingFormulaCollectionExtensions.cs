@@ -17,7 +17,7 @@ public static class CraftingFormulaCollectionExtensions
         target.GetField<CraftingFormulaCollection, List<CraftingFormula>>("list");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static CraftingFormulaCollection SetList(this CraftingFormulaCollection target, List<CraftingFormula> value) =>
+    public static CraftingFormulaCollection
+        SetList(this CraftingFormulaCollection target, List<CraftingFormula> value) =>
         target.SetField("list", value);
-
 }

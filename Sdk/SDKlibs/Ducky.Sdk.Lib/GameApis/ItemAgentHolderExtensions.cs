@@ -20,5 +20,4 @@ public static class ItemAgentHolderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ItemAgentHolder SetCharacterController(this ItemAgentHolder target, CharacterMainControl value) =>
         target.SetField("characterController", value);
-
 }

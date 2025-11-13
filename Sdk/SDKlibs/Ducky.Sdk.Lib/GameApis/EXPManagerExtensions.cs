@@ -61,5 +61,4 @@ public static class EXPManagerExtensions
         FieldExtensions.SetStaticField<EXPManager, Action<int, int>>("onLevelChanged", value);
         return typeof(EXPManager);
     }
-
 }

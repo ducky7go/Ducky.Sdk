@@ -17,5 +17,4 @@ public static class CharacterBuffManagerExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CharacterBuffManager SetMaster(this CharacterBuffManager target, CharacterMainControl value) =>
         target.SetField("master", value);
-
 }

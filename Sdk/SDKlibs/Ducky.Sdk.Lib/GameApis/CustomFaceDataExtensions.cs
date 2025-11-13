@@ -63,5 +63,4 @@ public static class CustomFaceDataExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CustomFaceData SetWings(this CustomFaceData target, CustomFacePartCollection value) =>
         target.SetField("wings", value);
-
 }

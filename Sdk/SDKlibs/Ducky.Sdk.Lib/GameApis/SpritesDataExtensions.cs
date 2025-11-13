@@ -12,11 +12,12 @@ public static class SpritesDataExtensions
 {
     // Instance field accessors
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static List<GameplayDataSettings.SpritesData.Entry> GetEntries(this GameplayDataSettings.SpritesData target) =>
+    public static List<GameplayDataSettings.SpritesData.Entry>
+        GetEntries(this GameplayDataSettings.SpritesData target) =>
         target.GetField<GameplayDataSettings.SpritesData, List<GameplayDataSettings.SpritesData.Entry>>("entries");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.SpritesData SetEntries(this GameplayDataSettings.SpritesData target, List<GameplayDataSettings.SpritesData.Entry> value) =>
+    public static GameplayDataSettings.SpritesData SetEntries(this GameplayDataSettings.SpritesData target,
+        List<GameplayDataSettings.SpritesData.Entry> value) =>
         target.SetField("entries", value);
-
 }

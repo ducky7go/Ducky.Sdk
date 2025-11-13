@@ -23,6 +23,6 @@
     <Reference Include="$(ManagedDirectory)ItemStatsSystem.dll" />
     <Reference Include="$(ManagedDirectory)Newtonsoft.Json.dll" />
     <Reference Include="$(ManagedDirectory)EasySave3.dll" />
-    <Reference Include="$(ManagedDirectory)Eflatun.SceneReference.dll"/>
+    <Reference Include="$(ManagedDirectory)Eflatun.SceneReference.dll" />
   </ItemGroup>
 </Project>

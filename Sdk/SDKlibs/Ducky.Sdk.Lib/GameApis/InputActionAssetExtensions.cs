@@ -50,5 +50,4 @@ public static class InputActionAssetExtensions
         FieldExtensions.SetStaticField<InputActionAsset, string>("Extension", value);
         return typeof(InputActionAsset);
     }
-
 }

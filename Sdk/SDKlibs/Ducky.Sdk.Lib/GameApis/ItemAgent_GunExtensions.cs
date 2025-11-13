@@ -61,5 +61,4 @@ public static class ItemAgent_GunExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ItemAgent_Gun SetShellParticle(this ItemAgent_Gun target, ParticleSystem value) =>
         target.SetField("shellParticle", value);
-
 }

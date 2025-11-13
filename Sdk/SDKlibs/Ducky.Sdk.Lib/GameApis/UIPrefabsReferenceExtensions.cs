@@ -28,5 +28,4 @@ public static class UIPrefabsReferenceExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static UIPrefabsReference SetSlotIndicator(this UIPrefabsReference target, SlotIndicator value) =>
         target.SetField("slotIndicator", value);
-
 }

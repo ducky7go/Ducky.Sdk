@@ -36,5 +36,4 @@ public static class FogOfWarPassExtensions
         FieldExtensions.SetStaticField<FogOfWarPass, FogOfWarPass>("instance", value);
         return typeof(FogOfWarPass);
     }
-
 }

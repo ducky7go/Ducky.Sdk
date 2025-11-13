@@ -19,7 +19,8 @@ public static class ItemAgent_MeleeWeaponExtensions
         target.GetField<ItemAgent_MeleeWeapon, HandheldAnimationType>("handAnimationType");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ItemAgent_MeleeWeapon SetHandAnimationType(this ItemAgent_MeleeWeapon target, HandheldAnimationType value) =>
+    public static ItemAgent_MeleeWeapon SetHandAnimationType(this ItemAgent_MeleeWeapon target,
+        HandheldAnimationType value) =>
         target.SetField("handAnimationType", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -27,7 +28,8 @@ public static class ItemAgent_MeleeWeaponExtensions
         target.GetField<ItemAgent_MeleeWeapon, HandheldSocketTypes>("handheldSocket");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ItemAgent_MeleeWeapon SetHandheldSocket(this ItemAgent_MeleeWeapon target, HandheldSocketTypes value) =>
+    public static ItemAgent_MeleeWeapon
+        SetHandheldSocket(this ItemAgent_MeleeWeapon target, HandheldSocketTypes value) =>
         target.SetField("handheldSocket", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -51,7 +53,8 @@ public static class ItemAgent_MeleeWeaponExtensions
         target.GetField<ItemAgent_MeleeWeapon, GameObject>("setActiveIfMainCharacter");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ItemAgent_MeleeWeapon SetSetActiveIfMainCharacter(this ItemAgent_MeleeWeapon target, GameObject value) =>
+    public static ItemAgent_MeleeWeapon
+        SetSetActiveIfMainCharacter(this ItemAgent_MeleeWeapon target, GameObject value) =>
         target.SetField("setActiveIfMainCharacter", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -73,5 +76,4 @@ public static class ItemAgent_MeleeWeaponExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ItemAgent_MeleeWeapon SetSoundKey(this ItemAgent_MeleeWeapon target, string value) =>
         target.SetField("soundKey", value);
-
 }

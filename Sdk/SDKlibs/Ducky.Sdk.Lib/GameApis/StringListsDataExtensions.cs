@@ -44,5 +44,4 @@ public static class StringListsDataExtensions
         FieldExtensions.SetStaticField<GameplayDataSettings.StringListsData, StringList>("StatKeys", value);
         return typeof(GameplayDataSettings.StringListsData);
     }
-
 }

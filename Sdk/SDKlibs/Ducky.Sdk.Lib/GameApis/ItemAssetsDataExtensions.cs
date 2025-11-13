@@ -13,11 +13,12 @@ public static class ItemAssetsDataExtensions
 {
     // Instance field accessors
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.ItemAssetsData SetCashItemTypeID(this GameplayDataSettings.ItemAssetsData target, int value) =>
+    public static GameplayDataSettings.ItemAssetsData SetCashItemTypeID(this GameplayDataSettings.ItemAssetsData target,
+        int value) =>
         target.SetField("cashItemTypeID", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.ItemAssetsData SetDefaultCharacterItemTypeID(this GameplayDataSettings.ItemAssetsData target, int value) =>
+    public static GameplayDataSettings.ItemAssetsData SetDefaultCharacterItemTypeID(
+        this GameplayDataSettings.ItemAssetsData target, int value) =>
         target.SetField("defaultCharacterItemTypeID", value);
-
 }

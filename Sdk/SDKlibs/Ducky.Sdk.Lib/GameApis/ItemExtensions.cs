@@ -103,5 +103,4 @@ public static class ItemExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Item SetWeight(this Item target, float value) =>
         target.SetField("weight", value);
-
 }

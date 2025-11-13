@@ -19,5 +19,4 @@ public static class DecomposeDatabaseExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DecomposeDatabase SetEntries(this DecomposeDatabase target, DecomposeFormula[] value) =>
         target.SetField("entries", value);
-
 }

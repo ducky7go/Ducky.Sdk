@@ -110,5 +110,4 @@ public static class SceneLoaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static SceneLoader SetWaitAfterSceneLoaded(this SceneLoader target, float value) =>
         target.SetField("waitAfterSceneLoaded", value);
-
 }

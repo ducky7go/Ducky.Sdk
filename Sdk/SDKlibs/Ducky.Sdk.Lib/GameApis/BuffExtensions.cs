@@ -102,5 +102,4 @@ public static class BuffExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Buff SetTotalLifeTime(this Buff target, float value) =>
         target.SetField("totalLifeTime", value);
-
 }

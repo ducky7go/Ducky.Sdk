@@ -185,5 +185,4 @@ public static class Skill_GrenadeExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Skill_Grenade SetStaminaCost(this Skill_Grenade target, float value) =>
         target.SetField("staminaCost", value);
-
 }

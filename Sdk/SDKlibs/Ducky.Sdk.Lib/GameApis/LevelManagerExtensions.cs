@@ -196,5 +196,4 @@ public static class LevelManagerExtensions
         FieldExtensions.SetStaticField<LevelManager, string>("MainCharacterItemSaveKey", value);
         return typeof(LevelManager);
     }
-
 }

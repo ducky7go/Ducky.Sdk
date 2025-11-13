@@ -37,5 +37,4 @@ public static class EffectExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Effect SetTriggers(this Effect target, List<EffectTrigger> value) =>
         target.SetField("triggers", value);
-
 }

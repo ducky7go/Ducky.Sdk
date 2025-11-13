@@ -101,5 +101,4 @@ public static class HealthExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Health SetTeam(this Health target, Teams value) =>
         target.SetField("team", value);
-
 }

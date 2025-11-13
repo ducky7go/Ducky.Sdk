@@ -30,7 +30,7 @@ public static class BuildingDataCollectionExtensions
         target.GetField<BuildingDataCollection, ReadOnlyCollection<BuildingInfo>>("readonlyInfos");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BuildingDataCollection SetReadonlyInfos(this BuildingDataCollection target, ReadOnlyCollection<BuildingInfo> value) =>
+    public static BuildingDataCollection SetReadonlyInfos(this BuildingDataCollection target,
+        ReadOnlyCollection<BuildingInfo> value) =>
         target.SetField("readonlyInfos", value);
-
 }

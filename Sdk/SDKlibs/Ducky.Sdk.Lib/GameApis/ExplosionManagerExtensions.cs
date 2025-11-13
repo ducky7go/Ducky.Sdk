@@ -28,5 +28,4 @@ public static class ExplosionManagerExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExplosionManager SetNormalFxPfb(this ExplosionManager target, GameObject value) =>
         target.SetField("normalFxPfb", value);
-
 }

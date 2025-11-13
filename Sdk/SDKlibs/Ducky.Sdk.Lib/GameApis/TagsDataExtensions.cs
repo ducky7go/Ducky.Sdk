@@ -12,11 +12,13 @@ public static class TagsDataExtensions
 {
     // Instance field accessors
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.TagsData SetAdvancedDebuffMode(this GameplayDataSettings.TagsData target, Tag value) =>
+    public static GameplayDataSettings.TagsData SetAdvancedDebuffMode(this GameplayDataSettings.TagsData target,
+        Tag value) =>
         target.SetField("advancedDebuffMode", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.TagsData SetAllTags(this GameplayDataSettings.TagsData target, List<Tag> value) =>
+    public static GameplayDataSettings.TagsData
+        SetAllTags(this GameplayDataSettings.TagsData target, List<Tag> value) =>
         target.SetField("allTags", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -40,11 +42,13 @@ public static class TagsDataExtensions
         target.SetField("character", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.TagsData SetDestroyOnLootBox(this GameplayDataSettings.TagsData target, Tag value) =>
+    public static GameplayDataSettings.TagsData SetDestroyOnLootBox(this GameplayDataSettings.TagsData target,
+        Tag value) =>
         target.SetField("destroyOnLootBox", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.TagsData SetDontDropOnDeadInSlot(this GameplayDataSettings.TagsData target, Tag value) =>
+    public static GameplayDataSettings.TagsData SetDontDropOnDeadInSlot(this GameplayDataSettings.TagsData target,
+        Tag value) =>
         target.SetField("dontDropOnDeadInSlot", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -52,11 +56,11 @@ public static class TagsDataExtensions
         target.SetField("helmat", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.TagsData SetLockInDemoTag(this GameplayDataSettings.TagsData target, Tag value) =>
+    public static GameplayDataSettings.TagsData
+        SetLockInDemoTag(this GameplayDataSettings.TagsData target, Tag value) =>
         target.SetField("lockInDemoTag", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static GameplayDataSettings.TagsData SetSpecial(this GameplayDataSettings.TagsData target, Tag value) =>
         target.SetField("special", value);
-
 }

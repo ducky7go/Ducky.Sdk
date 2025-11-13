@@ -35,5 +35,4 @@ public static class SteamManagerExtensions
         FieldExtensions.SetStaticField<SteamManager, bool>("SteamEnabled", value);
         return typeof(SteamManager);
     }
-
 }

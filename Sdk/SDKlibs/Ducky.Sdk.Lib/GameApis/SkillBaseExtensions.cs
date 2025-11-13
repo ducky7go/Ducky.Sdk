@@ -73,5 +73,4 @@ public static class SkillBaseExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static SkillBase SetStaminaCost(this SkillBase target, float value) =>
         target.SetField("staminaCost", value);
-
 }

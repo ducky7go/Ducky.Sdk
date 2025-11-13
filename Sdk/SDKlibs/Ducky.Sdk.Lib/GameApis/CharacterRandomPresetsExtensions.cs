@@ -16,7 +16,7 @@ public static class CharacterRandomPresetsExtensions
         target.GetField<GameplayDataSettings.CharacterRandomPresets, List<CharacterRandomPreset>>("presets");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.CharacterRandomPresets SetPresets(this GameplayDataSettings.CharacterRandomPresets target, List<CharacterRandomPreset> value) =>
+    public static GameplayDataSettings.CharacterRandomPresets SetPresets(
+        this GameplayDataSettings.CharacterRandomPresets target, List<CharacterRandomPreset> value) =>
         target.SetField("presets", value);
-
 }

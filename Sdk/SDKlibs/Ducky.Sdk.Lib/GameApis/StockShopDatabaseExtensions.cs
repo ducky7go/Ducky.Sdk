@@ -17,7 +17,7 @@ public static class StockShopDatabaseExtensions
         target.GetField<StockShopDatabase, List<StockShopDatabase.MerchantProfile>>("merchantProfiles");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static StockShopDatabase SetMerchantProfiles(this StockShopDatabase target, List<StockShopDatabase.MerchantProfile> value) =>
+    public static StockShopDatabase SetMerchantProfiles(this StockShopDatabase target,
+        List<StockShopDatabase.MerchantProfile> value) =>
         target.SetField("merchantProfiles", value);
-
 }

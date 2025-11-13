@@ -28,5 +28,4 @@ public static class CropDatabaseExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CropDatabase SetSeedInfos(this CropDatabase target, List<SeedInfo> value) =>
         target.SetField("seedInfos", value);
-
 }

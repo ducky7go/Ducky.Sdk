@@ -20,5 +20,4 @@ public static class StatInfoDatabaseExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static StatInfoDatabase SetEntries(this StatInfoDatabase target, StatInfoDatabase.Entry[] value) =>
         target.SetField("entries", value);
-
 }

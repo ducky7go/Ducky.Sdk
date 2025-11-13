@@ -47,7 +47,8 @@ public static class CharacterMainControlExtensions
         target.GetField<CharacterMainControl, List<Buff.BuffExclusiveTags>>("buffResist");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static CharacterMainControl SetBuffResist(this CharacterMainControl target, List<Buff.BuffExclusiveTags> value) =>
+    public static CharacterMainControl SetBuffResist(this CharacterMainControl target,
+        List<Buff.BuffExclusiveTags> value) =>
         target.SetField("buffResist", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -71,7 +72,8 @@ public static class CharacterMainControlExtensions
         target.GetField<CharacterMainControl, CharacterRandomPreset>("characterPreset");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static CharacterMainControl SetCharacterPreset(this CharacterMainControl target, CharacterRandomPreset value) =>
+    public static CharacterMainControl
+        SetCharacterPreset(this CharacterMainControl target, CharacterRandomPreset value) =>
         target.SetField("characterPreset", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,11 +89,13 @@ public static class CharacterMainControlExtensions
         target.GetField<CharacterMainControl, InteractableLootbox>("deadLootBoxPrefab");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static CharacterMainControl SetDeadLootBoxPrefab(this CharacterMainControl target, InteractableLootbox value) =>
+    public static CharacterMainControl
+        SetDeadLootBoxPrefab(this CharacterMainControl target, InteractableLootbox value) =>
         target.SetField("deadLootBoxPrefab", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static CharacterMainControl SetEquipmentController(this CharacterMainControl target, CharacterEquipmentController value) =>
+    public static CharacterMainControl SetEquipmentController(this CharacterMainControl target,
+        CharacterEquipmentController value) =>
         target.SetField("equipmentController", value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -169,34 +173,41 @@ public static class CharacterMainControlExtensions
     // Static field accessors
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Action<CharacterMainControl, DuckovItemAgent> GetStaticOnMainCharacterChangeHoldItemAgentEvent() =>
-        FieldExtensions.GetStaticField<CharacterMainControl, Action<CharacterMainControl, DuckovItemAgent>>("OnMainCharacterChangeHoldItemAgentEvent");
+        FieldExtensions.GetStaticField<CharacterMainControl, Action<CharacterMainControl, DuckovItemAgent>>(
+            "OnMainCharacterChangeHoldItemAgentEvent");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Type SetStaticOnMainCharacterChangeHoldItemAgentEvent(Action<CharacterMainControl, DuckovItemAgent> value)
+    public static Type SetStaticOnMainCharacterChangeHoldItemAgentEvent(
+        Action<CharacterMainControl, DuckovItemAgent> value)
     {
-        FieldExtensions.SetStaticField<CharacterMainControl, Action<CharacterMainControl, DuckovItemAgent>>("OnMainCharacterChangeHoldItemAgentEvent", value);
+        FieldExtensions.SetStaticField<CharacterMainControl, Action<CharacterMainControl, DuckovItemAgent>>(
+            "OnMainCharacterChangeHoldItemAgentEvent", value);
         return typeof(CharacterMainControl);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Action<CharacterMainControl, Inventory, int> GetStaticOnMainCharacterInventoryChangedEvent() =>
-        FieldExtensions.GetStaticField<CharacterMainControl, Action<CharacterMainControl, Inventory, int>>("OnMainCharacterInventoryChangedEvent");
+        FieldExtensions.GetStaticField<CharacterMainControl, Action<CharacterMainControl, Inventory, int>>(
+            "OnMainCharacterInventoryChangedEvent");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Type SetStaticOnMainCharacterInventoryChangedEvent(Action<CharacterMainControl, Inventory, int> value)
     {
-        FieldExtensions.SetStaticField<CharacterMainControl, Action<CharacterMainControl, Inventory, int>>("OnMainCharacterInventoryChangedEvent", value);
+        FieldExtensions.SetStaticField<CharacterMainControl, Action<CharacterMainControl, Inventory, int>>(
+            "OnMainCharacterInventoryChangedEvent", value);
         return typeof(CharacterMainControl);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Action<CharacterMainControl, Slot> GetStaticOnMainCharacterSlotContentChangedEvent() =>
-        FieldExtensions.GetStaticField<CharacterMainControl, Action<CharacterMainControl, Slot>>("OnMainCharacterSlotContentChangedEvent");
+        FieldExtensions.GetStaticField<CharacterMainControl, Action<CharacterMainControl, Slot>>(
+            "OnMainCharacterSlotContentChangedEvent");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Type SetStaticOnMainCharacterSlotContentChangedEvent(Action<CharacterMainControl, Slot> value)
     {
-        FieldExtensions.SetStaticField<CharacterMainControl, Action<CharacterMainControl, Slot>>("OnMainCharacterSlotContentChangedEvent", value);
+        FieldExtensions.SetStaticField<CharacterMainControl, Action<CharacterMainControl, Slot>>(
+            "OnMainCharacterSlotContentChangedEvent", value);
         return typeof(CharacterMainControl);
     }
 
@@ -232,5 +243,4 @@ public static class CharacterMainControlExtensions
         FieldExtensions.SetStaticField<CharacterMainControl, float>("weightThreshold_superWeight", value);
         return typeof(CharacterMainControl);
     }
-
 }

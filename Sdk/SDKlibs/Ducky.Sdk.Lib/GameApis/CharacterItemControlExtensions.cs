@@ -19,7 +19,7 @@ public static class CharacterItemControlExtensions
         target.GetField<CharacterItemControl, CharacterMainControl>("characterMainControl");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static CharacterItemControl SetCharacterMainControl(this CharacterItemControl target, CharacterMainControl value) =>
+    public static CharacterItemControl SetCharacterMainControl(this CharacterItemControl target,
+        CharacterMainControl value) =>
         target.SetField("characterMainControl", value);
-
 }

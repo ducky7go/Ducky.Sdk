@@ -17,7 +17,7 @@ public static class LootingDataExtensions
         target.GetField<GameplayDataSettings.LootingData, float[]>("inspectingTimes");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GameplayDataSettings.LootingData SetInspectingTimes(this GameplayDataSettings.LootingData target, float[] value) =>
+    public static GameplayDataSettings.LootingData SetInspectingTimes(this GameplayDataSettings.LootingData target,
+        float[] value) =>
         target.SetField("inspectingTimes", value);
-
 }

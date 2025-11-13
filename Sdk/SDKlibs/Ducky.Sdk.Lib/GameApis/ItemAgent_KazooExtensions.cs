@@ -69,5 +69,4 @@ public static class ItemAgent_KazooExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ItemAgent_Kazoo SetSetActiveIfMainCharacter(this ItemAgent_Kazoo target, GameObject value) =>
         target.SetField("setActiveIfMainCharacter", value);
-
 }

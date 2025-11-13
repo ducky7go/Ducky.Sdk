@@ -45,5 +45,4 @@ public static class ModManagerExtensions
         FieldExtensions.SetStaticField<ModManager, Action<string, string>>("OnModLoadingFailed", value);
         return typeof(ModManager);
     }
-
 }

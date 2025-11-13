@@ -94,5 +94,4 @@ public static class ItemSetting_GunExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ItemSetting_Gun SetTriggerMode(this ItemSetting_Gun target, ItemSetting_Gun.TriggerModes value) =>
         target.SetField("triggerMode", value);
-
 }

@@ -19,5 +19,4 @@ public static class CharacterSkillKeeperExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CharacterSkillKeeper SetOnSkillChanged(this CharacterSkillKeeper target, Action value) =>
         target.SetField("OnSkillChanged", value);
-
 }
