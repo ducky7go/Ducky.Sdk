@@ -43,6 +43,7 @@ public class ModOptions
     private ModOptions(Func<string> getFilePathFunc)
     {
         _getFilePathFunc = getFilePathFunc;
+        EnsureFolderExists();
     }
 
     /// <summary>
@@ -70,12 +71,11 @@ public class ModOptions
         return Path.Combine(Application.persistentDataPath, FolderName, "ModsLocalConfig.json");
     }
 
-
     private static ES3Settings GetSettings(string path)
     {
         var s = new ES3Settings(path)
         {
-            location = ES3.Location.File
+            location = ES3.Location.File,
         };
         return s;
     }
@@ -85,7 +85,7 @@ public class ModOptions
         if (t == null) return false;
         if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>))
         {
-            t = Nullable.GetUnderlyingType(t);
+            return false;
         }
 
         return t.IsPrimitive
@@ -192,9 +192,6 @@ public class ModOptions
                     }
                 }
 
-                ES3.StoreCachedFile(path);
-                ES3.CacheFile(path);
-
                 Log.Debug($"[ModLocalConfigManager] Saved config to {path}");
                 return true;
             }
@@ -217,6 +214,7 @@ public class ModOptions
             {
                 var path = GetConfigFilePath();
                 var settings = GetSettings(path);
+                
                 if (!ES3.KeyExists(key, path, settings))
                 {
                     ES3.Save(key, defaultValue, path, settings);
@@ -266,7 +264,6 @@ public class ModOptions
                 if (ES3.FileExists(path, settings))
                 {
                     ES3.DeleteFile(path, settings);
-                    ES3.StoreCachedFile(path);
                     Log.Debug($"[ModLocalConfigManager] Deleted {path}");
                 }
 

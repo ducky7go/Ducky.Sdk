@@ -33,7 +33,7 @@
 // this can have unintended consequences of consumers of your library using your library to resolve a logger. If the
 // reason is because you want to open this functionality to other projects within your solution,
 // consider [InternalsVisibleTo] instead.
-// 
+//
 // Define LIBLOG_PROVIDERS_ONLY if your library provides its own logging API and you just want to use the
 // LibLog providers internally to provide built in support for popular logging frameworks.
 
@@ -63,7 +63,7 @@ namespace Ducky.Sdk.Logging
 #if LIBLOG_PROVIDERS_ONLY
     /// <summary>
     /// Provides a mechanism to set the <see cref="ILogProvider" />
-	/// and create instances of <see cref="ILog" /> objects. 
+	/// and create instances of <see cref="ILog" /> objects.
     /// </summary>
     internal
 #else
@@ -105,10 +105,10 @@ namespace Ducky.Sdk.Logging
         public static bool IsDisabled { get; set; }
 
         /// <summary>
-        /// Sets an action that is invoked when a consumer of your library has called SetCurrentLogProvider. It is 
+        /// Sets an action that is invoked when a consumer of your library has called SetCurrentLogProvider. It is
         /// important that hook into this if you are using child libraries (especially ilmerged ones) that are using
         /// LibLog (or other logging abstraction) so you adapt and delegate to them.
-        /// <see cref="SetCurrentLogProvider"/> 
+        /// <see cref="SetCurrentLogProvider"/>
         /// </summary>
         internal static Action<ILogProvider> OnCurrentLogProviderSet
         {
@@ -120,8 +120,8 @@ namespace Ducky.Sdk.Logging
         }
 
         internal static ILogProvider CurrentLogProvider
-        { 
-            get { return s_currentLogProvider; } 
+        {
+            get { return s_currentLogProvider; }
         }
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace Ducky.Sdk.Logging
         /// <typeparam name="T">The type whose name will be used for the logger.</typeparam>
         /// <returns>An instance of <see cref="ILog"/></returns>
 public
-        static ILog For<T>() 
+        static ILog For<T>()
         {
             return GetLogger(typeof(T));
         }
@@ -231,6 +231,7 @@ public
         static readonly List<Tuple<IsLoggerAvailable, CreateLogProvider>> LogProviderResolvers =
                 new List<Tuple<IsLoggerAvailable, CreateLogProvider>>
         {
+            new Tuple<IsLoggerAvailable, CreateLogProvider>(BmlSerilogLogProvider.IsLoggerAvailable, () => new BmlSerilogLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(SerilogLogProvider.IsLoggerAvailable, () => new SerilogLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(UnityDebugLogProvider.IsLoggerAvailable, () => new UnityDebugLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(NLogLogProvider.IsLoggerAvailable, () => new NLogLogProvider()),
@@ -286,8 +287,8 @@ public
             internal static readonly NoOpLogger Instance = new NoOpLogger();
 
             public bool Log(LogLevel logLevel, Func<string> messageFunc, Exception exception, params object[] formatParameters)
-            { 
-                return false; 
+            {
+                return false;
             }
         }
 #endif

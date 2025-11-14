@@ -1,4 +1,21 @@
 <Project>
+    <!-- Validation: Check for special characters in project path -->
+    <Target Name="ValidateProjectPath" BeforeTargets="BeforeBuild">
+        <PropertyGroup>
+            <_ProjectPath>$(MSBuildProjectDirectory)</_ProjectPath>
+            <_HasSpecialChars>false</_HasSpecialChars>
+            <_HasSpecialChars Condition="$(_ProjectPath.Contains('#'))">true</_HasSpecialChars>
+            <_HasSpecialChars Condition="$(_ProjectPath.Contains('&amp;'))">true</_HasSpecialChars>
+            <_HasSpecialChars Condition="$(_ProjectPath.Contains(';'))">true</_HasSpecialChars>
+            <_HasSpecialChars Condition="$(_ProjectPath.Contains('|'))">true</_HasSpecialChars>
+            <_HasSpecialChars Condition="$(_ProjectPath.Contains('&lt;'))">true</_HasSpecialChars>
+            <_HasSpecialChars Condition="$(_ProjectPath.Contains('&gt;'))">true</_HasSpecialChars>
+            <_HasSpecialChars Condition="$(_ProjectPath.Contains('`'))">true</_HasSpecialChars>
+        </PropertyGroup>
+        <Error Condition=" '$(_HasSpecialChars)' == 'true' "
+               Text="Project path contains command-line special characters (such as #, &amp;, ;, |, &lt;, &gt;, `): '$(_ProjectPath)'. These characters may cause build failures. Please move the project to a path without special characters." />
+    </Target>
+
     <!-- Validation: At least one of DuckovFolder or SteamFolder must be set -->
     <Target Name="ValidateDuckovFolder" BeforeTargets="BeforeBuild">
         <Error Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' == '' "

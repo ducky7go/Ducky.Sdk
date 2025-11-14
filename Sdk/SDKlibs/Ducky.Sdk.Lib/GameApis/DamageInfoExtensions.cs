@@ -10,43 +10,40 @@ public static class DamageInfoExtensions
         return new DamageInfoJudgement(info, to);
     }
 
-    extension(DamageInfoJudgement judgement)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsFromMainToEnemy(this DamageInfoJudgement judgement)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsFromMainToEnemy()
+        var from = judgement.Info.fromCharacter;
+        if (from == null || !from.IsMainCharacter)
         {
-            var from = judgement.Info.fromCharacter;
-            if (from == null || !from.IsMainCharacter)
-            {
-                return false;
-            }
-
-            if (judgement.To == null)
-            {
-                return false;
-            }
-
-            var toCharacter = judgement.To.TryGetCharacter();
-            return toCharacter != null && !toCharacter.IsMainCharacter && toCharacter.Team != from.Team;
+            return false;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsFromEnemyToMain()
+        if (judgement.To == null)
         {
-            var from = judgement.Info.fromCharacter;
-            if (from == null || from.IsMainCharacter)
-            {
-                return false;
-            }
-
-            if (judgement.To == null)
-            {
-                return false;
-            }
-
-            var toCharacter = judgement.To.TryGetCharacter();
-            return toCharacter != null && toCharacter.IsMainCharacter && toCharacter.Team != from.Team;
+            return false;
         }
+
+        var toCharacter = judgement.To.TryGetCharacter();
+        return toCharacter != null && !toCharacter.IsMainCharacter && toCharacter.Team != from.Team;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsFromEnemyToMain(this DamageInfoJudgement judgement)
+    {
+        var from = judgement.Info.fromCharacter;
+        if (from == null || from.IsMainCharacter)
+        {
+            return false;
+        }
+
+        if (judgement.To == null)
+        {
+            return false;
+        }
+
+        var toCharacter = judgement.To.TryGetCharacter();
+        return toCharacter != null && toCharacter.IsMainCharacter && toCharacter.Team != from.Team;
     }
 }
 
