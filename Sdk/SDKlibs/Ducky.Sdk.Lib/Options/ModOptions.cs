@@ -3,6 +3,7 @@ using System.IO;
 using Ducky.Sdk.Logging;
 using Ducky.Sdk.Utils;
 using UnityEngine;
+using Newtonsoft.Json;
 
 namespace Ducky.Sdk.Options;
 
@@ -77,6 +78,24 @@ public class ModOptions
             location = ES3.Location.File
         };
         return s;
+    }
+
+    private static bool IsSimpleType(Type t)
+    {
+        if (t == null) return false;
+        if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>))
+        {
+            t = Nullable.GetUnderlyingType(t);
+        }
+
+        return t.IsPrimitive
+               || t.IsEnum
+               || t == typeof(string)
+               || t == typeof(decimal)
+               || t == typeof(DateTime)
+               || t == typeof(DateTimeOffset)
+               || t == typeof(TimeSpan)
+               || t == typeof(Guid);
     }
 
     /// <summary>
@@ -155,7 +174,24 @@ public class ModOptions
                 var path = GetConfigFilePath();
                 var settings = GetSettings(path);
 
-                ES3.Save(key, data, path, settings);
+                if (IsSimpleType(typeof(T)))
+                {
+                    ES3.Save(key, data, path, settings);
+                }
+                else
+                {
+                    try
+                    {
+                        var json = JsonConvert.SerializeObject(data);
+                        ES3.Save(key, json, path, settings);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.DebugException($"failed to serialize config to json for key {key}", ex);
+                        return false;
+                    }
+                }
+
                 ES3.StoreCachedFile(path);
                 ES3.CacheFile(path);
 
@@ -186,8 +222,27 @@ public class ModOptions
                     ES3.Save(key, defaultValue, path, settings);
                     return defaultValue;
                 }
-
-                return ES3.Load<T>(key, path, settings);
+ 
+                // 简单类型直接使用 ES3 加载
+                if (IsSimpleType(typeof(T)))
+                {
+                    return ES3.Load<T>(key, path, settings);
+                }
+ 
+                // 非简单类型——按 JSON 字符串处理（不尝试按原类型加载）
+                try
+                {
+                    var json = ES3.Load<string>(key, path, settings);
+                    if (string.IsNullOrEmpty(json))
+                        return defaultValue;
+ 
+                    return JsonConvert.DeserializeObject<T>(json);
+                }
+                catch (Exception ex)
+                {
+                    Log.DebugException($"failed to deserialize json for key {key}", ex);
+                    return defaultValue;
+                }
             }
             catch (Exception ex)
             {
