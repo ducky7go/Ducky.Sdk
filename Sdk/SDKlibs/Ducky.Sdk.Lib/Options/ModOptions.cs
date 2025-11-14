@@ -214,7 +214,7 @@ public class ModOptions
             {
                 var path = GetConfigFilePath();
                 var settings = GetSettings(path);
-                
+
                 if (!ES3.KeyExists(key, path, settings))
                 {
                     ES3.Save(key, defaultValue, path, settings);
