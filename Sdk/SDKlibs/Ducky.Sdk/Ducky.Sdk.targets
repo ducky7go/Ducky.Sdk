@@ -438,7 +438,7 @@
         <!-- 从临时文件夹复制到最终位置（包括 DLL 和 PDB） -->
         <Copy SourceFiles="$(_TempPackedDll)" DestinationFiles="$(_FinalModDll)" OverwriteReadOnlyFiles="true"
               Condition=" '@(_DllsToPack)' != '' " />
-        
+
         <!-- Copy the generated PDB file from ILRepack -->
         <PropertyGroup Condition=" '@(_DllsToPack)' != '' ">
             <_TempPackedPdb>$([System.IO.Path]::ChangeExtension('$(_TempPackedDll)', '.pdb'))</_TempPackedPdb>
@@ -446,7 +446,7 @@
         </PropertyGroup>
         <Copy SourceFiles="$(_TempPackedPdb)" DestinationFiles="$(_FinalModPdb)" OverwriteReadOnlyFiles="true"
               Condition=" '@(_DllsToPack)' != '' AND Exists('$(_TempPackedPdb)') " />
-        
+
         <Message Text="[PackModWithILRepack] Successfully merged all assemblies into $(_FinalModDll)" Importance="High"
                  Condition=" '@(_DllsToPack)' != '' " />
         <Message Text="[PackModWithILRepack] PDB file copied: $(_FinalModPdb)" Importance="High"
