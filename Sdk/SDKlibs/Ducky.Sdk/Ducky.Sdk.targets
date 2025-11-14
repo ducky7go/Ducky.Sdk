@@ -169,6 +169,15 @@
               DestinationFolder="$(ModsDirectory)$(ModName)/"
               SkipUnchangedFiles="false" />
 
+        <!-- Copy PDB file if exists (will be overwritten by PackModWithILRepack if enabled) -->
+        <PropertyGroup>
+            <_OriginalPdbPath>$(TargetDir)$(TargetName).pdb</_OriginalPdbPath>
+        </PropertyGroup>
+        <Copy SourceFiles="$(_OriginalPdbPath)"
+              DestinationFolder="$(ModsDirectory)$(ModName)/"
+              SkipUnchangedFiles="false"
+              Condition="Exists('$(_OriginalPdbPath)')" />
+
         <!-- Copy deps.json to mod output folder if exists -->
         <ItemGroup>
             <_DepsJsonFile Include="$(TargetDir)$(TargetName).deps.json"
@@ -362,11 +371,29 @@
             <_DllsToPackList>@(_DllsToPack->'&quot;%(FullPath)&quot;', ' ')</_DllsToPackList>
         </PropertyGroup>
 
-        <MakeDir Directories="$(ModsDirectory)$(ModName)" />
-        <MakeDir Directories="$(_ILRepackTempDir)" />
+        <!-- Check if there are any dependencies to merge -->
+        <Message Text="[PackModWithILRepack] No dependencies found, skipping ILRepack" Importance="High"
+                 Condition=" '@(_DllsToPack)' == '' " />
+
+        <!-- Skip ILRepack if no dependencies, just copy the original DLL and PDB -->
+        <MakeDir Directories="$(ModsDirectory)$(ModName)" Condition=" '@(_DllsToPack)' == '' " />
+        <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(_FinalModDll)" OverwriteReadOnlyFiles="true"
+              Condition=" '@(_DllsToPack)' == '' " />
+        <PropertyGroup Condition=" '@(_DllsToPack)' == '' ">
+            <_OriginalPdbPath>$([System.IO.Path]::ChangeExtension('$(TargetPath)', '.pdb'))</_OriginalPdbPath>
+            <_FinalPdbPath>$([System.IO.Path]::ChangeExtension('$(_FinalModDll)', '.pdb'))</_FinalPdbPath>
+        </PropertyGroup>
+        <Copy SourceFiles="$(_OriginalPdbPath)" DestinationFiles="$(_FinalPdbPath)" OverwriteReadOnlyFiles="true"
+              Condition=" '@(_DllsToPack)' == '' AND Exists('$(_OriginalPdbPath)') " />
+        <Message Text="[PackModWithILRepack] Copied original DLL and PDB (no merging needed)" Importance="High"
+                 Condition=" '@(_DllsToPack)' == '' " />
+
+        <!-- Only run ILRepack if there are dependencies -->
+        <MakeDir Directories="$(ModsDirectory)$(ModName)" Condition=" '@(_DllsToPack)' != '' " />
+        <MakeDir Directories="$(_ILRepackTempDir)" Condition=" '@(_DllsToPack)' != '' " />
 
         <!-- 收集所有可能包含依赖项的目录 -->
-        <ItemGroup>
+        <ItemGroup Condition=" '@(_DllsToPack)' != '' ">
             <!-- 1. 项目输出目录（包含所有复制的依赖项） -->
             <_ILRepackLibDirs Include="$(TargetDir)" />
             <!-- 2. ManagedDirectory（游戏的托管程序集） -->
@@ -379,33 +406,53 @@
         </ItemGroup>
 
         <!-- 去重并构建 /lib 参数列表 -->
-        <RemoveDuplicates Inputs="@(_ILRepackLibDirs)">
+        <RemoveDuplicates Inputs="@(_ILRepackLibDirs)" Condition=" '@(_DllsToPack)' != '' ">
             <Output TaskParameter="Filtered" ItemName="_UniqueLibDirs" />
         </RemoveDuplicates>
 
-        <PropertyGroup>
+        <PropertyGroup Condition=" '@(_DllsToPack)' != '' ">
             <!-- 构建 /lib 参数：每个目录添加 /lib:"path" -->
             <_LibPathArgs>@(_UniqueLibDirs->'/lib:&quot;%(Identity)&quot;', ' ')</_LibPathArgs>
         </PropertyGroup>
 
-        <Message Text="[PackModWithILRepack] Merging mod DLL and dependencies into $(_FinalModDll)" Importance="High" />
-        <Message Text="[PackModWithILRepack] Primary DLL: $(TargetPath)" Importance="High" />
+        <Message Text="[PackModWithILRepack] Merging mod DLL and dependencies into $(_FinalModDll)" Importance="High"
+                 Condition=" '@(_DllsToPack)' != '' " />
+        <Message Text="[PackModWithILRepack] Primary DLL: $(TargetPath)" Importance="High"
+                 Condition=" '@(_DllsToPack)' != '' " />
         <Message Text="[PackModWithILRepack] Dependencies to merge: @(_DllsToPack->'%(Filename)%(Extension)', ', ')"
-                 Importance="High" />
+                 Importance="High"
+                 Condition=" '@(_DllsToPack)' != '' " />
         <Message Text="[PackModWithILRepack] Library search paths (@(_UniqueLibDirs->Count()) directories):"
-                 Importance="High" />
-        <Message Text="  - %(_UniqueLibDirs.Identity)" Importance="High" />
-        <Message Text="[PackModWithILRepack] Generated lib args: $(_LibPathArgs)" Importance="High" />
+                 Importance="High"
+                 Condition=" '@(_DllsToPack)' != '' " />
+        <Message Text="  - %(_UniqueLibDirs.Identity)" Importance="High"
+                 Condition=" '@(_DllsToPack)' != '' " />
+        <Message Text="[PackModWithILRepack] Generated lib args: $(_LibPathArgs)" Importance="High"
+                 Condition=" '@(_DllsToPack)' != '' " />
 
         <!-- 先输出到临时文件夹，使用收集的所有 lib 路径 -->
         <Exec
-            Command="ilrepack /out:&quot;$(_TempPackedDll)&quot; &quot;$(TargetPath)&quot; $(_DllsToPackList) /internalize /wildcards /log /verbose $(_LibPathArgs)" />
+            Command="ilrepack /out:&quot;$(_TempPackedDll)&quot; &quot;$(TargetPath)&quot; $(_DllsToPackList) /internalize /wildcards /log /verbose $(_LibPathArgs)"
+            Condition=" '@(_DllsToPack)' != '' " />
 
-        <!-- 从临时文件夹复制到最终位置 -->
-        <Copy SourceFiles="$(_TempPackedDll)" DestinationFiles="$(_FinalModDll)" OverwriteReadOnlyFiles="true" />
-        <Message Text="[PackModWithILRepack] Successfully merged all assemblies into $(_FinalModDll)" Importance="High" />
+        <!-- 从临时文件夹复制到最终位置（包括 DLL 和 PDB） -->
+        <Copy SourceFiles="$(_TempPackedDll)" DestinationFiles="$(_FinalModDll)" OverwriteReadOnlyFiles="true"
+              Condition=" '@(_DllsToPack)' != '' " />
+        
+        <!-- Copy the generated PDB file from ILRepack -->
+        <PropertyGroup Condition=" '@(_DllsToPack)' != '' ">
+            <_TempPackedPdb>$([System.IO.Path]::ChangeExtension('$(_TempPackedDll)', '.pdb'))</_TempPackedPdb>
+            <_FinalModPdb>$([System.IO.Path]::ChangeExtension('$(_FinalModDll)', '.pdb'))</_FinalModPdb>
+        </PropertyGroup>
+        <Copy SourceFiles="$(_TempPackedPdb)" DestinationFiles="$(_FinalModPdb)" OverwriteReadOnlyFiles="true"
+              Condition=" '@(_DllsToPack)' != '' AND Exists('$(_TempPackedPdb)') " />
+        
+        <Message Text="[PackModWithILRepack] Successfully merged all assemblies into $(_FinalModDll)" Importance="High"
+                 Condition=" '@(_DllsToPack)' != '' " />
+        <Message Text="[PackModWithILRepack] PDB file copied: $(_FinalModPdb)" Importance="High"
+                 Condition=" '@(_DllsToPack)' != '' AND Exists('$(_TempPackedPdb)') " />
 
         <!-- 删除临时文件夹 -->
-        <RemoveDir Directories="$(_ILRepackTempDir)" />
+        <RemoveDir Directories="$(_ILRepackTempDir)" Condition=" '@(_DllsToPack)' != '' " />
     </Target>
 </Project>
