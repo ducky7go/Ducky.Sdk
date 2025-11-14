@@ -222,20 +222,20 @@ public class ModOptions
                     ES3.Save(key, defaultValue, path, settings);
                     return defaultValue;
                 }
- 
+
                 // 简单类型直接使用 ES3 加载
                 if (IsSimpleType(typeof(T)))
                 {
                     return ES3.Load<T>(key, path, settings);
                 }
- 
+
                 // 非简单类型——按 JSON 字符串处理（不尝试按原类型加载）
                 try
                 {
                     var json = ES3.Load<string>(key, path, settings);
                     if (string.IsNullOrEmpty(json))
                         return defaultValue;
- 
+
                     return JsonConvert.DeserializeObject<T>(json);
                 }
                 catch (Exception ex)
