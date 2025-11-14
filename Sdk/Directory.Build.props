@@ -5,6 +5,7 @@
     <ImplicitUsings>true</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
     <DuckovPath>$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
     <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
     <ManagedDirectory>$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>

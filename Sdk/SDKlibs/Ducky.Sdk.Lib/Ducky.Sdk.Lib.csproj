@@ -3,7 +3,6 @@
   <PropertyGroup>
     <RootNamespace>Ducky.Sdk</RootNamespace>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <!-- to make sure no implicit usings are included -->
     <ImplicitUsings>disable</ImplicitUsings>
@@ -14,6 +13,7 @@
     <ManagedDirectory Condition="Exists('$(_ManagedDirCandidate)')">$(_ManagedDirCandidate)/</ManagedDirectory>
     <ManagedDirectory Condition="'$(ManagedDirectory)' == ''">$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>
     <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
+    <LangVersion>12</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="$(ManagedDirectory)TeamSoda.*" />
