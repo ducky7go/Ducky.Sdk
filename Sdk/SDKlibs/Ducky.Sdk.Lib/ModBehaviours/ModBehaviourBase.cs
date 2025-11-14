@@ -33,11 +33,12 @@ public abstract class ModBehaviourBase : ModBehaviour
                 return;
             }
 
-            enabled = true;
             state.IsEnabled = true;
+
             try
             {
                 EnableCore();
+                enabled = true;
             }
             catch
             {
