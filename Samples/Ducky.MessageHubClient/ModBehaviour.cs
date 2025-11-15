@@ -15,8 +15,8 @@ public class ModBehaviour : ModBehaviourBase
             {
                 return UniTask.CompletedTask;
             });
-            await Contract.ModBusClient.SendToTerminal("help");
-            await Contract.ModBusClient.SendToTerminal("/?");
+            // await Contract.ModBusClient.SendToTerminal("help");
+            // await Contract.ModBusClient.SendToTerminal("/?");
         });
     }
 

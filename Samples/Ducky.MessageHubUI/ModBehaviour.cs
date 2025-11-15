@@ -5,6 +5,7 @@ using System.CommandLine.Parsing;
 using Ducky.Sdk.Contracts;
 using Ducky.Sdk.Logging;
 using Ducky.Sdk.ModBehaviours;
+using UnityEngine;
 
 namespace Ducky.MessageHubUI;
 
@@ -69,6 +70,18 @@ public class ModBehaviour : ModBehaviourBase
 
             Log.Info("Command executed with result: {Result}", re);
         });
+
+        // 获取或创建 Canvas
+        Canvas canvas = FindObjectOfType<Canvas>();
+
+        // 创建主界面
+        TerminalMainView mainView = TerminalMainView.Create(canvas);
+
+        // 创建触发器（连接到主界面）
+        TerminalHandlerView handler = TerminalHandlerView.Create(canvas, mainView);
+        
+        // 设置双向引用，使主界面能控制触发区域
+        mainView.SetHandlerView(handler);
     }
 
     protected override void ModDisabled()
