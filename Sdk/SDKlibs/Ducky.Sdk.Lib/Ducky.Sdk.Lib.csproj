@@ -24,5 +24,8 @@
     <Reference Include="$(ManagedDirectory)Newtonsoft.Json.dll" />
     <Reference Include="$(ManagedDirectory)EasySave3.dll" />
     <Reference Include="$(ManagedDirectory)Eflatun.SceneReference.dll" />
+    <Reference Include="$(ManagedDirectory)com.rlabrecque.steamworks.net.dll" />
+    <Reference Include="$(ManagedDirectory)DOTween*.dll" />
+    <Reference Include="$(ManagedDirectory)UniTask*.dll" />
   </ItemGroup>
 </Project>
