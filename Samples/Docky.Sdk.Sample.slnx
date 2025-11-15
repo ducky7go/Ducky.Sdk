@@ -2,6 +2,11 @@
   <Folder Name="/.etc/">
     <File Path="Directory.Build.props" />
   </Folder>
+  <Folder Name="/MessageHub/">
+    <Project Path="Ducky.MessageHubClient\Ducky.MessageHubClient.csproj" />
+    <Project Path="Ducky.MessageHubHost\Ducky.MessageHubHost.csproj" />
+    <Project Path="Ducky.MessageHubUI/Ducky.MessageHubUI.csproj" />
+  </Folder>
   <Folder Name="/MultilayerProjectMod/">
     <Project Path="Ducky.EntranceMod.Common\Ducky.EntranceMod.Common.csproj" />
     <Project Path="Ducky.EntranceMod\Ducky.EntranceMod.csproj" />
