@@ -20,7 +20,7 @@ namespace System.CommandLine.Parsing
             Symbol = symbol;
             Position = ImplicitPosition;
         }
-       
+
         internal Token(string? value, TokenType type, Symbol? symbol, int position)
         {
             Value = value ?? "";
@@ -52,7 +52,8 @@ namespace System.CommandLine.Parsing
         public override bool Equals(object? obj) => Equals(obj as Token);
 
         /// <inheritdoc />
-        public bool Equals(Token? other) => other is not null && Value == other.Value && Type == other.Type && ReferenceEquals(Symbol, other.Symbol);
+        public bool Equals(Token? other) => other is not null && Value == other.Value && Type == other.Type &&
+                                            ReferenceEquals(Symbol, other.Symbol);
 
         /// <inheritdoc />
         public override int GetHashCode() => Value.GetHashCode() ^ (int)Type;
@@ -74,6 +75,7 @@ namespace System.CommandLine.Parsing
         /// <param name="left">The first <see cref="Token"/>.</param>
         /// <param name="right">The second <see cref="Token"/>.</param>
         /// <returns><see langword="true" /> if the objects are not equal.</returns>
-        public static bool operator !=(Token? left, Token? right) => left is null ? right is not null : !left.Equals(right);
+        public static bool operator !=(Token? left, Token? right) =>
+            left is null ? right is not null : !left.Equals(right);
     }
 }

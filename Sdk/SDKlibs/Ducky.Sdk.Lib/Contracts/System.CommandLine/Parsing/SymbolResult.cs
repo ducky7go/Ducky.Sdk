@@ -60,7 +60,8 @@ namespace System.CommandLine.Parsing
         /// Adds an error message for this symbol result to it's parse tree.
         /// </summary>
         /// <remarks>Setting an error will cause the parser to indicate an error for the user and prevent invocation of the command line.</remarks>
-        public virtual void AddError(string errorMessage) => SymbolResultTree.AddError(new ParseError(errorMessage, this));
+        public virtual void AddError(string errorMessage) =>
+            SymbolResultTree.AddError(new ParseError(errorMessage, this));
 
         /// <summary>
         /// Finds a result for the specific argument anywhere in the parse tree, including parent and child symbol results.
@@ -95,7 +96,7 @@ namespace System.CommandLine.Parsing
         /// </summary>
         /// <param name="name">The name of the symbol for which to find a result.</param>
         /// <returns>An argument result if the argument was matched by the parser or has a default value; otherwise, <c>null</c>.</returns>
-        public SymbolResult? GetResult(string name) => 
+        public SymbolResult? GetResult(string name) =>
             SymbolResultTree.GetResult(name);
 
         /// <inheritdoc cref="ParseResult.GetValue{T}(Argument{T})"/>

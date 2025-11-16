@@ -17,7 +17,8 @@ namespace System.CommandLine
         ///   Interpolates values into a localized string similar to Command &apos;{0}&apos; expects a single argument but {1} were provided.
         /// </summary>
         internal static string ExpectsOneArgument(OptionResult optionResult)
-            => GetResourceString("Option '{0}' expects a single argument but {1} were provided.", GetOptionName(optionResult), optionResult.Tokens.Count);
+            => GetResourceString("Option '{0}' expects a single argument but {1} were provided.",
+                GetOptionName(optionResult), optionResult.Tokens.Count);
 
         /// <summary>
         ///   Interpolates values into a localized string similar to Directory does not exist: {0}.
@@ -54,7 +55,8 @@ namespace System.CommandLine
         /// </summary>
         internal static string RequiredArgumentMissing(ArgumentResult argumentResult) =>
             argumentResult.Parent is CommandResult commandResult
-                ? GetResourceString("Required argument missing for command: '{0}'.", commandResult.IdentifierToken.Value)
+                ? GetResourceString("Required argument missing for command: '{0}'.",
+                    commandResult.IdentifierToken.Value)
                 : RequiredArgumentMissing((OptionResult)argumentResult.Parent!);
 
         /// <summary>
@@ -78,8 +80,10 @@ namespace System.CommandLine
         /// <summary>
         ///   Interpolates values into a localized string similar to Argument &apos;{0}&apos; not recognized. Must be one of:{1}.
         /// </summary>
-        internal static string UnrecognizedArgument(string unrecognizedArg, IReadOnlyCollection<string> allowedValues) =>
-            GetResourceString("Argument '{0}' not recognized. Must be one of:{1}", unrecognizedArg, $"\n\t{string.Join("\n\t", allowedValues.Select(v => $"'{v}'"))}");
+        internal static string
+            UnrecognizedArgument(string unrecognizedArg, IReadOnlyCollection<string> allowedValues) =>
+            GetResourceString("Argument '{0}' not recognized. Must be one of:{1}", unrecognizedArg,
+                $"\n\t{string.Join("\n\t", allowedValues.Select(v => $"'{v}'"))}");
 
         /// <summary>
         ///   Interpolates values into a localized string similar to Unrecognized command or argument &apos;{0}&apos;.
@@ -210,27 +214,35 @@ namespace System.CommandLine
         /// <summary>
         ///   Interpolates values into a localized string similar to Cannot parse argument &apos;{0}&apos; for command &apos;{1}&apos; as expected type {2}..
         /// </summary>
-        internal static string ArgumentConversionCannotParseForCommand(string value, string commandAlias, Type expectedType)
-            => GetResourceString("Cannot parse argument '{0}' for command '{1}' as expected type '{2}'.", value, commandAlias, expectedType);
+        internal static string ArgumentConversionCannotParseForCommand(string value, string commandAlias,
+            Type expectedType)
+            => GetResourceString("Cannot parse argument '{0}' for command '{1}' as expected type '{2}'.", value,
+                commandAlias, expectedType);
 
         /// <summary>
         ///   Interpolates values into a localized string similar to Cannot parse argument &apos;{0}&apos; for command &apos;{1}&apos; as expected type {2}..
         /// </summary>
-        internal static string ArgumentConversionCannotParseForCommand(string value, string commandAlias, Type expectedType, IEnumerable<string> completions)
-            => GetResourceString("Cannot parse argument '{0}' for command '{1}' as expected type '{2}'. Did you mean one of the following?{3}",
+        internal static string ArgumentConversionCannotParseForCommand(string value, string commandAlias,
+            Type expectedType, IEnumerable<string> completions)
+            => GetResourceString(
+                "Cannot parse argument '{0}' for command '{1}' as expected type '{2}'. Did you mean one of the following?{3}",
                 value, commandAlias, expectedType, Environment.NewLine + string.Join(Environment.NewLine, completions));
 
         /// <summary>
         ///   Interpolates values into a localized string similar to Cannot parse argument &apos;{0}&apos; for option &apos;{1}&apos; as expected type {2}..
         /// </summary>
-        internal static string ArgumentConversionCannotParseForOption(string value, string optionAlias, Type expectedType)
-            => GetResourceString("Cannot parse argument '{0}' for option '{1}' as expected type '{2}'.", value, optionAlias, expectedType);
+        internal static string ArgumentConversionCannotParseForOption(string value, string optionAlias,
+            Type expectedType)
+            => GetResourceString("Cannot parse argument '{0}' for option '{1}' as expected type '{2}'.", value,
+                optionAlias, expectedType);
 
         /// <summary>
         ///   Interpolates values into a localized string similar to Cannot parse argument &apos;{0}&apos; for option &apos;{1}&apos; as expected type {2}..
         /// </summary>
-        internal static string ArgumentConversionCannotParseForOption(string value, string optionAlias, Type expectedType, IEnumerable<string> completions)
-            => GetResourceString("Cannot parse argument '{0}' for option '{1}' as expected type '{2}'. Did you mean one of the following?{3}",
+        internal static string ArgumentConversionCannotParseForOption(string value, string optionAlias,
+            Type expectedType, IEnumerable<string> completions)
+            => GetResourceString(
+                "Cannot parse argument '{0}' for option '{1}' as expected type '{2}'. Did you mean one of the following?{3}",
                 value, optionAlias, expectedType, Environment.NewLine + string.Join(Environment.NewLine, completions));
 
         /// <summary>
@@ -245,13 +257,16 @@ namespace System.CommandLine
             {
                 return string.Empty;
             }
+
             if (formatArguments.Length > 0)
             {
                 return string.Format(resourceString, formatArguments);
             }
+
             return resourceString;
         }
 
-        private static string GetOptionName(OptionResult optionResult) => optionResult.IdentifierToken?.Value ?? optionResult.Option.Name;
+        private static string GetOptionName(OptionResult optionResult) =>
+            optionResult.IdentifierToken?.Value ?? optionResult.Option.Name;
     }
 }

@@ -18,7 +18,7 @@ public class InvocationConfiguration
     /// that can be passed to a <see cref="CommandLineAction"/> during invocation.
     /// If not provided, a default timeout of 2 seconds is enforced.
     /// </summary>
-    public TimeSpan? ProcessTerminationTimeout { get; set; } = TimeSpan.FromSeconds(2); 
+    public TimeSpan? ProcessTerminationTimeout { get; set; } = TimeSpan.FromSeconds(2);
 
     /// <summary>
     /// The standard output. Used by Help and other facilities that write non-error information.
@@ -29,7 +29,8 @@ public class InvocationConfiguration
     public TextWriter Output
     {
         get => _output ??= Console.Out;
-        set => _output = value ?? throw new ArgumentNullException(nameof(value), "Use TextWriter.Null to disable the output");
+        set => _output = value ??
+                         throw new ArgumentNullException(nameof(value), "Use TextWriter.Null to disable the output");
     }
 
     /// <summary>
@@ -40,6 +41,7 @@ public class InvocationConfiguration
     public TextWriter Error
     {
         get => _error ??= Console.Error;
-        set => _error = value ?? throw new ArgumentNullException(nameof(value), "Use TextWriter.Null to disable the output");
+        set => _error = value ??
+                        throw new ArgumentNullException(nameof(value), "Use TextWriter.Null to disable the output");
     }
 }

@@ -14,11 +14,11 @@ namespace System.CommandLine
             => !(OperatingSystem.IsBrowser() || OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS())
 #else
             => !(RuntimeInformation.IsOSPlatform(OSPlatform.Create("BROWSER"))
-                    || RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
-                    || RuntimeInformation.IsOSPlatform(OSPlatform.Create("IOS"))
-                    || RuntimeInformation.IsOSPlatform(OSPlatform.Create("TVOS")))
+                 || RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+                 || RuntimeInformation.IsOSPlatform(OSPlatform.Create("IOS"))
+                 || RuntimeInformation.IsOSPlatform(OSPlatform.Create("TVOS")))
 #endif
-            && !Console.IsOutputRedirected;
+               && !Console.IsOutputRedirected;
 
         internal static void SetTerminalForegroundRed()
         {

@@ -12,12 +12,11 @@ namespace System.CommandLine.Parsing
             yield return commandResult;
 
             foreach (var item in commandResult
-                                 .Children
-                                 .FlattenBreadthFirst(o => o.SymbolResultTree.GetChildren(o)))
+                         .Children
+                         .FlattenBreadthFirst(o => o.SymbolResultTree.GetChildren(o)))
             {
                 yield return item;
             }
         }
-
     }
 }

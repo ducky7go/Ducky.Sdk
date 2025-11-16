@@ -25,7 +25,7 @@ namespace System.CommandLine.Parsing
         /// </summary>
         /// <see cref="CommandLine.Option"/>
         Option,
-        
+
         /// <summary>
         /// A double dash (<c>--</c>) token, which changes the meaning of subsequent tokens.
         /// </summary>

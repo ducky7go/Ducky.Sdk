@@ -16,7 +16,7 @@ namespace System.CommandLine
         /// </summary>
         /// <param name="name">The name of the option. This is used during parsing and is displayed in help.</param>
         /// <param name="aliases">Optional aliases by which the option can be specified on the command line.</param>
-        public Option(string name, params string[] aliases) 
+        public Option(string name, params string[] aliases)
             : this(name, aliases, new Argument<T>(name))
         {
         }
@@ -41,7 +41,7 @@ namespace System.CommandLine
             get => _argument.CustomParser;
             set => _argument.CustomParser = value;
         }
-        
+
         internal sealed override Argument Argument => _argument;
 
         /// <inheritdoc />

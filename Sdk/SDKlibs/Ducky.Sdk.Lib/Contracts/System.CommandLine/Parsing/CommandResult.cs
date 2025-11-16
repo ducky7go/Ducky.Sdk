@@ -38,7 +38,8 @@ namespace System.CommandLine.Parsing
         public IEnumerable<SymbolResult> Children => SymbolResultTree.GetChildren(this);
 
         /// <inheritdoc/>
-        public override string ToString() => $"{nameof(CommandResult)}: {IdentifierToken.Value} {string.Join(" ", Tokens.Select(t => t.Value))}";
+        public override string ToString() =>
+            $"{nameof(CommandResult)}: {IdentifierToken.Value} {string.Join(" ", Tokens.Select(t => t.Value))}";
 
         internal override bool UseDefaultValueFor(ArgumentResult argumentResult)
             => argumentResult.Argument.HasDefaultValue && argumentResult.Tokens.Count == 0;
@@ -80,7 +81,8 @@ namespace System.CommandLine.Parsing
             {
                 var option = options[i];
 
-                if (!completeValidation && !(option.Recursive || option.Argument.HasDefaultValue || option is VersionOption))
+                if (!completeValidation &&
+                    !(option.Recursive || option.Argument.HasDefaultValue || option is VersionOption))
                 {
                     continue;
                 }

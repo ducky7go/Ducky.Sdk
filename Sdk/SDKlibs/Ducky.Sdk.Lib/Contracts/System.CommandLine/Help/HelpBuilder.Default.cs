@@ -23,12 +23,12 @@ internal partial class HelpBuilder
         {
             return symbol switch
             {
-                Argument argument => ShouldShowDefaultValue(argument) 
-                                         ? ToString(argument.GetDefaultValue()) 
-                                         : "",
-                Option option => ShouldShowDefaultValue(option) 
-                                     ? ToString(option.GetDefaultValue()) 
-                                     : "",
+                Argument argument => ShouldShowDefaultValue(argument)
+                    ? ToString(argument.GetDefaultValue())
+                    : "",
+                Option option => ShouldShowDefaultValue(option)
+                    ? ToString(option.GetDefaultValue())
+                    : "",
                 _ => throw new InvalidOperationException("Symbol must be an Argument or Option.")
             };
 
@@ -50,11 +50,11 @@ internal partial class HelpBuilder
             };
 
         public static bool ShouldShowDefaultValue(Option option) =>
-            option.HasDefaultValue && 
+            option.HasDefaultValue &&
             !(option.ValueType == typeof(bool) || option.ValueType == typeof(bool?));
 
         public static bool ShouldShowDefaultValue(Argument argument) =>
-            argument.HasDefaultValue && 
+            argument.HasDefaultValue &&
             !(argument.ValueType == typeof(bool) || argument.ValueType == typeof(bool?));
 
         /// <summary>
@@ -70,8 +70,10 @@ internal partial class HelpBuilder
             // By default Option.Name == Argument.Name, don't repeat it
             return parameter switch
             {
-                Argument argument => GetUsageLabel(argument.HelpName, argument.ValueType, argument.CompletionSources, argument, argument.Arity) ?? $"<{argument.Name}>",
-                Option option => GetUsageLabel(option.HelpName, option.ValueType, option.CompletionSources, option, option.Arity) ?? "",
+                Argument argument => GetUsageLabel(argument.HelpName, argument.ValueType, argument.CompletionSources,
+                        argument, argument.Arity) ?? $"<{argument.Name}>",
+                Option option => GetUsageLabel(option.HelpName, option.ValueType, option.CompletionSources, option,
+                    option.Arity) ?? "",
                 _ => throw new InvalidOperationException()
             };
 
@@ -105,8 +107,8 @@ internal partial class HelpBuilder
                 }
 
                 IEnumerable<string> completions = symbol
-                                                  .GetCompletions(CompletionContext.Empty)
-                                                  .Select(item => item.Label);
+                    .GetCompletions(CompletionContext.Empty)
+                    .Select(item => item.Label);
 
                 string joined = string.Join("|", completions);
 
@@ -136,12 +138,12 @@ internal partial class HelpBuilder
             var aliases = aliasSet is null
                 ? new[] { symbol.Name }
                 : new[] { symbol.Name }.Concat(aliasSet)
-                                .Select(r => r.SplitPrefix())
-                                .OrderBy(r => r.Prefix, StringComparer.OrdinalIgnoreCase)
-                                .ThenBy(r => r.Alias, StringComparer.OrdinalIgnoreCase)
-                                .GroupBy(t => t.Alias)
-                                .Select(t => t.First())
-                                .Select(t => $"{t.Prefix}{t.Alias}");
+                    .Select(r => r.SplitPrefix())
+                    .OrderBy(r => r.Prefix, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(r => r.Alias, StringComparer.OrdinalIgnoreCase)
+                    .GroupBy(t => t.Alias)
+                    .Select(t => t.First())
+                    .Select(t => $"{t.Prefix}{t.Alias}");
 
             var firstColumnText = string.Join(", ", aliases);
 
@@ -185,7 +187,8 @@ internal partial class HelpBuilder
         public static Func<HelpContext, bool> SynopsisSection() =>
             ctx =>
             {
-                ctx.HelpBuilder.WriteHeading(LocalizationResources.HelpDescriptionTitle(), ctx.Command.Description, ctx.Output);
+                ctx.HelpBuilder.WriteHeading(LocalizationResources.HelpDescriptionTitle(), ctx.Command.Description,
+                    ctx.Output);
                 return true;
             };
 
@@ -195,7 +198,8 @@ internal partial class HelpBuilder
         public static Func<HelpContext, bool> CommandUsageSection() =>
             ctx =>
             {
-                ctx.HelpBuilder.WriteHeading(LocalizationResources.HelpUsageTitle(), ctx.HelpBuilder.GetUsage(ctx.Command), ctx.Output);
+                ctx.HelpBuilder.WriteHeading(LocalizationResources.HelpUsageTitle(),
+                    ctx.HelpBuilder.GetUsage(ctx.Command), ctx.Output);
                 return true;
             };
 
@@ -205,7 +209,8 @@ internal partial class HelpBuilder
         public static Func<HelpContext, bool> CommandArgumentsSection() =>
             ctx =>
             {
-                TwoColumnHelpRow[] commandArguments = ctx.HelpBuilder.GetCommandArgumentRows(ctx.Command, ctx).ToArray();
+                TwoColumnHelpRow[] commandArguments =
+                    ctx.HelpBuilder.GetCommandArgumentRows(ctx.Command, ctx).ToArray();
 
                 if (commandArguments.Length > 0)
                 {
@@ -270,6 +275,7 @@ internal partial class HelpBuilder
                             break;
                         }
                     }
+
                     current = parentCommand;
                 }
 

@@ -86,7 +86,8 @@ namespace System.CommandLine
 
                     if (invalidCharactersIndex >= 0)
                     {
-                        result.AddError(LocalizationResources.InvalidCharactersInFileName(token.Value[invalidCharactersIndex]));
+                        result.AddError(
+                            LocalizationResources.InvalidCharactersInFileName(token.Value[invalidCharactersIndex]));
                     }
                 }
             });
@@ -114,7 +115,8 @@ namespace System.CommandLine
 
                     if (invalidCharactersIndex >= 0)
                     {
-                        result.AddError(LocalizationResources.InvalidCharactersInPath(token.Value[invalidCharactersIndex]));
+                        result.AddError(
+                            LocalizationResources.InvalidCharactersInPath(token.Value[invalidCharactersIndex]));
                     }
                 }
             });
@@ -128,7 +130,7 @@ namespace System.CommandLine
         /// <param name="argument">The argument to configure.</param>
         /// <param name="values">The values that are allowed for the argument.</param>
         public static Argument<T> AcceptOnlyFromAmong<T>(
-            this Argument<T> argument, 
+            this Argument<T> argument,
             params string[] values)
         {
             if (values is not null && values.Length > 0)
@@ -140,7 +142,7 @@ namespace System.CommandLine
             }
 
             return argument;
-            
+
             void UnrecognizedArgumentError(ArgumentResult argumentResult)
             {
                 for (var i = 0; i < argumentResult.Tokens.Count; i++)

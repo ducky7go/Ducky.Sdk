@@ -11,7 +11,7 @@ namespace System.CommandLine.Help
     /// <summary>
     /// Formats output to be shown to users to describe how to use a command line tool.
     /// </summary>
-    internal partial class HelpBuilder 
+    internal partial class HelpBuilder
     {
         private const string Indent = "  ";
 
@@ -25,6 +25,7 @@ namespace System.CommandLine.Help
             {
                 maxWidth = int.MaxValue;
             }
+
             MaxWidth = maxWidth;
         }
 
@@ -151,7 +152,7 @@ namespace System.CommandLine.Help
                 }
 
                 displayOptionTitle = displayOptionTitle || (command.Options.Any(x => !x.Hidden));
-                
+
                 if (displayOptionTitle)
                 {
                     yield return LocalizationResources.HelpUsageOptions();
@@ -174,13 +175,15 @@ namespace System.CommandLine.Help
 
         private bool WriteSubcommands(HelpContext context)
         {
-            var subcommands = context.Command.Subcommands.Where(x => !x.Hidden).Select(x => GetTwoColumnRow(x, context)).ToArray();
+            var subcommands = context.Command.Subcommands.Where(x => !x.Hidden).Select(x => GetTwoColumnRow(x, context))
+                .ToArray();
             if (subcommands.Length > 0)
             {
                 WriteHeading(LocalizationResources.HelpCommandsTitle(), null, context.Output);
                 WriteColumns(subcommands, context);
                 return true;
             }
+
             return false;
         }
 
@@ -189,9 +192,10 @@ namespace System.CommandLine.Help
             if (!context.Command.TreatUnmatchedTokensAsErrors)
             {
                 WriteHeading(LocalizationResources.HelpAdditionalArgumentsTitle(),
-                             LocalizationResources.HelpAdditionalArgumentsDescription(), context.Output);
+                    LocalizationResources.HelpAdditionalArgumentsDescription(), context.Output);
                 return true;
             }
+
             return false;
         }
 
@@ -235,11 +239,13 @@ namespace System.CommandLine.Help
                 int firstColumnMaxWidth = windowWidth / 2 - Indent.Length;
                 if (firstColumnWidth > firstColumnMaxWidth)
                 {
-                    firstColumnWidth = items.SelectMany(x => WrapText(x.FirstColumnText, firstColumnMaxWidth).Select(x => x.Length)).Max();
+                    firstColumnWidth = items.SelectMany(x =>
+                        WrapText(x.FirstColumnText, firstColumnMaxWidth).Select(x => x.Length)).Max();
                 }
+
                 secondColumnWidth = windowWidth - firstColumnWidth - Indent.Length - Indent.Length;
             }
-            
+
             for (var i = 0; i < items.Count; i++)
             {
                 var helpItem = items[i];
@@ -326,7 +332,7 @@ namespace System.CommandLine.Help
             }
 
             return sb.ToString();
-            
+
             bool IsOptional(Argument argument) =>
                 argument.Arity.MinimumNumberOfValues == 0;
         }
@@ -337,6 +343,7 @@ namespace System.CommandLine.Help
             {
                 _getLayout = _ => Default.GetLayout();
             }
+
             return _getLayout(context);
         }
 
@@ -376,10 +383,12 @@ namespace System.CommandLine.Help
                                     length = j + 1;
                                 }
                             }
+
                             if (length == -1)
                             {
                                 length = maxWidth;
                             }
+
                             yield return part.Substring(i, length);
 
                             i += length;
@@ -425,10 +434,10 @@ namespace System.CommandLine.Help
 
             TwoColumnHelpRow GetOptionOrCommandRow()
             {
-                var firstColumnText = customization?.GetFirstColumn?.Invoke(context) 
-                    ?? (symbol is Option option
-                            ? Default.GetOptionUsageLabel(option)
-                            : Default.GetCommandUsageLabel((Command)symbol));
+                var firstColumnText = customization?.GetFirstColumn?.Invoke(context)
+                                      ?? (symbol is Option option
+                                          ? Default.GetOptionUsageLabel(option)
+                                          : Default.GetCommandUsageLabel((Command)symbol));
 
                 var customizedSymbolDescription = customization?.GetSecondColumn?.Invoke(context);
 
@@ -481,8 +490,8 @@ namespace System.CommandLine.Help
                         .Select(argument => GetArgumentDefaultValue(symbol, argument, isSingleArgument, context)));
 
                 return string.IsNullOrEmpty(argumentDefaultValues)
-                           ? ""
-                           : $"[{argumentDefaultValues}]";
+                    ? ""
+                    : $"[{argumentDefaultValues}]";
             }
         }
 
@@ -515,9 +524,9 @@ namespace System.CommandLine.Help
                 return "";
             }
 
-            string label = displayArgumentName 
-                               ? LocalizationResources.HelpArgumentDefaultValueLabel() 
-                               : parameter.Name;
+            string label = displayArgumentName
+                ? LocalizationResources.HelpArgumentDefaultValueLabel()
+                : parameter.Name;
             return $"{label}: {displayedDefaultValue}";
         }
 

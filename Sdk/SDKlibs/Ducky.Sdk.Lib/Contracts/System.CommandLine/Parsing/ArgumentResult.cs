@@ -40,8 +40,8 @@ namespace System.CommandLine.Parsing
         /// <returns>The parsed value or the default value for <see cref="Argument"/></returns>
         public T GetValueOrDefault<T>() =>
             (_conversionResult ??= ValidateAndConvert(useValidators: false))
-                .ConvertIfNeeded(typeof(T))
-                .GetValueOrDefault<T>();
+            .ConvertIfNeeded(typeof(T))
+            .GetValueOrDefault<T>();
 
         /// <summary>
         /// Specifies the maximum number of tokens to consume for the argument. Remaining tokens are passed on and can be consumed by later arguments, or will otherwise be added to <see cref="ParseResult.UnmatchedTokens"/>
@@ -54,7 +54,8 @@ namespace System.CommandLine.Parsing
         {
             if (numberOfTokens < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(numberOfTokens), numberOfTokens, "Value must be at least 1.");
+                throw new ArgumentOutOfRangeException(nameof(numberOfTokens), numberOfTokens,
+                    "Value must be at least 1.");
             }
 
             if (_onlyTakeHasBeenCalled)
@@ -64,7 +65,8 @@ namespace System.CommandLine.Parsing
 
             if (Parent is OptionResult)
             {
-                throw new NotSupportedException($"{nameof(OnlyTake)} is supported only for a {nameof(Command)}-owned {nameof(ArgumentResult)}");
+                throw new NotSupportedException(
+                    $"{nameof(OnlyTake)} is supported only for a {nameof(Command)}-owned {nameof(ArgumentResult)}");
             }
 
             _onlyTakeHasBeenCalled = true;
@@ -119,13 +121,15 @@ namespace System.CommandLine.Parsing
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"{nameof(ArgumentResult)} {Argument.Name}: {string.Join(" ", Tokens.Select(t => $"<{t.Value}>"))}";
+        public override string ToString() =>
+            $"{nameof(ArgumentResult)} {Argument.Name}: {string.Join(" ", Tokens.Select(t => $"<{t.Value}>"))}";
 
         /// <inheritdoc/>
         public override void AddError(string errorMessage)
         {
             SymbolResultTree.AddError(new ParseError(errorMessage, AppliesToPublicSymbolResult));
-            _conversionResult = ArgumentConversionResult.Failure(this, errorMessage, ArgumentConversionResultType.Failed);
+            _conversionResult =
+                ArgumentConversionResult.Failure(this, errorMessage, ArgumentConversionResultType.Failed);
         }
 
         private ArgumentConversionResult ValidateAndConvert(bool useValidators)
@@ -200,7 +204,7 @@ namespace System.CommandLine.Parsing
                 ArgumentConversionResult.ArgumentConversionCannotParse(
                     this,
                     Argument.ValueType,
-                    Tokens.Count > 0 
+                    Tokens.Count > 0
                         ? Tokens[0].Value
                         : ""));
 
@@ -218,7 +222,7 @@ namespace System.CommandLine.Parsing
         /// <summary>
         /// Since Option.Argument is an internal implementation detail, this ArgumentResult applies to the OptionResult in public API if the parent is an OptionResult.
         /// </summary>
-        private SymbolResult AppliesToPublicSymbolResult => 
+        private SymbolResult AppliesToPublicSymbolResult =>
             Parent is OptionResult optionResult ? optionResult : this;
     }
 }

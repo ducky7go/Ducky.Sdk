@@ -15,9 +15,10 @@
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
   </PropertyGroup>
-   
+
   <ItemGroup>
-    <Compile Include="..\System.Diagnostics.CodeAnalysis.cs" Link="System.Diagnostics.CodeAnalysis\System.Diagnostics.CodeAnalysis.cs" />
+    <Compile Include="..\System.Diagnostics.CodeAnalysis.cs"
+             Link="System.Diagnostics.CodeAnalysis\System.Diagnostics.CodeAnalysis.cs" />
     <None Include="README.md" Pack="true" PackagePath="/README.md" />
   </ItemGroup>
 

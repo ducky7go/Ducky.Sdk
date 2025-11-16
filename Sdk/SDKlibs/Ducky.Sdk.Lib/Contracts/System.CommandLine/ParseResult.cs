@@ -251,8 +251,8 @@ namespace System.CommandLine
             var completions = currentSymbol.GetCompletions(context);
 
             string[] optionsWithArgumentLimitReached = currentSymbolResult is CommandResult commandResult
-                                                           ? OptionsWithArgumentLimitReached(commandResult)
-                                                           : Array.Empty<string>();
+                ? OptionsWithArgumentLimitReached(commandResult)
+                : Array.Empty<string>();
 
             completions =
                 completions.Where(item => optionsWithArgumentLimitReached.All(s => s != item.Label));
@@ -276,7 +276,7 @@ namespace System.CommandLine
         /// <param name="cancellationToken">A token that can be used to cancel an invocation.</param>
         /// <returns>A task whose result can be used as a process exit code.</returns>
         public Task<int> InvokeAsync(
-            InvocationConfiguration? configuration = null, 
+            InvocationConfiguration? configuration = null,
             CancellationToken cancellationToken = default)
         {
             if (configuration is not null)
@@ -320,7 +320,8 @@ namespace System.CommandLine
 
             if (useAsync)
             {
-                return InvocationPipeline.InvokeAsync(this, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+                return InvocationPipeline.InvokeAsync(this, CancellationToken.None).ConfigureAwait(false).GetAwaiter()
+                    .GetResult();
             }
             else
             {
@@ -390,7 +391,8 @@ namespace System.CommandLine
 
                     if (textCompletionContext.WordToComplete.Length > 0)
                     {
-                        var tokenToComplete = parseResult.Tokens.Last(t => t.Value == textCompletionContext.WordToComplete);
+                        var tokenToComplete =
+                            parseResult.Tokens.Last(t => t.Value == textCompletionContext.WordToComplete);
 
                         return optionResult.Tokens.Contains(tokenToComplete);
                     }

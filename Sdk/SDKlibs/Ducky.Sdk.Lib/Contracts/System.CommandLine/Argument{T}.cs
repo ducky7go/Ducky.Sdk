@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.CommandLine.Parsing;
 using System.Diagnostics.CodeAnalysis;
+
 namespace System.CommandLine
 {
     /// <inheritdoc cref="Argument" />
@@ -39,6 +40,7 @@ namespace System.CommandLine
                         boolArgument.DefaultValueFactory = _ => false;
                     }
                 }
+
                 return _defaultValueFactory;
             }
             set => _defaultValueFactory = value;
@@ -97,8 +99,10 @@ namespace System.CommandLine
             return DefaultValueFactory.Invoke(argumentResult);
         }
 
-        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = "https://github.com/dotnet/command-line-api/issues/1638")]
-        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2091", Justification = "https://github.com/dotnet/command-line-api/issues/1638")]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050",
+            Justification = "https://github.com/dotnet/command-line-api/issues/1638")]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2091",
+            Justification = "https://github.com/dotnet/command-line-api/issues/1638")]
         internal static T? CreateDefaultValue()
         {
             if (default(T) is null && typeof(T) != typeof(string))

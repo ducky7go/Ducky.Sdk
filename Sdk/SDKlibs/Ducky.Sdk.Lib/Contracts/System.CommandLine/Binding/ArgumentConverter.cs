@@ -132,12 +132,14 @@ namespace System.CommandLine.Binding
                 if (argument.ValueType.TryGetNullableType(out var nullableType) &&
                     StringConverters.TryGetValue(nullableType, out var convertNullable))
                 {
-                    return (ArgumentResult result, out object? value) => ConvertSingleString(result, convertNullable, out value);
+                    return (ArgumentResult result, out object? value) =>
+                        ConvertSingleString(result, convertNullable, out value);
                 }
 
                 if (StringConverters.TryGetValue(argument.ValueType, out var convert1))
                 {
-                    return (ArgumentResult result, out object? value) => ConvertSingleString(result, convert1, out value);
+                    return (ArgumentResult result, out object? value) =>
+                        ConvertSingleString(result, convert1, out value);
                 }
 
                 static bool ConvertSingleString(ArgumentResult result, TryConvertString convert, out object? value) =>
@@ -190,8 +192,8 @@ namespace System.CommandLine.Binding
             {
                 ArgumentConversionResultType.Successful when !toType.IsInstanceOfType(conversionResult.Value) =>
                     ConvertObject(conversionResult.ArgumentResult,
-                                  toType,
-                                  conversionResult.Value),
+                        toType,
+                        conversionResult.Value),
 
                 ArgumentConversionResultType.NoArgument when conversionResult.ArgumentResult.Argument.IsBoolean() =>
                     Success(conversionResult.ArgumentResult, true),
@@ -219,13 +221,13 @@ namespace System.CommandLine.Binding
                 // 0 is an implicit bool, i.e. a "flag"
                 0 => Success(argumentResult, true),
                 1 => ConvertObject(argumentResult,
-                                   argument.ValueType,
-                                   argumentResult.Tokens.Count > 0
-                                       ? argumentResult.Tokens[argumentResult.Tokens.Count - 1]
-                                       : null),
+                    argument.ValueType,
+                    argumentResult.Tokens.Count > 0
+                        ? argumentResult.Tokens[argumentResult.Tokens.Count - 1]
+                        : null),
                 _ => ConvertTokens(argumentResult,
-                                    argument.ValueType,
-                                    argumentResult.Tokens)
+                    argument.ValueType,
+                    argumentResult.Tokens)
             };
 
             value = result;

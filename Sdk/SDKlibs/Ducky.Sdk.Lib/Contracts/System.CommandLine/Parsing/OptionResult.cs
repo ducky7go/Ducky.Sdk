@@ -47,7 +47,8 @@ namespace System.CommandLine.Parsing
         public int IdentifierTokenCount { get; internal set; }
 
         /// <inheritdoc/>
-        public override string ToString() => $"{nameof(OptionResult)}: {IdentifierToken?.Value ?? Option.Name} {string.Join(" ", Tokens.Select(t => t.Value))}";
+        public override string ToString() =>
+            $"{nameof(OptionResult)}: {IdentifierToken?.Value ?? Option.Name} {string.Join(" ", Tokens.Select(t => t.Value))}";
 
         /// <summary>
         /// Gets the parsed value or the default value for <see cref="Option"/>.

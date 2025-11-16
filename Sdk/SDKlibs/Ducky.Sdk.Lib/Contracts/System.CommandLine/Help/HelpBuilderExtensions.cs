@@ -19,6 +19,7 @@ namespace System.CommandLine.Help
                     {
                         yield return argument;
                     }
+
                     yield break;
                 case Argument argument:
                     yield return argument;

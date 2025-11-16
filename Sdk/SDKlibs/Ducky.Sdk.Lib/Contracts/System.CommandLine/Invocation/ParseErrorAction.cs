@@ -79,7 +79,8 @@ public sealed class ParseErrorAction : SynchronousCommandLineAction
                     break;
 
                 case AsynchronousCommandLineAction asyncAction:
-                    asyncAction.InvokeAsync(parseResult, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+                    asyncAction.InvokeAsync(parseResult, CancellationToken.None).ConfigureAwait(false).GetAwaiter()
+                        .GetResult();
                     break;
             }
         }
@@ -98,7 +99,8 @@ public sealed class ParseErrorAction : SynchronousCommandLineAction
             {
                 if (first)
                 {
-                    parseResult.InvocationConfiguration.Output.WriteLine(LocalizationResources.SuggestionsTokenNotMatched(token));
+                    parseResult.InvocationConfiguration.Output.WriteLine(
+                        LocalizationResources.SuggestionsTokenNotMatched(token));
                     first = false;
                 }
 
@@ -119,40 +121,40 @@ public sealed class ParseErrorAction : SynchronousCommandLineAction
             }
 
             IEnumerable<string> possibleMatches = targetSymbol
-                                                  .Children
-                                                  .Where(x => !x.Hidden && x is Option or Command)
-                                                  .Select(symbol =>
-                                                  {
-                                                      AliasSet? aliasSet = symbol is Option option ? option._aliases : ((Command)symbol)._aliases;
+                .Children
+                .Where(x => !x.Hidden && x is Option or Command)
+                .Select(symbol =>
+                {
+                    AliasSet? aliasSet = symbol is Option option ? option._aliases : ((Command)symbol)._aliases;
 
-                                                      if (aliasSet is null)
-                                                      {
-                                                          return symbol.Name;
-                                                      }
+                    if (aliasSet is null)
+                    {
+                        return symbol.Name;
+                    }
 
-                                                      return new[] { symbol.Name }.Concat(aliasSet)
-                                                                                  .OrderBy(x => GetDistance(token, x))
-                                                                                  .ThenByDescending(x => GetStartsWithDistance(token, x))
-                                                                                  .First();
-                                                  });
+                    return new[] { symbol.Name }.Concat(aliasSet)
+                        .OrderBy(x => GetDistance(token, x))
+                        .ThenByDescending(x => GetStartsWithDistance(token, x))
+                        .First();
+                });
 
             int? bestDistance = null;
             return possibleMatches
-                   .Select(possibleMatch => (possibleMatch, distance: GetDistance(token, possibleMatch)))
-                   .Where(tuple => tuple.distance <= MaxLevenshteinDistance)
-                   .OrderBy(tuple => tuple.distance)
-                   .ThenByDescending(tuple => GetStartsWithDistance(token, tuple.possibleMatch))
-                   .TakeWhile(tuple =>
-                   {
-                       var (_, distance) = tuple;
-                       if (bestDistance is null)
-                       {
-                           bestDistance = distance;
-                       }
+                .Select(possibleMatch => (possibleMatch, distance: GetDistance(token, possibleMatch)))
+                .Where(tuple => tuple.distance <= MaxLevenshteinDistance)
+                .OrderBy(tuple => tuple.distance)
+                .ThenByDescending(tuple => GetStartsWithDistance(token, tuple.possibleMatch))
+                .TakeWhile(tuple =>
+                {
+                    var (_, distance) = tuple;
+                    if (bestDistance is null)
+                    {
+                        bestDistance = distance;
+                    }
 
-                       return distance == bestDistance;
-                   })
-                   .Select(tuple => tuple.possibleMatch);
+                    return distance == bestDistance;
+                })
+                .Select(tuple => tuple.possibleMatch);
         }
 
         static int GetStartsWithDistance(string first, string second)

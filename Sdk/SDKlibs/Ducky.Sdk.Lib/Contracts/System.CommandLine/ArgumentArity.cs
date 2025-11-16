@@ -35,12 +35,14 @@ namespace System.CommandLine
 
             if (maximumNumberOfValues < minimumNumberOfValues)
             {
-                throw new ArgumentException($"{nameof(maximumNumberOfValues)} must be greater than or equal to {nameof(minimumNumberOfValues)}");
+                throw new ArgumentException(
+                    $"{nameof(maximumNumberOfValues)} must be greater than or equal to {nameof(minimumNumberOfValues)}");
             }
 
             if (maximumNumberOfValues > MaximumArity)
             {
-                throw new ArgumentException($"{nameof(maximumNumberOfValues)} must be less than or equal to {nameof(MaximumArity)}");
+                throw new ArgumentException(
+                    $"{nameof(maximumNumberOfValues)} must be less than or equal to {nameof(MaximumArity)}");
             }
 
             MinimumNumberOfValues = minimumNumberOfValues;
@@ -58,11 +60,11 @@ namespace System.CommandLine
         /// </summary>
         public int MaximumNumberOfValues { get; }
 
-        internal bool IsNonDefault { get;  }
+        internal bool IsNonDefault { get; }
 
         /// <inheritdoc />
-        public bool Equals(ArgumentArity other) => 
-            other.MaximumNumberOfValues == MaximumNumberOfValues && 
+        public bool Equals(ArgumentArity other) =>
+            other.MaximumNumberOfValues == MaximumNumberOfValues &&
             other.MinimumNumberOfValues == MinimumNumberOfValues &&
             other.IsNonDefault == IsNonDefault;
 
@@ -73,7 +75,8 @@ namespace System.CommandLine
         public override int GetHashCode()
             => MaximumNumberOfValues ^ MinimumNumberOfValues ^ IsNonDefault.GetHashCode();
 
-        internal static bool Validate(ArgumentResult argumentResult, [NotNullWhen(false)] out ArgumentConversionResult? error)
+        internal static bool Validate(ArgumentResult argumentResult,
+            [NotNullWhen(false)] out ArgumentConversionResult? error)
         {
             error = null;
 
@@ -150,8 +153,8 @@ namespace System.CommandLine
             if (type != typeof(string) && typeof(IEnumerable).IsAssignableFrom(type))
             {
                 return parent is Command
-                           ? ZeroOrMore
-                           : OneOrMore;
+                    ? ZeroOrMore
+                    : OneOrMore;
             }
 
             if (parent is Command &&

@@ -62,7 +62,8 @@ namespace System.CommandLine.Invocation
                             // Handlers may not implement cancellation.
                             // In such cases, when CancelOnProcessTermination is configured and user presses Ctrl+C,
                             // ProcessTerminationCompletionSource completes first, with the result equal to native exit code for given signal.
-                            Task<int> firstCompletedTask = await Task.WhenAny(startedInvocation, terminationHandler.ProcessTerminationCompletionSource.Task);
+                            Task<int> firstCompletedTask = await Task.WhenAny(startedInvocation,
+                                terminationHandler.ProcessTerminationCompletionSource.Task);
                             return await firstCompletedTask; // return the result or propagate the exception
                         }
 
@@ -123,7 +124,8 @@ namespace System.CommandLine.Invocation
                     }
 
                 default:
-                    throw new InvalidOperationException($"{nameof(AsynchronousCommandLineAction)} called within non-async invocation.");
+                    throw new InvalidOperationException(
+                        $"{nameof(AsynchronousCommandLineAction)} called within non-async invocation.");
             }
         }
 
@@ -141,6 +143,7 @@ namespace System.CommandLine.Invocation
 
                 ConsoleHelpers.ResetTerminalForegroundColor();
             }
+
             return 1;
         }
 

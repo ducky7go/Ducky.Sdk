@@ -14,25 +14,30 @@ namespace System.CommandLine.Binding
         internal readonly string? ErrorMessage;
         internal ArgumentConversionResultType Result;
 
-        private ArgumentConversionResult(ArgumentResult argumentResult, string error, ArgumentConversionResultType failure)
+        private ArgumentConversionResult(ArgumentResult argumentResult, string error,
+            ArgumentConversionResultType failure)
         {
             ArgumentResult = argumentResult;
             ErrorMessage = error;
             Result = failure;
         }
 
-        private ArgumentConversionResult(ArgumentResult argumentResult, object? value, ArgumentConversionResultType result)
+        private ArgumentConversionResult(ArgumentResult argumentResult, object? value,
+            ArgumentConversionResultType result)
         {
             ArgumentResult = argumentResult;
             Value = value;
             Result = result;
         }
 
-        internal static ArgumentConversionResult Failure(ArgumentResult argumentResult, string error, ArgumentConversionResultType reason)
+        internal static ArgumentConversionResult Failure(ArgumentResult argumentResult, string error,
+            ArgumentConversionResultType reason)
             => new(argumentResult, error, reason);
 
-        internal static ArgumentConversionResult ArgumentConversionCannotParse(ArgumentResult argumentResult, Type expectedType, string value)
-            => new(argumentResult, FormatErrorMessage(argumentResult, expectedType, value), ArgumentConversionResultType.FailedType);
+        internal static ArgumentConversionResult ArgumentConversionCannotParse(ArgumentResult argumentResult,
+            Type expectedType, string value)
+            => new(argumentResult, FormatErrorMessage(argumentResult, expectedType, value),
+                ArgumentConversionResultType.FailedType);
 
         public static ArgumentConversionResult Success(ArgumentResult argumentResult, object? value)
             => new(argumentResult, value, ArgumentConversionResultType.Successful);
@@ -48,7 +53,8 @@ namespace System.CommandLine.Binding
             if (argumentResult.Parent is CommandResult commandResult)
             {
                 string alias = commandResult.Command.Name;
-                CompletionItem[] completionItems = argumentResult.Argument.GetCompletions(CompletionContext.Empty).ToArray();
+                CompletionItem[] completionItems =
+                    argumentResult.Argument.GetCompletions(CompletionContext.Empty).ToArray();
 
                 if (completionItems.Length > 0)
                 {
@@ -63,7 +69,8 @@ namespace System.CommandLine.Binding
             else if (argumentResult.Parent is OptionResult optionResult)
             {
                 string alias = optionResult.Option.Name;
-                CompletionItem[] completionItems = optionResult.Option.GetCompletions(CompletionContext.Empty).ToArray();
+                CompletionItem[] completionItems =
+                    optionResult.Option.GetCompletions(CompletionContext.Empty).ToArray();
 
                 if (completionItems.Length > 0)
                 {

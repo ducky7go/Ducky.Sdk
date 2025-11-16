@@ -23,7 +23,7 @@ namespace System.Diagnostics.CodeAnalysis
 #else
     internal
 #endif
-    sealed class UnconditionalSuppressMessageAttribute : Attribute
+        sealed class UnconditionalSuppressMessageAttribute : Attribute
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="UnconditionalSuppressMessageAttribute"/>

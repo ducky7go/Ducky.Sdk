@@ -25,13 +25,13 @@ namespace System.CommandLine
         public RootCommand(string description = "") : base(ExecutableName, description)
         {
             Options.Add(new HelpOption());
-            Options.Add(new VersionOption()); 
+            Options.Add(new VersionOption());
             Directives = new ChildSymbolList<Directive>(this)
             {
                 new SuggestDirective()
             };
         }
-     
+
         /// <summary>
         /// Represents all of the directives that are valid under the root command.
         /// </summary>

@@ -67,7 +67,7 @@ namespace System.CommandLine
                     Type? valueType = ValueType;
                     if (IsBoolean())
                     {
-                        _completionSources = new ()
+                        _completionSources = new()
                         {
                             static _ => new CompletionItem[]
                             {
@@ -76,7 +76,9 @@ namespace System.CommandLine
                             }
                         };
                     }
-                    else if (!valueType.IsPrimitive && (valueType.IsEnum || (valueType.TryGetNullableType(out valueType) && valueType.IsEnum)))
+                    else if (!valueType.IsPrimitive && (valueType.IsEnum ||
+                                                        (valueType.TryGetNullableType(out valueType) &&
+                                                         valueType.IsEnum)))
                     {
                         _completionSources = new()
                         {
@@ -102,7 +104,7 @@ namespace System.CommandLine
         /// Provides a list of argument validators. Validators can be used
         /// to provide custom errors based on user input.
         /// </summary>
-        public List<Action<ArgumentResult>> Validators => _validators ??= new ();
+        public List<Action<ArgumentResult>> Validators => _validators ??= new();
 
         internal bool HasValidators => (_validators?.Count ?? 0) > 0;
 
@@ -113,8 +115,8 @@ namespace System.CommandLine
         public object? GetDefaultValue()
         {
             var command = Parents.FlattenBreadthFirst(x => x.Parents)
-                                 .OfType<Command>()
-                                 .FirstOrDefault();
+                .OfType<Command>()
+                .FirstOrDefault();
 
             return GetDefaultValue(new ArgumentResult(this, new SymbolResultTree(command), null));
         }
@@ -130,9 +132,9 @@ namespace System.CommandLine
         public override IEnumerable<CompletionItem> GetCompletions(CompletionContext context)
         {
             return CompletionSources
-                   .SelectMany(source => source.Invoke(context))
-                   .Distinct()
-                   .OrderBy(c => c.SortText, StringComparer.OrdinalIgnoreCase);
+                .SelectMany(source => source.Invoke(context))
+                .Distinct()
+                .OrderBy(c => c.SortText, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc />

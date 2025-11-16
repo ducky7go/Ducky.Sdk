@@ -18,7 +18,7 @@ public class TextCompletionContext : CompletionContext
     }
 
     internal TextCompletionContext(
-        ParseResult parseResult, 
+        ParseResult parseResult,
         string commandLineText) : this(parseResult, commandLineText, commandLineText.Length)
     {
     }

@@ -24,7 +24,7 @@ namespace System.CommandLine
         /// <param name="aliases">Optional aliases by which the option can be specified on the command line.</param>
         protected Option(string name, string[] aliases) : base(name)
         {
-            if (aliases is { Length: > 0 }) 
+            if (aliases is { Length: > 0 })
             {
                 _aliases = new(aliases);
             }
@@ -82,7 +82,8 @@ namespace System.CommandLine
         /// <summary>
         /// Gets the list of completion sources for the option.
         /// </summary>
-        public List<Func<CompletionContext, IEnumerable<CompletionItem>>> CompletionSources => Argument.CompletionSources;
+        public List<Func<CompletionContext, IEnumerable<CompletionItem>>> CompletionSources =>
+            Argument.CompletionSources;
 
         /// <summary>
         /// Gets a value that indicates whether multiple argument tokens are allowed for each option identifier token.
@@ -139,8 +140,8 @@ namespace System.CommandLine
             }
 
             return completions
-                   .OrderBy(item => item.SortText.IndexOfCaseInsensitive(context.WordToComplete))
-                   .ThenBy(symbol => symbol.Label, StringComparer.OrdinalIgnoreCase);
+                .OrderBy(item => item.SortText.IndexOfCaseInsensitive(context.WordToComplete))
+                .ThenBy(symbol => symbol.Label, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>

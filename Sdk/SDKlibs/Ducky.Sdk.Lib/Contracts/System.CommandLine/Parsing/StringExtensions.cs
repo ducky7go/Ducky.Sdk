@@ -19,10 +19,10 @@ namespace System.CommandLine.Parsing
             this string source,
             string value) =>
             CultureInfo.InvariantCulture
-                       .CompareInfo
-                       .IndexOf(source,
-                                value,
-                                CompareOptions.OrdinalIgnoreCase);
+                .CompareInfo
+                .IndexOf(source,
+                    value,
+                    CompareOptions.OrdinalIgnoreCase);
 
         // this method is not returning a Value Tuple or a dedicated type to avoid JITting
         internal static void Tokenize(
@@ -117,6 +117,7 @@ namespace System.CommandLine.Parsing
                             listWithReplacedTokens.InsertRange(i + 1, newTokens);
                             args = listWithReplacedTokens;
                         }
+
                         continue;
                     }
                     else if (!string.IsNullOrWhiteSpace(error))
@@ -146,8 +147,10 @@ namespace System.CommandLine.Parsing
                                 {
                                     if (cmd != rootCommand)
                                     {
-                                        knownTokens = cmd.ValidTokens(); // config contains Directives, they are allowed only for RootCommand
+                                        knownTokens =
+                                            cmd.ValidTokens(); // config contains Directives, they are allowed only for RootCommand
                                     }
+
                                     currentCommand = cmd;
                                     tokenList.Add(Command(arg, cmd));
                                 }
@@ -198,10 +201,10 @@ namespace System.CommandLine.Parsing
 
             bool CanBeUnbundled(string arg)
                 => arg.Length > 2
-                    && arg[0] == '-'
-                    && arg[1] != '-'// don't check for "--" prefixed args
-                    && arg[2] != ':' && arg[2] != '=' // handled by TrySplitIntoSubtokens
-                    && !PreviousTokenIsAnOptionExpectingAnArgument(out _);
+                   && arg[0] == '-'
+                   && arg[1] != '-' // don't check for "--" prefixed args
+                   && arg[2] != ':' && arg[2] != '=' // handled by TrySplitIntoSubtokens
+                   && !PreviousTokenIsAnOptionExpectingAnArgument(out _);
 
             bool TryUnbundle(ReadOnlySpan<char> alias, int argumentIndex)
             {
@@ -212,7 +215,8 @@ namespace System.CommandLine.Parsing
                 {
                     if (alias[i] == ':' || alias[i] == '=')
                     {
-                        tokenList.Add(new Token(alias.Slice(i + 1).ToString(), TokenType.Argument, default, argumentIndex));
+                        tokenList.Add(new Token(alias.Slice(i + 1).ToString(), TokenType.Argument, default,
+                            argumentIndex));
                         return true;
                     }
 
@@ -222,7 +226,8 @@ namespace System.CommandLine.Parsing
                         if (tokensBefore != tokenList.Count && tokenList[tokenList.Count - 1].Type == TokenType.Option)
                         {
                             // Invalid_char_in_bundle_causes_rest_to_be_interpreted_as_value
-                            tokenList.Add(new Token(alias.Slice(i).ToString(), TokenType.Argument, default, argumentIndex));
+                            tokenList.Add(new Token(alias.Slice(i).ToString(), TokenType.Argument, default,
+                                argumentIndex));
                             return true;
                         }
 
@@ -237,7 +242,9 @@ namespace System.CommandLine.Parsing
                         {
                             index++; // Last_bundled_option_can_accept_argument_with_colon_separator
                         }
-                        tokenList.Add(new Token(alias.Slice(index).ToString(), TokenType.Argument, default, argumentIndex));
+
+                        tokenList.Add(new Token(alias.Slice(index).ToString(), TokenType.Argument, default,
+                            argumentIndex));
                         return true;
                     }
                 }
@@ -266,7 +273,8 @@ namespace System.CommandLine.Parsing
             }
         }
 
-        private static bool FirstArgumentIsRootCommand(IReadOnlyList<string> args, Command rootCommand, bool inferRootCommand)
+        private static bool FirstArgumentIsRootCommand(IReadOnlyList<string> args, Command rootCommand,
+            bool inferRootCommand)
         {
             if (args.Count > 0)
             {
@@ -396,7 +404,8 @@ namespace System.CommandLine.Parsing
                 {
                     var directive = directives[i];
                     var tokenString = $"[{directive.Name}]";
-                    tokens[tokenString] = new Token(tokenString, TokenType.Directive, directive, Token.ImplicitPosition);
+                    tokens[tokenString] =
+                        new Token(tokenString, TokenType.Directive, directive, Token.ImplicitPosition);
                 }
             }
 
@@ -414,7 +423,7 @@ namespace System.CommandLine.Parsing
             if (command.HasOptions)
             {
                 var options = command.Options;
-                
+
                 for (int i = 0; i < options.Count; i++)
                 {
                     AddOptionTokens(tokens, options[i]);
@@ -444,8 +453,10 @@ namespace System.CommandLine.Parsing
 
                         break;
                     }
+
                     parent = parent.Next;
                 }
+
                 current = parentCommand;
             }
 
@@ -477,7 +488,8 @@ namespace System.CommandLine.Parsing
                     {
                         if (!tokens.ContainsKey(childAlias))
                         {
-                            tokens.Add(childAlias, new Token(childAlias, TokenType.Option, option, Token.ImplicitPosition));
+                            tokens.Add(childAlias,
+                                new Token(childAlias, TokenType.Option, option, Token.ImplicitPosition));
                         }
                     }
                 }

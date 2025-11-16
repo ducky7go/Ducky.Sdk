@@ -18,7 +18,8 @@ namespace System.CommandLine.Parsing
         /// <param name="args">The string array typically passed to a program's <c>Main</c> method.</param>
         /// <param name="configuration">The configuration on which the parser's grammar and behaviors are based.</param>
         /// <returns>A <see cref="ParseResult"/> providing details about the parse operation.</returns>
-        public static ParseResult Parse(Command command, IReadOnlyList<string> args, ParserConfiguration? configuration = null)
+        public static ParseResult Parse(Command command, IReadOnlyList<string> args,
+            ParserConfiguration? configuration = null)
             => Parse(command, args, null, configuration);
 
         /// <summary>

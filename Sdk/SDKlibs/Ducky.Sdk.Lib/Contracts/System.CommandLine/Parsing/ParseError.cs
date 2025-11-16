@@ -9,14 +9,14 @@ namespace System.CommandLine.Parsing
     public sealed class ParseError
     {
         internal ParseError(
-            string message, 
+            string message,
             SymbolResult? symbolResult = null)
         {
             if (string.IsNullOrWhiteSpace(message))
             {
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(message));
             }
-          
+
             Message = message;
             SymbolResult = symbolResult;
         }

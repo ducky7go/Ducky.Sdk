@@ -46,10 +46,12 @@ namespace System.CommandLine
             {
                 if (result.Parent is CommandResult parent &&
                     parent.Children.Any(r =>
-                                            r is not OptionResult { Option: VersionOption } &&
-                                            r is not OptionResult { Implicit: true }))
+                        r is not OptionResult { Option: VersionOption } &&
+                        r is not OptionResult { Implicit: true }))
                 {
-                    result.AddError(LocalizationResources.VersionOptionCannotBeCombinedWithOtherArguments(result.IdentifierToken?.Value ?? result.Option.Name));
+                    result.AddError(
+                        LocalizationResources.VersionOptionCannotBeCombinedWithOtherArguments(
+                            result.IdentifierToken?.Value ?? result.Option.Name));
                 }
             });
         }

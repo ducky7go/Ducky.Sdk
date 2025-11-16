@@ -61,12 +61,12 @@ namespace System.CommandLine
         /// </summary>
         public IList<Argument> Arguments => _arguments ??= new(this);
 
-        internal bool HasArguments => _arguments?.Count > 0 ;
+        internal bool HasArguments => _arguments?.Count > 0;
 
         /// <summary>
         /// Represents all of the options for the command, inherited options that have been applied to any of the command's ancestors.
         /// </summary>
-        public IList<Option> Options => _options ??= new (this);
+        public IList<Option> Options => _options ??= new(this);
 
         internal bool HasOptions => _options?.Count > 0;
 
@@ -81,7 +81,7 @@ namespace System.CommandLine
         /// Validators to the command. Validators can be used
         /// to create custom validation logic.
         /// </summary>
-        public List<Action<CommandResult>> Validators => _validators ??= new ();
+        public List<Action<CommandResult>> Validators => _validators ??= new();
 
         internal bool HasValidators => _validators is not null && _validators.Count > 0;
 
@@ -214,19 +214,19 @@ namespace System.CommandLine
         /// Adds a <see cref="Argument"/> to the command.
         /// </summary>
         /// <param name="argument">The option to add to the command.</param>
-        public void Add(Argument argument) =>  Arguments.Add(argument);
-        
+        public void Add(Argument argument) => Arguments.Add(argument);
+
         /// <summary>
         /// Adds a <see cref="Option"/> to the command.
         /// </summary>
         /// <param name="option">The option to add to the command.</param>
-        public void Add(Option option) =>  Options.Add(option);
+        public void Add(Option option) => Options.Add(option);
 
         /// <summary>
         /// Adds a <see cref="Command"/> to the command.
         /// </summary>
         /// <param name="command">The Command to add to the command.</param>
-        public void Add(Command command) =>  Subcommands.Add(command);
+        public void Add(Command command) => Subcommands.Add(command);
 
         /// <summary>
         /// Gets or sets a value that indicates whether unmatched tokens should be treated as errors. For example,
@@ -236,7 +236,8 @@ namespace System.CommandLine
 
         /// <inheritdoc />
         [DebuggerStepThrough]
-        [EditorBrowsable(EditorBrowsableState.Never)] // hide from intellisense, it's public for C# collection initializer 
+        [EditorBrowsable(EditorBrowsableState
+            .Never)] // hide from intellisense, it's public for C# collection initializer 
         IEnumerator IEnumerable.GetEnumerator() => Children.GetEnumerator();
 
         /// <summary>
@@ -318,6 +319,7 @@ namespace System.CommandLine
                                 }
                             }
                         }
+
                         parent = parent.Symbol.FirstParent;
                     }
                     else
@@ -328,8 +330,8 @@ namespace System.CommandLine
             }
 
             return completions
-                   .OrderBy(item => item.SortText.IndexOfCaseInsensitive(context.WordToComplete))
-                   .ThenBy(symbol => symbol.Label, StringComparer.OrdinalIgnoreCase);
+                .OrderBy(item => item.SortText.IndexOfCaseInsensitive(context.WordToComplete))
+                .ThenBy(symbol => symbol.Label, StringComparer.OrdinalIgnoreCase);
 
             void AddCompletionsFor(Symbol identifier, AliasSet? aliases)
             {
@@ -337,7 +339,8 @@ namespace System.CommandLine
                 {
                     if (identifier.Name.ContainsCaseInsensitive(textToMatch))
                     {
-                        completions.Add(new CompletionItem(identifier.Name, CompletionItem.KindKeyword, detail: identifier.Description));
+                        completions.Add(new CompletionItem(identifier.Name, CompletionItem.KindKeyword,
+                            detail: identifier.Description));
                     }
 
                     if (aliases is not null)
@@ -346,7 +349,8 @@ namespace System.CommandLine
                         {
                             if (alias.ContainsCaseInsensitive(textToMatch))
                             {
-                                completions.Add(new CompletionItem(alias, CompletionItem.KindKeyword, detail: identifier.Description));
+                                completions.Add(new CompletionItem(alias, CompletionItem.KindKeyword,
+                                    detail: identifier.Description));
                             }
                         }
                     }

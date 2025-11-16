@@ -122,7 +122,8 @@ namespace System.CommandLine.Parsing
         {
             while (More(out TokenType currentTokenType) && currentTokenType == TokenType.Argument)
             {
-                while (_innermostCommandResult.Command.HasArguments && currentArgumentIndex < _innermostCommandResult.Command.Arguments.Count)
+                while (_innermostCommandResult.Command.HasArguments &&
+                       currentArgumentIndex < _innermostCommandResult.Command.Arguments.Count)
                 {
                     Argument argument = _innermostCommandResult.Command.Arguments[currentArgumentIndex];
 
@@ -135,7 +136,7 @@ namespace System.CommandLine.Parsing
                         }
 
                         if (!(_symbolResultTree.TryGetValue(argument, out var symbolResult)
-                            && symbolResult is ArgumentResult argumentResult))
+                              && symbolResult is ArgumentResult argumentResult))
                         {
                             argumentResult =
                                 new ArgumentResult(
@@ -241,12 +242,12 @@ namespace System.CommandLine.Parsing
                 }
 
                 if (!(_symbolResultTree.TryGetValue(argument, out SymbolResult? symbolResult)
-                    && symbolResult is ArgumentResult argumentResult))
+                      && symbolResult is ArgumentResult argumentResult))
                 {
                     argumentResult = new ArgumentResult(
-                            argument,
-                            _symbolResultTree,
-                            optionResult);
+                        argument,
+                        _symbolResultTree,
+                        optionResult);
 
                     _symbolResultTree.Add(argument, argumentResult);
                 }
@@ -306,7 +307,7 @@ namespace System.CommandLine.Parsing
                 }
                 else
                 {
-                    result = new (directive, token, _symbolResultTree);
+                    result = new(directive, token, _symbolResultTree);
                     _symbolResultTree.Add(directive, result);
                 }
 
@@ -378,9 +379,9 @@ namespace System.CommandLine.Parsing
                     _symbolResultTree.Errors is not null)
                 {
                     var errorsNotUnderInnermostCommand = _symbolResultTree
-                                                         .Errors
-                                                         .Where(e => e.SymbolResult != _innermostCommandResult)
-                                                         .ToList();
+                        .Errors
+                        .Where(e => e.SymbolResult != _innermostCommandResult)
+                        .ToList();
 
                     _symbolResultTree.Errors = errorsNotUnderInnermostCommand;
                 }
@@ -403,9 +404,9 @@ namespace System.CommandLine.Parsing
                             if (_primaryAction == optionAction)
                             {
                                 var errorsForPrimarySymbol = _symbolResultTree
-                                                             .Errors
-                                                             .Where(e => e.SymbolResult is OptionResult r && r.Option == option)
-                                                             .ToList();
+                                    .Errors
+                                    .Where(e => e.SymbolResult is OptionResult r && r.Option == option)
+                                    .ToList();
 
                                 _symbolResultTree.Errors = errorsForPrimarySymbol;
 
@@ -418,9 +419,9 @@ namespace System.CommandLine.Parsing
                             if (_primaryAction == commandAction)
                             {
                                 var errorsForPrimarySymbol = _symbolResultTree
-                                                             .Errors
-                                                             .Where(e => e.SymbolResult is CommandResult r && r.Command == command)
-                                                             .ToList();
+                                    .Errors
+                                    .Where(e => e.SymbolResult is CommandResult r && r.Command == command)
+                                    .ToList();
 
                                 _symbolResultTree.Errors = errorsForPrimarySymbol;
 

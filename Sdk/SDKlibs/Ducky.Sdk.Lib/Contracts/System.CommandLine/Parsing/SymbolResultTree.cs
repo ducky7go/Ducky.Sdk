@@ -13,7 +13,7 @@ namespace System.CommandLine.Parsing
         private Dictionary<string, SymbolNode>? _symbolsByName;
 
         internal SymbolResultTree(
-            Command? rootCommand = null, 
+            Command? rootCommand = null,
             List<string>? tokenizeErrors = null)
         {
             _rootCommand = rootCommand;
@@ -72,7 +72,8 @@ namespace System.CommandLine.Parsing
                     return;
                 }
 
-                AddError(new ParseError(LocalizationResources.UnrecognizedCommandOrArgument(token.Value), commandResult));
+                AddError(
+                    new ParseError(LocalizationResources.UnrecognizedCommandOrArgument(token.Value), commandResult));
             }
         }
 
@@ -80,10 +81,10 @@ namespace System.CommandLine.Parsing
         {
             if (_symbolsByName is null && _rootCommand is not null)
             {
-                _symbolsByName = new();  
+                _symbolsByName = new();
                 PopulateSymbolsByName(_rootCommand);
             }
-          
+
             if (!_symbolsByName!.TryGetValue(name, out SymbolNode? node))
             {
                 throw new ArgumentException($"No symbol result found with name \"{name}\".");
@@ -141,8 +142,10 @@ namespace System.CommandLine.Parsing
                         // We can't allow for name duplicates within the same command.
                         if (ReferenceEquals(current.Parent, parent))
                         {
-                            throw new InvalidOperationException($"Command {parent.Name} has more than one child named \"{symbol.Name}\".");
+                            throw new InvalidOperationException(
+                                $"Command {parent.Name} has more than one child named \"{symbol.Name}\".");
                         }
+
                         current = current.Next;
                     } while (current is not null);
 

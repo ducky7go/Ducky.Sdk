@@ -38,9 +38,9 @@ namespace System.CommandLine.Help
         }
 
         /// <inheritdoc />
-        public override CommandLineAction? Action 
-        { 
-            get => _action ??= new HelpAction(); 
+        public override CommandLineAction? Action
+        {
+            get => _action ??= new HelpAction();
             set => _action = value ?? throw new ArgumentNullException(nameof(value));
         }
 

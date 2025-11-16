@@ -15,7 +15,7 @@ namespace System.CommandLine.Help
         /// </summary>
         /// <remarks>It defaults to <see cref="Console.WindowWidth"/>.</remarks>
         public int MaxWidth
-        { 
+        {
             get
             {
                 if (_maxWidth < 0)
@@ -58,8 +58,8 @@ namespace System.CommandLine.Help
             var output = parseResult.InvocationConfiguration.Output;
 
             var helpContext = new HelpContext(Builder,
-                                              parseResult.CommandResult.Command,
-                                              output);
+                parseResult.CommandResult.Command,
+                output);
 
             Builder.Write(helpContext);
 

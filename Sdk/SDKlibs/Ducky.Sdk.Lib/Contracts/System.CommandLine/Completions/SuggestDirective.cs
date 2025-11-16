@@ -21,5 +21,4 @@ public sealed class SuggestDirective : Directive
         get => _action ??= new CompletionAction(this);
         set => _action = value ?? throw new ArgumentNullException(nameof(value));
     }
-
 }

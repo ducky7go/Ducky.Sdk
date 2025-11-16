@@ -23,7 +23,7 @@ namespace System.CommandLine.Parsing
             parseResult.InvocationConfiguration.Output.WriteLine(Diagram(parseResult));
             return parseResult.Errors.Count == 0 ? 0 : _parseErrorReturnValue;
         }
-        
+
         /// <summary>
         /// Formats a string explaining a parse result.
         /// </summary>
@@ -69,7 +69,10 @@ namespace System.CommandLine.Parsing
                 case ArgumentResult argumentResult:
                 {
                     var includeArgumentName =
-                        argumentResult.Argument.FirstParent!.Symbol is Command { HasArguments: true, Arguments.Count: > 1 };
+                        argumentResult.Argument.FirstParent!.Symbol is Command
+                        {
+                            HasArguments: true, Arguments.Count: > 1
+                        };
 
                     if (includeArgumentName)
                     {
@@ -91,12 +94,12 @@ namespace System.CommandLine.Parsing
                                     case string s:
                                         builder.Append($"<{s}>");
                                         break;
-                                
+
                                     case IEnumerable items:
                                         builder.Append('<');
                                         builder.Append(
                                             string.Join("> <",
-                                                        items.Cast<object>().ToArray()));
+                                                items.Cast<object>().ToArray()));
                                         builder.Append('>');
                                         break;
 
