@@ -18,7 +18,7 @@ public class ModHttpV1Proxy
     private Action<object, string>? _unregisterClientDelegate;
     private Func<object, string, string, string, string, UniTask>? _notifyDelegate;
     private Func<object, IReadOnlyList<string>>? _getModIdsDelegate;
-    
+
     private readonly VirtualHub _virtualHub;
     private bool _isVirtual;
     private bool _isSearching;
@@ -103,7 +103,7 @@ public class ModHttpV1Proxy
         _getModIdsDelegate = Expression
             .Lambda<Func<object, IReadOnlyList<string>>>(modIdsGet, modIdsInstance)
             .Compile();
-        
+
         _isVirtual = false;
     }
 
@@ -156,20 +156,20 @@ public class ModHttpV1Proxy
             return _getModIdsDelegate!(_hubInstance!);
         }
     }
-    
+
     private async void TryUpgradeToRealHub()
     {
         if (_isSearching || !_isVirtual) return;
-        
+
         _isSearching = true;
         Log.Info("[ModHttpV1Proxy] 真实对象未挂载，启动后台检测任务 (最多60秒，每秒检测一次)");
-        
+
         try
         {
             for (int i = 0; i < 60; i++)
             {
                 await UniTask.Delay(TimeSpan.FromSeconds(1));
-                
+
                 var go = UnityEngine.GameObject.Find("ModHttpV1");
                 if (go != null)
                 {
@@ -194,7 +194,7 @@ public class ModHttpV1Proxy
                     }
                 }
             }
-            
+
             Log.Warn("[ModHttpV1Proxy] 60秒内未检测到真实对象，停止检测，继续使用虚拟载体");
         }
         catch (Exception ex)
@@ -236,7 +236,7 @@ public class ModHttpV1Proxy
         Log.Warn("[ModHttpV1Proxy] 未找到 ModHttpV1 对象，创建虚拟载体并启动后台检测");
         return new ModHttpV1Proxy();
     }
-    
+
     /// <summary>
     /// 虚拟Hub，在真实ModHttpV1未挂载时暂存消息和注册信息
     /// </summary>
@@ -289,13 +289,13 @@ public class ModHttpV1Proxy
         public async UniTask MigrateToRealHub(ModHttpV1Proxy realProxy)
         {
             Log.Info($"[VirtualHub] 开始迁移 {_clients.Count} 个客户端和 {_pendingMessages.Count} 条消息");
-            
+
             // 迁移客户端注册
             foreach (var kvp in _clients)
             {
                 realProxy.RegisterClient(kvp.Key, kvp.Value);
             }
-            
+
             // 重放暂存的消息
             var migratedCount = 0;
             while (_pendingMessages.Count > 0)
@@ -311,9 +311,10 @@ public class ModHttpV1Proxy
                     Log.Error(ex, $"[VirtualHub] 重放消息失败: {msg.FromModId} -> {msg.ToModId}");
                 }
             }
-            
-            Log.Info($"[VirtualHub] 迁移完成: 客户端 {_clients.Count}, 消息 {migratedCount}/{migratedCount + _droppedMessageCount} (丢弃: {_droppedMessageCount})");
-            
+
+            Log.Info(
+                $"[VirtualHub] 迁移完成: 客户端 {_clients.Count}, 消息 {migratedCount}/{migratedCount + _droppedMessageCount} (丢弃: {_droppedMessageCount})");
+
             _clients.Clear();
         }
 
