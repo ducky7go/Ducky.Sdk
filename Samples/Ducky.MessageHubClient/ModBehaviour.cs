@@ -1,5 +1,8 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System.CommandLine.Parsing;
+using Cysharp.Threading.Tasks;
 using Ducky.Sdk.Contracts;
+using Ducky.Sdk.Contracts.CommandLine;
+using Ducky.Sdk.Logging;
 using Ducky.Sdk.ModBehaviours;
 
 namespace Ducky.MessageHubClient;
@@ -8,15 +11,25 @@ public class ModBehaviour : ModBehaviourBase
 {
     protected override void ModEnabled()
     {
-        // 尝试使用代理注册客户端并发送消息
+        var modRootCommand = new ModRootCommand("Ducky Message Hub Client");
+        // 使用 ModTerminalClientContract 连接
         UniTask.RunOnThreadPool(async () =>
         {
-            await Contract.ModBusClient.Connect((terminal, id, message, toTerminal) =>
+            var client = Contract.ModTerminalClient;
+            await client.Connect(async (terminal, id, message, toTerminal) =>
             {
-                return UniTask.CompletedTask;
+                Log.Info($"Received message from {id}: {message}");
+                if (message == "ping")
+                {
+                    await toTerminal("pong");
+                }
+
+                else
+                {
+                    var parseResult = CommandLineParser.Parse(modRootCommand, message);
+                    await parseResult.InvokeAsync();
+                }
             });
-            // await Contract.ModBusClient.SendToTerminal("help");
-            // await Contract.ModBusClient.SendToTerminal("/?");
         });
     }
 

@@ -8,16 +8,17 @@ public class ModBehaviour : ModBehaviourBase
     protected override void ModEnabled()
     {
         Log.Info("Ducky.MessageHubHost Mod Enabled");
-        if (ModBusV1.Instance == null)
+        if (ModHttpV1.Instance == null)
         {
-            Log.Info("ModBusV1 instance not found, creating new GameObject and component.");
-            var go = new UnityEngine.GameObject(ModBusV1.HubGameObjectName);
-            go.AddComponent<ModBusV1>();
+            Log.Info("ModHttpV1 instance not found, creating new GameObject and component.");
+            var go = new UnityEngine.GameObject(ModHttpV1.HubGameObjectName);
+            go.AddComponent<ModHttpV1>();
         }
-        if (ModBusV1.Instance != null)
+
+        if (ModHttpV1.Instance != null)
         {
-            Log.Info("ModBusV1 instance found, activating hub.");
-            ModBusV1.Instance.Active();
+            Log.Info("ModHttpV1 instance found, activating hub.");
+            ModHttpV1.Instance.Active();
         }
     }
 

@@ -11,21 +11,18 @@ namespace Ducky.MessageHubUI;
 /// </summary>
 public class TerminalHandlerView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    [Header("触发区域设置")]
-    [SerializeField] private RectTransform? triggerArea;
+    [Header("触发区域设置")] [SerializeField] private RectTransform? triggerArea;
 
-    [Header("圆圈按钮")]
-    [SerializeField] private GameObject? circleButton;
+    [Header("圆圈按钮")] [SerializeField] private GameObject? circleButton;
     [SerializeField] private RectTransform? circleButtonRect;
     [SerializeField] private Button? button;
 
-    [Header("动画设置")]
-    [SerializeField] private float slideSpeed = 5f;
+    [Header("动画设置")] [SerializeField] private float slideSpeed = 5f;
     [SerializeField] private float hiddenYPosition = -100f; // 隐藏位置（屏幕外）
-    [SerializeField] private float visibleYPosition = 50f;  // 可见位置
+    [SerializeField] private float visibleYPosition = 50f; // 可见位置
 
     private bool isMouseOver = false;
-    private TerminalMainView? mainView;
+    private TerminalMainView? _mainView;
 
     private void Awake()
     {
@@ -57,21 +54,21 @@ public class TerminalHandlerView : MonoBehaviour, IPointerEnterHandler, IPointer
         }
     }
 
-    public void Initialize(TerminalMainView mainView)
+    internal void Initialize(TerminalMainView mainView)
     {
         Log.Info($"[TerminalHandlerView] Initialize called with mainView={(mainView != null ? "valid" : "NULL")}");
-        this.mainView = mainView;
+        _mainView = mainView;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
         // 如果主面板已经展示，不响应触发区域
-        if (mainView != null && mainView.IsVisible)
+        if (_mainView != null && _mainView.IsVisible)
         {
             Log.Info("[TerminalHandlerView] Main panel is visible, ignoring trigger");
             return;
         }
-        
+
         Log.Info("[TerminalHandlerView] Mouse entered trigger area");
         isMouseOver = true;
         StopAllCoroutines();
@@ -85,7 +82,7 @@ public class TerminalHandlerView : MonoBehaviour, IPointerEnterHandler, IPointer
         StopAllCoroutines();
         StartCoroutine(SlideCircle(hiddenYPosition));
     }
-    
+
     /// <summary>
     /// 设置触发区域的激活状态
     /// </summary>
@@ -95,7 +92,7 @@ public class TerminalHandlerView : MonoBehaviour, IPointerEnterHandler, IPointer
         {
             triggerArea.gameObject.SetActive(active);
             Log.Info($"[TerminalHandlerView] Trigger area set to {(active ? "active" : "inactive")}");
-            
+
             // 如果禁用，确保圆圈按钮也隐藏
             if (!active && circleButtonRect != null)
             {
@@ -128,10 +125,10 @@ public class TerminalHandlerView : MonoBehaviour, IPointerEnterHandler, IPointer
     private void OnCircleButtonClicked()
     {
         Log.Info("[TerminalHandlerView] Circle button clicked!");
-        if (mainView != null)
+        if (_mainView != null)
         {
             Log.Info("[TerminalHandlerView] Calling mainView.Show()");
-            mainView.Show();
+            _mainView.Show();
         }
         else
         {
@@ -142,7 +139,7 @@ public class TerminalHandlerView : MonoBehaviour, IPointerEnterHandler, IPointer
     /// <summary>
     /// 创建UI结构的静态工厂方法
     /// </summary>
-    public static TerminalHandlerView Create(Canvas canvas, TerminalMainView mainView)
+    internal static TerminalHandlerView Create(Canvas canvas, TerminalMainView mainView)
     {
         Log.Info("[TerminalHandlerView] Creating UI structure...");
 

@@ -3,7 +3,7 @@
 
 namespace System.CommandLine.Invocation;
 
-internal sealed class AnonymousSynchronousCommandLineAction : SynchronousCommandLineAction
+internal class AnonymousSynchronousCommandLineAction : SynchronousCommandLineAction
 {
     private readonly Func<ParseResult, int> _syncAction;
 

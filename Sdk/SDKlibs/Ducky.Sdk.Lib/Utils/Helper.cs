@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Ducky.Sdk.Attributes;
@@ -66,17 +67,22 @@ public class Helper
 
         var asm = Assembly.GetExecutingAssembly();
         var location = asm.Location;
-        if (location.Contains("/Mods/", StringComparison.OrdinalIgnoreCase))
+        if (location.Contains("/Mods/", StringComparison.OrdinalIgnoreCase) ||
+            location.Contains(@"\Mods\", StringComparison.OrdinalIgnoreCase))
         {
-            var folderName = location.Split(new[] { "/Mods/" }, StringSplitOptions.None)[1]
-                .Split(['/'], StringSplitOptions.None)[0];
+            var folderName = Path.GetDirectoryName(location)?
+                .Split(["/Mods/", @"\Mods\"], StringSplitOptions.None)[1]
+                .Split(['/', '\\'], StringSplitOptions.None)[0];
             _modId = "local." + folderName;
         }
 
-        else if (location.Contains("/Workshop/", StringComparison.OrdinalIgnoreCase))
+        else if (location.Contains("/Workshop/", StringComparison.OrdinalIgnoreCase) ||
+                 location.Contains(@"\Workshop\", StringComparison.OrdinalIgnoreCase))
+
         {
-            var folderName = location.Split(new[] { "/Workshop/" }, StringSplitOptions.None)[1]
-                .Split(['/'], StringSplitOptions.None)[0];
+            var folderName = Path.GetDirectoryName(location)?
+                .Split(["/Workshop/", @"\Workshop\"], StringSplitOptions.None)[1]
+                .Split(['/', '\\'], StringSplitOptions.None)[0];
             _modId = "steam." + folderName;
         }
         else

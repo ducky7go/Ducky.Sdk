@@ -1,8 +1,20 @@
+using Ducky.Sdk.Utils;
+
 namespace Ducky.Sdk.Contracts;
 
-public class Contract
+/// <summary>
+/// Contracts for various SDK functionalities
+/// </summary>
+public static class Contract
 {
+    /// <summary>
+    /// Buffs contract singleton instance
+    /// </summary>
     public static BuffsContract Buffs => BuffsContract.Instance;
-    public static ModBusClientContract ModBusClient => ModBusClientContract.Instance;
-    public static ModBusTerminalContract ModBusTerminal => ModBusTerminalContract.Instance;
+
+    /// <summary>
+    /// Mod Terminal Client contract singleton instance for the current mod
+    /// </summary>
+    public static ModTerminalClientContract ModTerminalClient =>
+        ModTerminalClientContract.GetOrCreate(Helper.GetModId());
 }
