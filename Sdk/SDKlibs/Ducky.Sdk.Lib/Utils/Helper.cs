@@ -57,9 +57,8 @@ public class Helper
     internal static ModId GetModId()
     {
         // check folder to get mod id
-        // mod in Mods folder prefix with local
-        // mod in Workshop folder prefix with steam
-        // otherwise return ModName as id
+        // if folder name is all digits, prefix with steam (Workshop mod)
+        // otherwise prefix with local (local mod)
         if (!string.IsNullOrEmpty(_modId))
         {
             return _modId!;
@@ -67,23 +66,19 @@ public class Helper
 
         var asm = Assembly.GetExecutingAssembly();
         var location = asm.Location;
-        if (location.Contains("/Mods/", StringComparison.OrdinalIgnoreCase) ||
-            location.Contains(@"\Mods\", StringComparison.OrdinalIgnoreCase))
+        var folderName = Path.GetFileName(Path.GetDirectoryName(location));
+        
+        if (!string.IsNullOrEmpty(folderName))
         {
-            var folderName = Path.GetDirectoryName(location)?
-                .Split(["/Mods/", @"\Mods\"], StringSplitOptions.None)[1]
-                .Split(['/', '\\'], StringSplitOptions.None)[0];
-            _modId = "local." + folderName;
-        }
-
-        else if (location.Contains("/Workshop/", StringComparison.OrdinalIgnoreCase) ||
-                 location.Contains(@"\Workshop\", StringComparison.OrdinalIgnoreCase))
-
-        {
-            var folderName = Path.GetDirectoryName(location)?
-                .Split(["/Workshop/", @"\Workshop\"], StringSplitOptions.None)[1]
-                .Split(['/', '\\'], StringSplitOptions.None)[0];
-            _modId = "steam." + folderName;
+            // Check if folder name is all digits (Steam Workshop mod)
+            if (folderName.All(char.IsDigit))
+            {
+                _modId = "steam." + folderName;
+            }
+            else
+            {
+                _modId = "local." + folderName;
+            }
         }
         else
         {
