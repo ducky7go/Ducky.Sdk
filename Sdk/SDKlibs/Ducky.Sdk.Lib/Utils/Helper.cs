@@ -67,7 +67,7 @@ public class Helper
         var asm = Assembly.GetExecutingAssembly();
         var location = asm.Location;
         var folderName = Path.GetFileName(Path.GetDirectoryName(location));
-        
+
         if (!string.IsNullOrEmpty(folderName))
         {
             // Check if folder name is all digits (Steam Workshop mod)
