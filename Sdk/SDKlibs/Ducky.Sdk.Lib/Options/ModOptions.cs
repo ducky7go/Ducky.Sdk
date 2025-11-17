@@ -99,14 +99,14 @@ public class ModOptions
     private static bool IsDateTimeType(Type t)
     {
         if (t == null) return false;
-        
+
         // Handle nullable types
         if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>))
         {
             var underlyingType = Nullable.GetUnderlyingType(t);
             return underlyingType == typeof(DateTime) || underlyingType == typeof(DateTimeOffset);
         }
-        
+
         return t == typeof(DateTime) || t == typeof(DateTimeOffset);
     }
 
@@ -147,41 +147,41 @@ public class ModOptions
     private static T? ConvertFromUnixSeconds<T>(long unixSeconds)
     {
         var targetType = typeof(T);
-        
+
         // Handle nullable types - 0 means null
         if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Nullable<>))
         {
             if (unixSeconds == 0)
                 return default(T);
-                
+
             var underlyingType = Nullable.GetUnderlyingType(targetType);
-            
+
             if (underlyingType == typeof(DateTime))
             {
                 var dateTime = UnixEpoch.AddSeconds(unixSeconds);
                 return (T)(object)dateTime;
             }
-            
+
             if (underlyingType == typeof(DateTimeOffset))
             {
                 var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
                 return (T)(object)dateTimeOffset;
             }
         }
-        
+
         // Handle non-nullable types
         if (targetType == typeof(DateTime))
         {
             var dateTime = UnixEpoch.AddSeconds(unixSeconds);
             return (T)(object)dateTime;
         }
-        
+
         if (targetType == typeof(DateTimeOffset))
         {
             var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
             return (T)(object)dateTimeOffset;
         }
-        
+
         throw new ArgumentException($"Type {targetType.Name} is not a supported DateTime type");
     }
 
@@ -320,6 +320,7 @@ public class ModOptions
                     {
                         ES3.Save(key, defaultValue, path, settings);
                     }
+
                     return defaultValue;
                 }
 

@@ -22,15 +22,15 @@ public class ModOptionsDateTimeTests
     {
         // Use reflection to access private methods for testing
         _modOptionsType = typeof(Ducky.Sdk.Options.ModOptions);
-        
+
         _convertToUnixSecondsMethod = _modOptionsType.GetMethod(
             "ConvertToUnixSeconds",
             BindingFlags.NonPublic | BindingFlags.Static);
-            
+
         _convertFromUnixSecondsMethod = _modOptionsType.GetMethod(
             "ConvertFromUnixSeconds",
             BindingFlags.NonPublic | BindingFlags.Static);
-            
+
         _isDateTimeTypeMethod = _modOptionsType.GetMethod(
             "IsDateTimeType",
             BindingFlags.NonPublic | BindingFlags.Static);
@@ -116,7 +116,7 @@ public class ModOptionsDateTimeTests
         // Create a local time and verify it gets converted to UTC
         var localTime = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local);
         var result = (long)_convertToUnixSecondsMethod.Invoke(null, new object[] { localTime });
-        
+
         // The result should match the UTC conversion
         var expectedUtc = localTime.ToUniversalTime();
         var expectedSeconds = (long)(expectedUtc - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
@@ -128,7 +128,7 @@ public class ModOptionsDateTimeTests
     {
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTime));
         var result = (DateTime)method.Invoke(null, new object[] { 0L });
-        
+
         var expected = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         Assert.AreEqual(expected, result);
     }
@@ -138,7 +138,7 @@ public class ModOptionsDateTimeTests
     {
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTime));
         var result = (DateTime)method.Invoke(null, new object[] { 1704067200L });
-        
+
         var expected = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         Assert.AreEqual(expected, result);
     }
@@ -148,7 +148,7 @@ public class ModOptionsDateTimeTests
     {
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTimeOffset));
         var result = (DateTimeOffset)method.Invoke(null, new object[] { 1704067200L });
-        
+
         var expected = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
         Assert.AreEqual(expected, result);
     }
@@ -158,7 +158,7 @@ public class ModOptionsDateTimeTests
     {
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTime?));
         var result = (DateTime?)method.Invoke(null, new object[] { 0L });
-        
+
         Assert.IsNull(result, "0 should convert to null for nullable DateTime");
     }
 
@@ -167,7 +167,7 @@ public class ModOptionsDateTimeTests
     {
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTimeOffset?));
         var result = (DateTimeOffset?)method.Invoke(null, new object[] { 0L });
-        
+
         Assert.IsNull(result, "0 should convert to null for nullable DateTimeOffset");
     }
 
@@ -176,7 +176,7 @@ public class ModOptionsDateTimeTests
     {
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTime?));
         var result = (DateTime?)method.Invoke(null, new object[] { 1704067200L });
-        
+
         Assert.IsNotNull(result, "Non-zero should return a value for nullable DateTime");
         Assert.AreEqual(new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), result.Value);
     }
@@ -186,7 +186,7 @@ public class ModOptionsDateTimeTests
     {
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTimeOffset?));
         var result = (DateTimeOffset?)method.Invoke(null, new object[] { 1704067200L });
-        
+
         Assert.IsNotNull(result, "Non-zero should return a value for nullable DateTimeOffset");
         Assert.AreEqual(new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero), result.Value);
     }
@@ -195,12 +195,12 @@ public class ModOptionsDateTimeTests
     public void RoundTrip_DateTime()
     {
         var original = new DateTime(2024, 6, 15, 14, 30, 45, DateTimeKind.Utc);
-        
+
         var unixSeconds = (long)_convertToUnixSecondsMethod.Invoke(null, new object[] { original });
-        
+
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTime));
         var roundTrip = (DateTime)method.Invoke(null, new object[] { unixSeconds });
-        
+
         Assert.AreEqual(original, roundTrip, "DateTime should round-trip correctly");
     }
 
@@ -208,12 +208,12 @@ public class ModOptionsDateTimeTests
     public void RoundTrip_DateTimeOffset()
     {
         var original = new DateTimeOffset(2024, 6, 15, 14, 30, 45, TimeSpan.Zero);
-        
+
         var unixSeconds = (long)_convertToUnixSecondsMethod.Invoke(null, new object[] { original });
-        
+
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTimeOffset));
         var roundTrip = (DateTimeOffset)method.Invoke(null, new object[] { unixSeconds });
-        
+
         Assert.AreEqual(original, roundTrip, "DateTimeOffset should round-trip correctly");
     }
 
@@ -221,12 +221,12 @@ public class ModOptionsDateTimeTests
     public void RoundTrip_NullableDateTime_WithValue()
     {
         DateTime? original = new DateTime(2024, 6, 15, 14, 30, 45, DateTimeKind.Utc);
-        
+
         var unixSeconds = (long)_convertToUnixSecondsMethod.Invoke(null, new object[] { original });
-        
+
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTime?));
         var roundTrip = (DateTime?)method.Invoke(null, new object[] { unixSeconds });
-        
+
         Assert.IsNotNull(roundTrip);
         Assert.AreEqual(original.Value, roundTrip.Value, "Nullable DateTime should round-trip correctly");
     }
@@ -235,23 +235,22 @@ public class ModOptionsDateTimeTests
     public void RoundTrip_NullableDateTime_Null()
     {
         DateTime? original = null;
-        
+
         var unixSeconds = (long)_convertToUnixSecondsMethod.Invoke(null, new object[] { original });
         Assert.AreEqual(0, unixSeconds, "Null should convert to 0");
-        
+
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTime?));
         var roundTrip = (DateTime?)method.Invoke(null, new object[] { unixSeconds });
-        
+
         Assert.IsNull(roundTrip, "0 should convert back to null");
     }
 
     [Test]
     public void ConvertToUnixSeconds_ThrowsForInvalidType()
     {
-        Assert.Throws<TargetInvocationException>(() =>
-        {
-            _convertToUnixSecondsMethod.Invoke(null, new object[] { "invalid" });
-        }, "Should throw for non-DateTime types");
+        Assert.Throws<TargetInvocationException>(
+            () => { _convertToUnixSecondsMethod.Invoke(null, new object[] { "invalid" }); },
+            "Should throw for non-DateTime types");
     }
 
     [Test]
@@ -270,7 +269,7 @@ public class ModOptionsDateTimeTests
         // Date before Unix epoch: 1960-01-01
         var date = new DateTime(1960, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var result = (long)_convertToUnixSecondsMethod.Invoke(null, new object[] { date });
-        
+
         Assert.Less(result, 0, "Dates before 1970 should have negative Unix timestamps");
     }
 
@@ -280,7 +279,7 @@ public class ModOptionsDateTimeTests
         // -315619200 = 1960-01-01 00:00:00 UTC
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTime));
         var result = (DateTime)method.Invoke(null, new object[] { -315619200L });
-        
+
         var expected = new DateTime(1960, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         Assert.AreEqual(expected, result);
     }
@@ -291,7 +290,7 @@ public class ModOptionsDateTimeTests
         // Test a date far in the future: 2099-12-31
         var date = new DateTime(2099, 12, 31, 23, 59, 59, DateTimeKind.Utc);
         var result = (long)_convertToUnixSecondsMethod.Invoke(null, new object[] { date });
-        
+
         Assert.Greater(result, 1704067200, "Future dates should have larger Unix timestamps");
     }
 
@@ -301,7 +300,7 @@ public class ModOptionsDateTimeTests
         // 4102444799 = 2099-12-31 23:59:59 UTC
         var method = _convertFromUnixSecondsMethod.MakeGenericMethod(typeof(DateTime));
         var result = (DateTime)method.Invoke(null, new object[] { 4102444799L });
-        
+
         var expected = new DateTime(2099, 12, 31, 23, 59, 59, DateTimeKind.Utc);
         Assert.AreEqual(expected, result);
     }
