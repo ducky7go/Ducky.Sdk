@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Ducky.Sdk" Version="0.1.8" />
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="LibLog" Version="5.0.8" />
     <PackageVersion Include="Microsoft.Bcl.TimeProvider" Version="9.0.10" />
     <PackageVersion Include="Microsoft.Build" Version="17.9.0" />

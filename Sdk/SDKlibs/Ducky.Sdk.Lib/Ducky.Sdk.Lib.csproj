@@ -15,6 +15,10 @@
     <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
     <LangVersion>12</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ducky.Sdk.Lib.Tests" />
+  </ItemGroup>
   <ItemGroup>
     <Reference Include="$(ManagedDirectory)TeamSoda.*" />
     <Reference Include="$(ManagedDirectory)Unity*" />

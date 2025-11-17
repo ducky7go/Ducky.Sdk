@@ -16,6 +16,7 @@ public class ModOptions
 {
     private readonly object _sync = new();
     private readonly Func<string> _getFilePathFunc;
+    private readonly IModOptionsStorage _storage;
 
     /// <summary>
     /// 配置文件夹名（相对于 Application.persistentDataPath）
@@ -40,9 +41,10 @@ public class ModOptions
     /// </summary>
     public static readonly ModOptions ForAllMods = new(GetAllFilePath);
 
-    private ModOptions(Func<string> getFilePathFunc)
+    internal ModOptions(Func<string> getFilePathFunc, IModOptionsStorage storage = null)
     {
         _getFilePathFunc = getFilePathFunc;
+        _storage = storage ?? new Es3ModOptionsStorage();
         EnsureFolderExists();
     }
 
@@ -71,7 +73,7 @@ public class ModOptions
         return Path.Combine(Application.persistentDataPath, FolderName, "ModsLocalConfig.json");
     }
 
-    private static ES3Settings GetSettings(string path)
+    internal static ES3Settings CreateSettings(string path)
     {
         var s = new ES3Settings(path)
         {
@@ -85,7 +87,9 @@ public class ModOptions
         if (t == null) return false;
         if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>))
         {
-            return false;
+            // 处理可空时间类型
+            var underlyingType = Nullable.GetUnderlyingType(t);
+            return underlyingType == typeof(DateTime) || underlyingType == typeof(DateTimeOffset);
         }
 
         return t.IsPrimitive
@@ -96,6 +100,70 @@ public class ModOptions
                || t == typeof(DateTimeOffset)
                || t == typeof(TimeSpan)
                || t == typeof(Guid);
+    }
+
+    /// <summary>
+    /// 检查是否为时间相关类型（DateTime、DateTimeOffset及其可空版本）
+    /// </summary>
+    internal static bool IsDateTimeType(Type t)
+    {
+        if (t == null) return false;
+
+        // 检查非空类型
+        if (t == typeof(DateTime) || t == typeof(DateTimeOffset))
+            return true;
+
+        // 检查可空类型
+        if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>))
+        {
+            var underlyingType = Nullable.GetUnderlyingType(t);
+            return underlyingType == typeof(DateTime) || underlyingType == typeof(DateTimeOffset);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 将时间类型转换为Unix时间戳（秒）
+    /// </summary>
+    internal static long ConvertToUnixTimestamp(object value)
+    {
+        if (value == null) return 0;
+
+        if (value is DateTime dateTime)
+            return ((DateTimeOffset)dateTime).ToUnixTimeSeconds();
+
+        if (value is DateTimeOffset dateTimeOffset)
+            return dateTimeOffset.ToUnixTimeSeconds();
+
+        return 0;
+    }
+
+    /// <summary>
+    /// 将Unix时间戳转换为时间类型
+    /// </summary>
+    internal static object ConvertFromUnixTimestamp(Type targetType, long unixTimestamp)
+    {
+        // 值为0时返回null（对于可空类型）或DateTime/DateTimeOffset.MinValue（对于非空类型）
+        if (unixTimestamp == 0)
+        {
+            if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                return null;
+
+            if (targetType == typeof(DateTime))
+                return DateTime.MinValue;
+
+            if (targetType == typeof(DateTimeOffset))
+                return DateTimeOffset.MinValue;
+        }
+
+        var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp);
+
+        if (targetType == typeof(DateTime) ||
+            (targetType.IsGenericType && Nullable.GetUnderlyingType(targetType) == typeof(DateTime)))
+            return dateTimeOffset.DateTime;
+
+        return dateTimeOffset;
     }
 
     /// <summary>
@@ -145,8 +213,7 @@ public class ModOptions
         try
         {
             var path = GetConfigFilePath();
-            var settings = GetSettings(path);
-            return ES3.FileExists(path, settings);
+            return _storage.FileExists(path);
         }
         catch (Exception ex)
         {
@@ -172,18 +239,25 @@ public class ModOptions
                 }
 
                 var path = GetConfigFilePath();
-                var settings = GetSettings(path);
-
                 if (IsSimpleType(typeof(T)))
                 {
-                    ES3.Save(key, data, path, settings);
+                    // 处理时间类型
+                    if (IsDateTimeType(typeof(T)))
+                    {
+                        var unixTimestamp = ConvertToUnixTimestamp(data);
+                        _storage.Save(key, unixTimestamp, path);
+                    }
+                    else
+                    {
+                        _storage.Save(key, data, path);
+                    }
                 }
                 else
                 {
                     try
                     {
                         var json = JsonConvert.SerializeObject(data);
-                        ES3.Save(key, json, path, settings);
+                        _storage.Save(key, json, path);
                     }
                     catch (Exception ex)
                     {
@@ -213,24 +287,40 @@ public class ModOptions
             try
             {
                 var path = GetConfigFilePath();
-                var settings = GetSettings(path);
 
-                if (!ES3.KeyExists(key, path, settings))
+                if (!_storage.KeyExists(key, path))
                 {
-                    ES3.Save(key, defaultValue, path, settings);
+                    _storage.Save(key, defaultValue, path);
                     return defaultValue;
                 }
 
                 // 简单类型直接使用 ES3 加载
                 if (IsSimpleType(typeof(T)))
                 {
-                    return ES3.Load<T>(key, path, settings);
+                    // 处理时间类型
+                    if (IsDateTimeType(typeof(T)))
+                    {
+                        try
+                        {
+                            // 尝试加载为long类型
+                            var unixTimestamp = _storage.Load<long>(key, path);
+                            return (T)ConvertFromUnixTimestamp(typeof(T), unixTimestamp);
+                        }
+                        catch (Exception ex)
+                        {
+                            // 任何异常都记录日志并返回默认值
+                            Log.DebugException($"尝试加载时间类型配置失败，键名: {key}，将返回默认值", ex);
+                            return defaultValue;
+                        }
+                    }
+
+                    return _storage.Load<T>(key, path);
                 }
 
                 // 非简单类型——按 JSON 字符串处理（不尝试按原类型加载）
                 try
                 {
-                    var json = ES3.Load<string>(key, path, settings);
+                    var json = _storage.Load<string>(key, path);
                     if (string.IsNullOrEmpty(json))
                         return defaultValue;
 
@@ -260,10 +350,9 @@ public class ModOptions
             try
             {
                 var path = GetConfigFilePath();
-                var settings = GetSettings(path);
-                if (ES3.FileExists(path, settings))
+                if (_storage.FileExists(path))
                 {
-                    ES3.DeleteFile(path, settings);
+                    _storage.DeleteFile(path);
                     Log.Debug($"[ModLocalConfigManager] Deleted {path}");
                 }
 
@@ -310,4 +399,46 @@ public class ModOptions
     public static bool Delete() => ForName.DeleteConfig();
 
     #endregion
+}
+
+internal interface IModOptionsStorage
+{
+    bool FileExists(string path);
+    bool KeyExists(string key, string path);
+    void Save<T>(string key, T data, string path);
+    T Load<T>(string key, string path);
+    void DeleteFile(string path);
+}
+
+internal sealed class Es3ModOptionsStorage : IModOptionsStorage
+{
+    public bool FileExists(string path)
+    {
+        var settings = ModOptions.CreateSettings(path);
+        return ES3.FileExists(path, settings);
+    }
+
+    public bool KeyExists(string key, string path)
+    {
+        var settings = ModOptions.CreateSettings(path);
+        return ES3.KeyExists(key, path, settings);
+    }
+
+    public void Save<T>(string key, T data, string path)
+    {
+        var settings = ModOptions.CreateSettings(path);
+        ES3.Save(key, data, path, settings);
+    }
+
+    public T Load<T>(string key, string path)
+    {
+        var settings = ModOptions.CreateSettings(path);
+        return ES3.Load<T>(key, path, settings);
+    }
+
+    public void DeleteFile(string path)
+    {
+        var settings = ModOptions.CreateSettings(path);
+        ES3.DeleteFile(path, settings);
+    }
 }
