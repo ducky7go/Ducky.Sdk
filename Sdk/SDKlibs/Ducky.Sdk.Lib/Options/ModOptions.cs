@@ -92,10 +92,97 @@ public class ModOptions
                || t.IsEnum
                || t == typeof(string)
                || t == typeof(decimal)
-               || t == typeof(DateTime)
-               || t == typeof(DateTimeOffset)
                || t == typeof(TimeSpan)
                || t == typeof(Guid);
+    }
+
+    private static bool IsDateTimeType(Type t)
+    {
+        if (t == null) return false;
+        
+        // Handle nullable types
+        if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>))
+        {
+            var underlyingType = Nullable.GetUnderlyingType(t);
+            return underlyingType == typeof(DateTime) || underlyingType == typeof(DateTimeOffset);
+        }
+        
+        return t == typeof(DateTime) || t == typeof(DateTimeOffset);
+    }
+
+    private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    /// <summary>
+    /// Convert DateTime or DateTimeOffset to Unix seconds (long)
+    /// Returns 0 for null values
+    /// </summary>
+    private static long ConvertToUnixSeconds(object value)
+    {
+        if (value == null)
+            return 0;
+
+        if (value is DateTime dateTime)
+        {
+            // Convert to UTC if not already
+            if (dateTime.Kind == DateTimeKind.Local)
+                dateTime = dateTime.ToUniversalTime();
+            else if (dateTime.Kind == DateTimeKind.Unspecified)
+                dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+
+            return (long)(dateTime - UnixEpoch).TotalSeconds;
+        }
+
+        if (value is DateTimeOffset dateTimeOffset)
+        {
+            return dateTimeOffset.ToUnixTimeSeconds();
+        }
+
+        throw new ArgumentException($"Value must be DateTime or DateTimeOffset, but was {value?.GetType().Name}");
+    }
+
+    /// <summary>
+    /// Convert Unix seconds (long) back to the specified DateTime type
+    /// Returns null for 0 values when T is nullable
+    /// </summary>
+    private static T? ConvertFromUnixSeconds<T>(long unixSeconds)
+    {
+        var targetType = typeof(T);
+        
+        // Handle nullable types - 0 means null
+        if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Nullable<>))
+        {
+            if (unixSeconds == 0)
+                return default(T);
+                
+            var underlyingType = Nullable.GetUnderlyingType(targetType);
+            
+            if (underlyingType == typeof(DateTime))
+            {
+                var dateTime = UnixEpoch.AddSeconds(unixSeconds);
+                return (T)(object)dateTime;
+            }
+            
+            if (underlyingType == typeof(DateTimeOffset))
+            {
+                var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
+                return (T)(object)dateTimeOffset;
+            }
+        }
+        
+        // Handle non-nullable types
+        if (targetType == typeof(DateTime))
+        {
+            var dateTime = UnixEpoch.AddSeconds(unixSeconds);
+            return (T)(object)dateTime;
+        }
+        
+        if (targetType == typeof(DateTimeOffset))
+        {
+            var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
+            return (T)(object)dateTimeOffset;
+        }
+        
+        throw new ArgumentException($"Type {targetType.Name} is not a supported DateTime type");
     }
 
     /// <summary>
@@ -174,7 +261,13 @@ public class ModOptions
                 var path = GetConfigFilePath();
                 var settings = GetSettings(path);
 
-                if (IsSimpleType(typeof(T)))
+                // Handle DateTime types specially - convert to Unix seconds
+                if (IsDateTimeType(typeof(T)))
+                {
+                    var unixSeconds = ConvertToUnixSeconds(data);
+                    ES3.Save(key, unixSeconds, path, settings);
+                }
+                else if (IsSimpleType(typeof(T)))
                 {
                     ES3.Save(key, data, path, settings);
                 }
@@ -217,8 +310,33 @@ public class ModOptions
 
                 if (!ES3.KeyExists(key, path, settings))
                 {
-                    ES3.Save(key, defaultValue, path, settings);
+                    // When saving default value, handle DateTime types
+                    if (IsDateTimeType(typeof(T)))
+                    {
+                        var unixSeconds = ConvertToUnixSeconds(defaultValue);
+                        ES3.Save(key, unixSeconds, path, settings);
+                    }
+                    else
+                    {
+                        ES3.Save(key, defaultValue, path, settings);
+                    }
                     return defaultValue;
+                }
+
+                // Handle DateTime types - load as Unix seconds and convert back
+                if (IsDateTimeType(typeof(T)))
+                {
+                    try
+                    {
+                        var unixSeconds = ES3.Load<long>(key, path, settings);
+                        return ConvertFromUnixSeconds<T>(unixSeconds);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[ModOptions] Failed to load DateTime type for key '{key}'. " +
+                                  $"Expected Unix seconds (long) format. Error: {ex.Message}");
+                        return defaultValue;
+                    }
                 }
 
                 // 简单类型直接使用 ES3 加载
