@@ -5,7 +5,7 @@
     <_RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../../'))</_RepoRoot>
     <_ManagedDirCandidate>$([System.IO.Path]::Combine('$(_RepoRoot)','Managed'))</_ManagedDirCandidate>
     <ManagedDirectory Condition="Exists('$(_ManagedDirCandidate)')">$(_ManagedDirCandidate)/</ManagedDirectory>
-    
+
     <!-- Only use game directory if SteamDir is set and Managed folder doesn't exist -->
     <DuckovPath Condition="'$(SteamDir)' != '' AND '$(ManagedDirectory)' == ''">$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
     <ManagedDirectory Condition="'$(ManagedDirectory)' == '' AND '$(DuckovPath)' != ''">$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>
@@ -41,8 +41,10 @@
   </ItemGroup>
 
   <!-- Warn if ManagedDirectory is not available -->
-  <Target Name="WarnMissingManagedDirectory" BeforeTargets="BeforeBuild" Condition="'$(ManagedDirectory)' == '' OR !Exists('$(ManagedDirectory)')">
-    <Warning Text="ManagedDirectory not found. Game assembly references will be skipped. Run fetch_build_dependency.sh to download them." />
+  <Target Name="WarnMissingManagedDirectory" BeforeTargets="BeforeBuild"
+          Condition="'$(ManagedDirectory)' == '' OR !Exists('$(ManagedDirectory)')">
+    <Warning
+      Text="ManagedDirectory not found. Game assembly references will be skipped. Run fetch_build_dependency.sh to download them." />
   </Target>
 
 </Project>

@@ -32,6 +32,7 @@ public class ModOptionsTests
         {
             Directory.CreateDirectory(folderPath);
         }
+
         _storage = new InMemoryModOptionsStorage();
         _modOptions = new ModOptions(() => configPath, _storage);
     }
@@ -481,7 +482,8 @@ public class ModOptionsTests
     /// </summary>
     private sealed class TestConsoleLogger : ILog
     {
-        public bool Log(LogLevel logLevel, Func<string> messageFunc, Exception? exception = null, params object[] formatParameters)
+        public bool Log(LogLevel logLevel, Func<string> messageFunc, Exception? exception = null,
+            params object[] formatParameters)
         {
             var message = messageFunc?.Invoke();
             Console.WriteLine($"[{logLevel}] {message}");
@@ -489,6 +491,7 @@ public class ModOptionsTests
             {
                 Console.WriteLine(exception);
             }
+
             return true;
         }
     }
