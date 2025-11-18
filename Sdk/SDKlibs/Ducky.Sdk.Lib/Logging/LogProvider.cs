@@ -231,9 +231,9 @@ public
         static readonly List<Tuple<IsLoggerAvailable, CreateLogProvider>> LogProviderResolvers =
                 new List<Tuple<IsLoggerAvailable, CreateLogProvider>>
         {
+            new Tuple<IsLoggerAvailable, CreateLogProvider>(DuckySerilogLogProvider.IsLoggerAvailable, () => new DuckySerilogLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(BmlSerilogLogProvider.IsLoggerAvailable, () => new BmlSerilogLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(SerilogLogProvider.IsLoggerAvailable, () => new SerilogLogProvider()),
-            new Tuple<IsLoggerAvailable, CreateLogProvider>(UnityDebugLogProvider.IsLoggerAvailable, () => new UnityDebugLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(NLogLogProvider.IsLoggerAvailable, () => new NLogLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(Log4NetLogProvider.IsLoggerAvailable, () => new Log4NetLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(LoupeLogProvider.IsLoggerAvailable, () => new LoupeLogProvider()),
