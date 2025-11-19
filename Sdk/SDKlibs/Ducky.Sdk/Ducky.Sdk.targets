@@ -412,7 +412,7 @@
 
         <PropertyGroup Condition=" '@(_DllsToPack)' != '' ">
             <!-- 构建 /lib 参数：每个目录添加 /lib:"path" -->
-            <_LibPathArgs>@(_UniqueLibDirs->'/lib:&quot;%(Identity)&quot;', ' ')</_LibPathArgs>
+            <_LibPathArgs>@(_UniqueLibDirs->'/lib:&quot;%(Identity).&quot;', ' ')</_LibPathArgs>
         </PropertyGroup>
 
         <Message Text="[PackModWithILRepack] Merging mod DLL and dependencies into $(_FinalModDll)" Importance="High"
