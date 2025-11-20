@@ -2,10 +2,16 @@
 
 **[中文](README.md) | English**
 
-A comprehensive .NET SDK for developing mods for "Escape from Duckov" game using the BetterModLoader framework.
+A comprehensive .NET SDK for developing mods for "Escape from Duckov" game.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download)
+[![NuGet](https://img.shields.io/nuget/v/Ducky.Sdk.svg)](https://www.nuget.org/packages/Ducky.Sdk/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Ducky.Sdk.svg)](https://www.nuget.org/packages/Ducky.Sdk/)
+[![GitHub Stars](https://img.shields.io/github/stars/ducky7go/Ducky.Sdk?style=social)](https://github.com/ducky7go/Ducky.Sdk/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/ducky7go/Ducky.Sdk)](https://github.com/ducky7go/Ducky.Sdk/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/ducky7go/Ducky.Sdk)](https://github.com/ducky7go/Ducky.Sdk/pulls)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ducky7go/Ducky.Sdk/pulls)
 
 ## Features
 
@@ -496,7 +502,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Credits
 
 - **Game**: "Escape from Duckov" by TeamSoda
-- **Mod Loader**: BetterModLoader
 - **Harmony**: [Harmony Library](https://github.com/pardeike/Harmony)
 - **ILRepack**: [dotnet-ilrepack](https://github.com/gluck/il-repack)
 
