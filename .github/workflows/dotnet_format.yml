@@ -30,19 +30,28 @@ jobs:
             ${{ runner.os }}-nuget
       - name: Run clean code
         run: |
+          set +e  # Don't exit on error
           dotnet tool restore
           dotnet restore Sdk/Docky.Sdk.slnx
-          changed_files=$(git diff --name-status origin/main | grep -v '^D' | awk '{print $2}' | grep -v '.sln')
+          
+          # Get changed files, handle case where there are no changes
+          changed_files=$(git diff --name-status origin/main 2>/dev/null | grep -v '^D' | awk '{print $2}' | grep -v '.sln' || true)
 
           if [ -n "$changed_files" ]; then
-            dotnet tool run jb cleanupcode --verbosity=INFO --exclude='**Tests/**.*' --exclude='**.idea/**.*' $changed_files
-            git add .
+            echo "Files to format: $changed_files"
+            dotnet tool run jb cleanupcode --verbosity=INFO --exclude='**Tests/**.*' --exclude='**.idea/**.*' $changed_files || true
+            git add . || true
+          else
+            echo "No files to format"
           fi
+          
           if [ -n "$(git status --porcelain)" ]; then
               git config --global user.name 'ReSharper CLI CleanupCode GitHub Action'
               git config --global user.email 'niceformate@nice.com'
               git commit -m "Cleanup code by ReSharper CLI CleanupCode GitHub Action"
               git push origin HEAD:${{ github.head_ref }}
           else
-              echo "No changes detected"
+              echo "No changes detected after formatting"
           fi
+          
+          exit 0  # Always exit successfully

@@ -8,13 +8,52 @@
         <!-- 👇 Indicates the package is only used at build time, not deploy time -->
         <developmentDependency>true</developmentDependency>
         <authors>Newbe36524</authors>
+        <owners>Newbe36524</owners>
         <license type="expression">MIT</license>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <projectUrl>https://github.com/ducky7go/Ducky.Sdk</projectUrl>
-        <description>An example source-code only package</description>
-        <tags>source compiletime analyser</tags>
+<!--        <icon>icon.png</icon>-->
+        <readme>README.md</readme>
+        <repository type="git" url="https://github.com/ducky7go/Ducky.Sdk.git" branch="main" />
+        <copyright>Copyright (c) 2025 Newbe36524</copyright>
+        <summary>A comprehensive .NET SDK for developing mods for "Escape from Duckov" game | 用于为"Escape from Duckov"游戏开发 Mod 的综合性 .NET SDK</summary>
+        <description>
+Ducky.Sdk is a comprehensive .NET SDK for developing mods for the "Escape from Duckov" game.
+
+Features:
+🚀 Automated Build Pipeline - Auto-deploy to game directory on build
+🌍 Smart Localization - Source generator-based localization system with CSV/file translations
+📦 Single DLL Distribution - Automatic assembly merging via ILRepack for conflict-free deployment
+🔧 Harmony Integration - Optional runtime patching support with seamless dependency management
+🎨 Auto-Generated Assets - Automatic generation of mod metadata and preview images
+📝 Strongly-Typed Development - Full IntelliSense support and compile-time validation
+🔄 Source Distribution - SDK distributed as source code to avoid version conflicts
+
+Perfect for modders who want a modern, type-safe development experience with automated workflows.
+
+---
+
+Ducky.Sdk 是一个用于为"Escape from Duckov"游戏开发 Mod 的综合性 .NET SDK。
+
+功能特性：
+🚀 自动化构建管道 - 构建时自动部署到游戏目录
+🌍 智能本地化 - 基于源生成器的本地化系统，支持 CSV/文件翻译
+📦 单 DLL 分发 - 通过 ILRepack 自动合并程序集，无冲突部署
+🔧 Harmony 集成 - 可选的运行时补丁支持，无缝依赖管理
+🎨 自动生成资源 - 自动生成 Mod 元数据和预览图
+📝 强类型开发 - 完整的 IntelliSense 支持和编译时验证
+🔄 源码分发 - SDK 以源代码形式分发，避免版本冲突
+
+为希望获得现代化、类型安全开发体验和自动化工作流的 Mod 开发者量身打造。
+        </description>
+        <releaseNotes>See https://github.com/ducky7go/Ducky.Sdk/releases for release notes.</releaseNotes>
+        <tags>ducky sdk mod modding game escape-from-duckov source-generator roslyn-analyzer harmony ilrepack localization i18n source-only compiletime netstandard2.1 dotnet csharp</tags>
     </metadata>
     <files>
+        <!-- 👇 Package icon and README for NuGet page -->
+        <!-- <file src="icon.png" target="" /> -->
+        <file src="../../../README.md" target="" />
+
         <!-- 映射 Roslyn 分析器 -->
         <file src="../../Ducky.Sdk.Analyser/bin/netstandard2.0/Ducky.Sdk.Analyser.dll" target="analyzers/cs" />
 
