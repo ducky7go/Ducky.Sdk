@@ -30,7 +30,8 @@ public class UnityDebugAnalyzer : DiagnosticAnalyzer
         Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Unity Debug.Log calls should be replaced with Ducky.Sdk.Logging.Log.Info for better logging infrastructure.");
+        description:
+        "Unity Debug.Log calls should be replaced with Ducky.Sdk.Logging.Log.Info for better logging infrastructure.");
 
     private static readonly DiagnosticDescriptor RuleLogWarning = new DiagnosticDescriptor(
         DiagnosticIdLogWarning,
@@ -39,7 +40,8 @@ public class UnityDebugAnalyzer : DiagnosticAnalyzer
         Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Unity Debug.LogWarning calls should be replaced with Ducky.Sdk.Logging.Log.Warn for better logging infrastructure.");
+        description:
+        "Unity Debug.LogWarning calls should be replaced with Ducky.Sdk.Logging.Log.Warn for better logging infrastructure.");
 
     private static readonly DiagnosticDescriptor RuleLogError = new DiagnosticDescriptor(
         DiagnosticIdLogError,
@@ -48,7 +50,8 @@ public class UnityDebugAnalyzer : DiagnosticAnalyzer
         Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Unity Debug.LogError calls should be replaced with Ducky.Sdk.Logging.Log.Error for better logging infrastructure.");
+        description:
+        "Unity Debug.LogError calls should be replaced with Ducky.Sdk.Logging.Log.Error for better logging infrastructure.");
 
     private static readonly DiagnosticDescriptor RuleLogException = new DiagnosticDescriptor(
         DiagnosticIdLogException,
@@ -57,7 +60,8 @@ public class UnityDebugAnalyzer : DiagnosticAnalyzer
         Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Unity Debug.LogException calls should be replaced with Ducky.Sdk.Logging.Log.ErrorException for better logging infrastructure.");
+        description:
+        "Unity Debug.LogException calls should be replaced with Ducky.Sdk.Logging.Log.ErrorException for better logging infrastructure.");
 
     private static readonly DiagnosticDescriptor RuleLogFormat = new DiagnosticDescriptor(
         DiagnosticIdLogFormat,
@@ -66,7 +70,8 @@ public class UnityDebugAnalyzer : DiagnosticAnalyzer
         Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Unity Debug.LogFormat calls should be replaced with Ducky.Sdk.Logging.Log.InfoFormat for better logging infrastructure.");
+        description:
+        "Unity Debug.LogFormat calls should be replaced with Ducky.Sdk.Logging.Log.InfoFormat for better logging infrastructure.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         ImmutableArray.Create(RuleLog, RuleLogWarning, RuleLogError, RuleLogException, RuleLogFormat);

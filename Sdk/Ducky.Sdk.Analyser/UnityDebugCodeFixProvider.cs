@@ -23,10 +23,10 @@ public class UnityDebugCodeFixProvider : CodeFixProvider
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
     [
         UnityDebugAnalyzer.DiagnosticIdLog,
-            UnityDebugAnalyzer.DiagnosticIdLogWarning,
-            UnityDebugAnalyzer.DiagnosticIdLogError,
-            UnityDebugAnalyzer.DiagnosticIdLogException,
-            UnityDebugAnalyzer.DiagnosticIdLogFormat
+        UnityDebugAnalyzer.DiagnosticIdLogWarning,
+        UnityDebugAnalyzer.DiagnosticIdLogError,
+        UnityDebugAnalyzer.DiagnosticIdLogException,
+        UnityDebugAnalyzer.DiagnosticIdLogFormat
     ];
 
     public sealed override FixAllProvider GetFixAllProvider()
@@ -219,7 +219,7 @@ public class UnityDebugCodeFixProvider : CodeFixProvider
 
         // Create new using directive
         var usingDirective = SyntaxFactory.UsingDirective(
-            SyntaxFactory.ParseName(LogNamespace))
+                SyntaxFactory.ParseName(LogNamespace))
             .WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed);
 
         // Add using directive to the compilation unit
