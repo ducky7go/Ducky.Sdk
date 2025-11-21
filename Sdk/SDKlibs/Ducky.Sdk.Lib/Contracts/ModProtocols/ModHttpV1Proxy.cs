@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading;
 using Cysharp.Threading.Tasks;
+using Duckov.Utilities;
 using Ducky.Sdk.Logging;
 
 namespace Ducky.Sdk.Contracts;
@@ -23,11 +26,23 @@ public class ModHttpV1Proxy
     private bool _isVirtual;
     private bool _isSearching;
 
+    // 队列检查机制相关字段
+    private static readonly ConcurrentQueue<CheckRequest> s_checkQueue = new();
+    private static readonly ConcurrentBag<WeakReference<ModHttpV1Proxy>> s_virtualProxies = new();
+    private static CancellationTokenSource? s_checkProcessorCts;
+    private static bool s_checkProcessorRunning = false;
+
     private ModHttpV1Proxy()
     {
         _virtualHub = new VirtualHub();
         _isVirtual = true;
         _isSearching = false;
+
+        // 注册虚拟代理实例
+        s_virtualProxies.Add(new WeakReference<ModHttpV1Proxy>(this));
+
+        // 启动场景监控（如果还未启动）
+        StartSceneMonitoringIfNeeded();
     }
 
     private ModHttpV1Proxy(object hubInstance)
@@ -107,6 +122,35 @@ public class ModHttpV1Proxy
         _isVirtual = false;
     }
 
+    /// <summary>
+    /// 检查请求类型
+    /// </summary>
+    public enum CheckRequestType
+    {
+        /// <summary>
+        /// 进入base时的立即检查（失败则终止）
+        /// </summary>
+        EnterBase,
+
+        /// <summary>
+        /// 定时检查（5秒间隔，最多3600秒）
+        /// </summary>
+        Periodic
+    }
+
+    /// <summary>
+    /// 检查请求
+    /// </summary>
+    public class CheckRequest
+    {
+        public CheckRequestType Type { get; set; }
+        public DateTime RequestTime { get; set; } = DateTime.UtcNow;
+        public ModHttpV1Proxy Requester { get; set; } = null!;
+        public int MaxAttempts { get; set; }
+        public int AttemptCount { get; set; }
+        public TimeSpan CheckInterval { get; set; }
+    }
+
     // 高效注册委托（表达式编译）
     public void RegisterClient(string modId, Func<string, string, string, UniTask> callback)
     {
@@ -157,53 +201,284 @@ public class ModHttpV1Proxy
         }
     }
 
-    private async void TryUpgradeToRealHub()
+    private void TryUpgradeToRealHub()
     {
         if (_isSearching || !_isVirtual) return;
 
         _isSearching = true;
-        Log.Info("[ModHttpV1Proxy] 真实对象未挂载，启动后台检测任务 (最多60秒，每秒检测一次)");
+        Log.Info("[ModHttpV1Proxy] 真实对象未挂载，启动基于队列的后台检测任务");
 
+        // 添加定时检查请求：5秒间隔，最多720次（3600秒）
+        var periodicRequest = new CheckRequest
+        {
+            Type = CheckRequestType.Periodic,
+            Requester = this,
+            MaxAttempts = 720, // 3600秒 / 5秒 = 720次
+            CheckInterval = TimeSpan.FromSeconds(5)
+        };
+
+        EnqueueCheckRequest(periodicRequest);
+        StartCheckProcessorIfNeeded();
+    }
+
+    /// <summary>
+    /// 启动场景监控（检测进入base）
+    /// </summary>
+    private static void StartSceneMonitoringIfNeeded()
+    {
+        // 注册场景加载事件监听（直接访问，无需反射）
         try
         {
-            for (int i = 0; i < 60; i++)
-            {
-                await UniTask.Delay(TimeSpan.FromSeconds(1));
-
-                var go = UnityEngine.GameObject.Find("ModHttpV1");
-                if (go != null)
-                {
-                    var components = go.GetComponents<UnityEngine.MonoBehaviour>();
-                    object? hub = null;
-                    foreach (var component in components)
-                    {
-                        if (component.GetType().Name == "ModHttpV1")
-                        {
-                            hub = component;
-                            break;
-                        }
-                    }
-
-                    if (hub != null)
-                    {
-                        Log.Info($"[ModHttpV1Proxy] 检测到真实对象挂载 (第{i + 1}秒)，开始迁移数据");
-                        InitializeRealHub(hub);
-                        await _virtualHub.MigrateToRealHub(this);
-                        Log.Info("[ModHttpV1Proxy] 数据迁移完成，虚拟载体已销毁");
-                        return;
-                    }
-                }
-            }
-
-            Log.Warn("[ModHttpV1Proxy] 60秒内未检测到真实对象，停止检测，继续使用虚拟载体");
+            // 直接注册场景加载事件
+            SceneLoader.onAfterSceneInitialize += OnSceneLoad;
+            Log.Info("[ModHttpV1Proxy] 场景监控已启动，将监听base场景进入事件");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[ModHttpV1Proxy] 升级到真实Hub时发生错误");
+            Log.Warn(ex, "[ModHttpV1Proxy] 无法注册场景监控，将仅依赖定时检查");
+            Log.Info("[ModHttpV1Proxy] 场景监控启动完成（仅定时检查模式）");
+        }
+    }
+
+    /// <summary>
+    /// 场景加载事件处理
+    /// </summary>
+    private static void OnSceneLoad(SceneLoadingContext context)
+    {
+        try
+        {
+            Log.Debug($"[ModHttpV1Proxy] 检测到场景加载: {context.sceneName}");
+
+            // 检查是否是base场景（参考ModBehaviour中的逻辑）
+            if (IsBaseScene(context.sceneName))
+            {
+                Log.Info("[ModHttpV1Proxy] 检测到进入base场景，触发立即检查");
+
+                // 为所有虚拟代理实例触发进入base检查
+                TriggerEnterBaseCheckForAllVirtualProxies();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[ModHttpV1Proxy] 处理场景加载事件时发生异常");
+        }
+    }
+
+    /// <summary>
+    /// 检查是否是base场景（参考ModBehaviour中的逻辑）
+    /// </summary>
+    private static bool IsBaseScene(string sceneName)
+    {
+        // 使用常见的base场景名称进行判断
+        return sceneName == GameplayDataSettings.SceneManagement.BaseScene.Name;
+    }
+
+    /// <summary>
+    /// 为所有虚拟代理实例触发进入base检查
+    /// </summary>
+    private static void TriggerEnterBaseCheckForAllVirtualProxies()
+    {
+        var checkedCount = 0;
+
+        // 遍历所有注册的虚拟代理实例
+        foreach (var weakRef in s_virtualProxies)
+        {
+            if (weakRef.TryGetTarget(out var proxy))
+            {
+                // 只对仍在搜索且为虚拟状态的代理触发检查
+                if (proxy._isVirtual && !proxy._isSearching)
+                {
+                    var enterBaseRequest = new CheckRequest
+                    {
+                        Type = CheckRequestType.EnterBase,
+                        Requester = proxy,
+                        MaxAttempts = 1,
+                        CheckInterval = TimeSpan.Zero
+                    };
+
+                    EnqueueCheckRequest(enterBaseRequest);
+                    checkedCount++;
+                }
+            }
+        }
+
+        // 清理失效的弱引用
+        CleanUpWeakReferences();
+
+        if (checkedCount > 0)
+        {
+            StartCheckProcessorIfNeeded();
+            Log.Info($"[ModHttpV1Proxy] 已为 {checkedCount} 个虚拟代理实例触发进入base检查");
+        }
+    }
+
+    /// <summary>
+    /// 清理失效的弱引用
+    /// </summary>
+    private static void CleanUpWeakReferences()
+    {
+        // 由于ConcurrentBag不支持删除操作，我们创建一个新的bag来存储有效的引用
+        var validRefs = new List<WeakReference<ModHttpV1Proxy>>();
+
+        foreach (var weakRef in s_virtualProxies)
+        {
+            if (weakRef.TryGetTarget(out _))
+            {
+                validRefs.Add(weakRef);
+            }
+        }
+
+        // 清空原bag并重新添加有效引用
+        while (s_virtualProxies.TryTake(out _))
+        {
+            // 空操作，只是为了清空
+        }
+
+        foreach (var validRef in validRefs)
+        {
+            s_virtualProxies.Add(validRef);
+        }
+    }
+
+    /// <summary>
+    /// 将检查请求加入队列
+    /// </summary>
+    private static void EnqueueCheckRequest(CheckRequest request)
+    {
+        s_checkQueue.Enqueue(request);
+        Log.Debug($"[ModHttpV1Proxy] 检查请求已入队: {request.Type}, 请求者: {request.Requester.GetHashCode()}");
+    }
+
+    /// <summary>
+    /// 启动检查处理器（如果尚未运行）
+    /// </summary>
+    private static void StartCheckProcessorIfNeeded()
+    {
+        if (s_checkProcessorRunning) return;
+
+        lock (s_checkQueue)
+        {
+            if (s_checkProcessorRunning) return;
+
+            s_checkProcessorRunning = true;
+            s_checkProcessorCts = new CancellationTokenSource();
+
+            // 启动后台检查处理器
+            UniTask.RunOnThreadPool(() => ProcessCheckQueue(s_checkProcessorCts.Token),
+                cancellationToken: s_checkProcessorCts.Token);
+
+            Log.Info("[ModHttpV1Proxy] 检查处理器已启动");
+        }
+    }
+
+    /// <summary>
+    /// 处理检查队列
+    /// </summary>
+    private static async UniTask ProcessCheckQueue(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested && !s_checkQueue.IsEmpty)
+            {
+                if (s_checkQueue.TryDequeue(out var request))
+                {
+                    await ProcessCheckRequest(request, cancellationToken);
+                }
+                else
+                {
+                    // 队列为空，短暂等待
+                    await UniTask.Delay(1000, cancellationToken: cancellationToken);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            Log.Info("[ModHttpV1Proxy] 检查处理器已取消");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[ModHttpV1Proxy] 检查处理器发生异常");
         }
         finally
         {
-            _isSearching = false;
+            lock (s_checkQueue)
+            {
+                s_checkProcessorRunning = false;
+            }
+
+            Log.Info("[ModHttpV1Proxy] 检查处理器已停止");
+        }
+    }
+
+    /// <summary>
+    /// 处理单个检查请求
+    /// </summary>
+    private static async UniTask ProcessCheckRequest(CheckRequest request, CancellationToken cancellationToken)
+    {
+        Log.Debug($"[ModHttpV1Proxy] 处理检查请求: {request.Type}, 尝试次数: {request.AttemptCount + 1}/{request.MaxAttempts}");
+
+        request.AttemptCount++;
+
+        try
+        {
+            // 执行实际的ModHttpV1对象检查
+            var go = UnityEngine.GameObject.Find("ModHttpV1");
+            if (go != null)
+            {
+                var components = go.GetComponents<UnityEngine.MonoBehaviour>();
+                object? hub = null;
+                foreach (var component in components)
+                {
+                    if (component.GetType().Name == "ModHttpV1")
+                    {
+                        hub = component;
+                        break;
+                    }
+                }
+
+                if (hub != null)
+                {
+                    // 找到真实对象，执行升级
+                    Log.Info($"[ModHttpV1Proxy] 检测到真实对象挂载 (请求类型: {request.Type}, 尝试次数: {request.AttemptCount})，开始迁移数据");
+                    request.Requester.InitializeRealHub(hub);
+                    await request.Requester._virtualHub.MigrateToRealHub(request.Requester);
+                    Log.Info("[ModHttpV1Proxy] 数据迁移完成，虚拟载体已销毁");
+                    request.Requester._isSearching = false;
+                    return;
+                }
+            }
+
+            // 检查失败，处理重试逻辑
+            if (request.AttemptCount >= request.MaxAttempts)
+            {
+                // 达到最大尝试次数
+                if (request.Type == CheckRequestType.EnterBase)
+                {
+                    Log.Error("[ModHttpV1Proxy] 进入base检查失败，终止检查");
+                    request.Requester._isSearching = false;
+                }
+                else
+                {
+                    Log.Warn($"[ModHttpV1Proxy] {request.Type} 检查达到最大尝试次数 ({request.MaxAttempts})，继续使用虚拟载体");
+                    request.Requester._isSearching = false;
+                }
+            }
+            else
+            {
+                // 需要继续检查，重新入队
+                if (request.CheckInterval > TimeSpan.Zero)
+                {
+                    await UniTask.Delay(request.CheckInterval, cancellationToken: cancellationToken);
+                }
+
+                // 重新入队继续检查
+                EnqueueCheckRequest(request);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"[ModHttpV1Proxy] 处理检查请求时发生异常: {request.Type}");
+            request.Requester._isSearching = false;
         }
     }
 
