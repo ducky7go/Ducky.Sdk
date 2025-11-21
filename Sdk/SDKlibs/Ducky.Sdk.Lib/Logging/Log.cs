@@ -4,7 +4,7 @@ namespace Ducky.Sdk.Logging;
 
 public static class Log
 {
-    public static ILog Current { get; set; } = null!;
+    public static ILog Current { get; set; } = LogProvider.NoOpLogger.Instance!;
 
     #region Level Check Methods
 
