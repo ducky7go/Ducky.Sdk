@@ -131,6 +131,7 @@ public class ModHttpV1Proxy
         /// 进入base时的立即检查（失败则终止）
         /// </summary>
         EnterBase,
+
         /// <summary>
         /// 定时检查（5秒间隔，最多3600秒）
         /// </summary>
@@ -404,6 +405,7 @@ public class ModHttpV1Proxy
             {
                 s_checkProcessorRunning = false;
             }
+
             Log.Info("[ModHttpV1Proxy] 检查处理器已停止");
         }
     }
