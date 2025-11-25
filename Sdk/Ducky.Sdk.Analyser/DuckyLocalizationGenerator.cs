@@ -74,12 +74,46 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
                     if (arg.Kind == TypedConstantKind.Array && arg.Values.Length > 0)
                     {
                         supportedLanguages = new List<string>();
+                        var hasAllKeyword = false;
+
                         foreach (var langValue in arg.Values)
                         {
                             if (langValue.Value is string langCode && !string.IsNullOrWhiteSpace(langCode))
                             {
-                                supportedLanguages.Add(langCode.ToLowerInvariant());
+                                var normalizedLang = langCode.ToLowerInvariant();
+                                if (normalizedLang == "all")
+                                {
+                                    hasAllKeyword = true;
+                                }
+                                else
+                                {
+                                    supportedLanguages.Add(normalizedLang);
+                                }
                             }
+                        }
+
+                        // If "all" keyword was found, expand to all supported languages
+                        if (hasAllKeyword)
+                        {
+                            // Define all supported languages (same as in the attribute)
+                            var allLanguages = new[]
+                            {
+                                "de", "en", "es", "fr", "ja", "ko", "pt", "ru", "zh-hant", "zh"
+                            };
+
+                            // Start with all supported languages
+                            var result = allLanguages.ToList();
+
+                            // Add any additional explicit languages (removing duplicates)
+                            foreach (var lang in supportedLanguages)
+                            {
+                                if (!result.Contains(lang))
+                                {
+                                    result.Add(lang);
+                                }
+                            }
+
+                            supportedLanguages = result;
                         }
                     }
                 }

@@ -412,6 +412,22 @@ Specify supported languages:
 public static class LK { ... }
 ```
 
+Use "all" to generate files for all supported languages:
+
+```csharp
+[LanguageSupport("all")]
+public static class LK { ... }
+```
+
+Supported languages when using "all": de, en, es, fr, ja, ko, pt, ru, zh-hant, zh
+
+Mix "all" with additional languages:
+
+```csharp
+[LanguageSupport("all", "custom-lang")]
+public static class LK { ... }
+```
+
 #### `[TranslateFile]` or `[TranslateFile("ext")]`
 
 Store translations in external files:
