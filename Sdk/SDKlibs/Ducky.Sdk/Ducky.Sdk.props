@@ -31,6 +31,13 @@
 
       <!-- 本地化资源目录，如果未指定则使用 AssetsDir -->
       <LocalizationAssetsDir Condition="'$(LocalizationAssetsDir)' == ''">$(AssetsDir)</LocalizationAssetsDir>
+
+      <!-- IsModLib specific configuration -->
+      <!-- For library projects, disable mod deployment and packaging by default -->
+      <DeployMod Condition="'$(IsModLib)' == 'true' AND '$(DeployMod)' == ''">false</DeployMod>
+
+      <!-- IsModLib projects still process localization but skip all other automation -->
+      <_ShouldProcessLocalization Condition="'$(IsModLib)' == 'true'">true</_ShouldProcessLocalization>
     </PropertyGroup>
 
     <Message Text="[Ducky.Sdk] SteamFolder: $(SteamFolder)" Importance="high" />
@@ -39,6 +46,12 @@
     <Message Text="[Ducky.Sdk] EnableILRepack: $(EnableILRepack)" Importance="high" />
     <Message Text="[Ducky.Sdk] IncludeHarmony: $(IncludeHarmony)" Importance="high" />
     <Message Text="[Ducky.Sdk] LocalizationAssetsDir: $(LocalizationAssetsDir)" Importance="high" />
+    <Message Text="[Ducky.Sdk] IsModLib: $(IsModLib)" Importance="high" Condition="'$(IsModLib)' != ''" />
+    <Message Text="[Ducky.Sdk] DeployMod: $(DeployMod)" Importance="high" />
+    <Message Text="[Ducky.Sdk] Project mode: Library project (automation tasks will be skipped)" Importance="high"
+             Condition="'$(IsModLib)' == 'true'" />
+    <Message Text="[Ducky.Sdk] Project mode: Final release mod project (full automation enabled)" Importance="high"
+             Condition="'$(IsModLib)' != 'true' AND '$(ModName)' != ''" />
   </Target>
 
 
