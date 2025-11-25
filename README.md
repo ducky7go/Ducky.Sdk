@@ -177,6 +177,21 @@ Key,Value
 文档,Documentation.md
 ```
 
+#### 4. 多目录本地化支持
+
+通过 `LocalizationAssetsDir` 属性，您可以指定多个本地化资源目录：
+
+```xml
+<PropertyGroup>
+  <LocalizationAssetsDir>assets/Locales;shared-locales;external-translations</LocalizationAssetsDir>
+</PropertyGroup>
+```
+
+当指定多个目录时：
+- 每个目录都应包含相同结构的 CSV 文件
+- `UpdateLocalesCsv` target 会为所有目录生成和验证翻译文件
+- 其他资源文件仍使用 `AssetsDir` 指定的目录
+
 ### 配置管理
 
 存储和检索 Mod 设置：
@@ -397,9 +412,33 @@ Ducky.Sdk/
 | `DeployMod` | `true` | 启用自动部署到游戏 |
 | `EnableILRepack` | `true` | 将程序集合并到单个 DLL |
 | `IncludeHarmony` | `false` | 包含 Harmony 用于运行时补丁 |
-| `AssetsDir` | `assets/` | 自定义资源目录路径 |
+| `AssetsDir` | `assets/` | 自定义资源目录路径（用于一般资源）|
+| `LocalizationAssetsDir` | `$(AssetsDir)` | 本地化资源目录路径（用于 UpdateLocalesCsv target）|
 | `ExcludeSdkLib` | `true` | 排除 SDK 源代码编译（用于入口项目）|
 | `IsModLib` | `false` | 将项目标记为共享库 |
+
+#### AssetsDir vs LocalizationAssetsDir
+
+`AssetsDir` 和 `LocalizationAssetsDir` 有不同的用途：
+
+- **`AssetsDir`**: 用于一般资源（如 `info.ini`、`preview.png` 等），期望为单一路径
+- **`LocalizationAssetsDir`**: 专用于本地化资源，支持多个目录（用分号分隔）
+
+**使用场景：**
+
+```xml
+<!-- 使用默认设置（两者相同） -->
+<PropertyGroup>
+  <AssetsDir>assets</AssetsDir>
+  <!-- LocalizationAssetsDir 会自动使用 AssetsDir 的值 -->
+</PropertyGroup>
+
+<!-- 分别设置 -->
+<PropertyGroup>
+  <AssetsDir>assets</AssetsDir>
+  <LocalizationAssetsDir>locales;shared-locales</LocalizationAssetsDir>
+</PropertyGroup>
+```
 
 ### 本地化属性
 
