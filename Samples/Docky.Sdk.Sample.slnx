@@ -9,6 +9,7 @@
   </Folder>
   <Folder Name="/MultilayerProjectMod/">
     <Project Path="Ducky.EntranceMod.Common\Ducky.EntranceMod.Common.csproj" />
+    <Project Path="Ducky.EntranceMod2/Ducky.EntranceMod2.csproj" />
     <Project Path="Ducky.EntranceMod\Ducky.EntranceMod.csproj" />
   </Folder>
   <Folder Name="/SingleProjectMod/">
