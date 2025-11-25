@@ -2,7 +2,7 @@ using Ducky.Sdk.Attributes;
 
 namespace Ducky.TryHarmony;
 
-[LanguageSupport("zh", "en", "zh-hant")]
+[LanguageSupport("all")]
 public static class LK
 {
     public static class UI

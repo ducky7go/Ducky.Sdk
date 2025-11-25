@@ -498,6 +498,22 @@ Ducky.Sdk/
 public static class LK { ... }
 ```
 
+使用 "all" 生成所有支持语言的文件：
+
+```csharp
+[LanguageSupport("all")]
+public static class LK { ... }
+```
+
+使用 "all" 时支持的语言：de, en, es, fr, ja, ko, pt, ru, zh-hant, zh
+
+混合使用 "all" 和额外语言：
+
+```csharp
+[LanguageSupport("all", "custom-lang")]
+public static class LK { ... }
+```
+
 #### `[TranslateFile]` 或 `[TranslateFile("ext")]`
 
 在外部文件中存储翻译：
