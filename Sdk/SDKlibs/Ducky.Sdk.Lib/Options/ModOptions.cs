@@ -92,6 +92,14 @@ public class ModOptions
             return underlyingType == typeof(DateTime) || underlyingType == typeof(DateTimeOffset);
         }
 
+        // 集合类型不是简单类型（需要 JSON 序列化）
+        if (t.IsGenericType && typeof(System.Collections.IEnumerable).IsAssignableFrom(t))
+            return false;
+
+        // 数组类型不是简单类型
+        if (t.IsArray)
+            return false;
+
         return t.IsPrimitive
                || t.IsEnum
                || t == typeof(string)
