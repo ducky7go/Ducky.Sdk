@@ -8,7 +8,8 @@
     <!-- Log deployment prevention when DeployMod=false -->
     <Target Name="LogDeployModPrevention"
             Condition=" '$(ModName)' != '' AND '$(DeployMod)' == 'false' AND '$(IsModLib)' != 'true' ">
-        <Message Text="[DeployMod] Deployment prevention - DeployMod=false, all deployment operations are skipped" Importance="High" />
+        <Message Text="[DeployMod] Deployment prevention - DeployMod=false, all deployment operations are skipped"
+                 Importance="High" />
         <Message Text="[DeployMod] ILRepack operations are disabled due to DeployMod=false" Importance="High"
                  Condition=" '$(EnableILRepack)' == 'true' " />
         <Message Text="[DeployMod] Dependency copying is disabled due to DeployMod=false" Importance="High"
@@ -74,18 +75,24 @@
         </PropertyGroup>
 
         <!-- Validate configuration before proceeding -->
-        <Message Text="[RemoveIfDeployModFalse] DeployMod is set to false, checking if mod directory cleanup is needed" Importance="High" />
+        <Message Text="[RemoveIfDeployModFalse] DeployMod is set to false, checking if mod directory cleanup is needed"
+                 Importance="High" />
         <Message Text="[RemoveIfDeployModFalse] Target mod directory: $(_TargetModDir)" Importance="High" />
 
         <!-- Check if required configuration is missing -->
-        <Message Text="[RemoveIfDeployModFalse] Warning: DuckovFolder is not configured, cannot determine mod directory" Importance="High"
-                 Condition=" '$(DuckovFolder)' == '' " />
-        <Message Text="[RemoveIfDeployModFalse] Warning: ModName is not specified, cannot determine mod directory" Importance="High"
+        <Message
+            Text="[RemoveIfDeployModFalse] Warning: DuckovFolder is not configured, cannot determine mod directory"
+            Importance="High"
+            Condition=" '$(DuckovFolder)' == '' " />
+        <Message Text="[RemoveIfDeployModFalse] Warning: ModName is not specified, cannot determine mod directory"
+                 Importance="High"
                  Condition=" '$(ModName)' == '' " />
 
         <!-- Skip if library project -->
-        <Message Text="[RemoveIfDeployModFalse] Skipped - IsModLib=true, library projects are not deployed, no cleanup needed" Importance="High"
-                 Condition=" '$(IsModLib)' == 'true' " />
+        <Message
+            Text="[RemoveIfDeployModFalse] Skipped - IsModLib=true, library projects are not deployed, no cleanup needed"
+            Importance="High"
+            Condition=" '$(IsModLib)' == 'true' " />
 
         <!-- Check if directory exists -->
         <Message Text="[RemoveIfDeployModFalse] Mod directory does not exist, no cleanup needed" Importance="High"
@@ -103,7 +110,8 @@
         <Message Text="[RemoveIfDeployModFalse] Successfully removed mod directory: $(_TargetModDir)" Importance="High"
                  Condition="Exists('$(_TargetModDir)') == false" />
 
-        <Message Text="[RemoveIfDeployModFalse] Error: Failed to remove mod directory: $(_TargetModDir)" Importance="High"
+        <Message Text="[RemoveIfDeployModFalse] Error: Failed to remove mod directory: $(_TargetModDir)"
+                 Importance="High"
                  Condition="Exists('$(_TargetModDir)')" />
     </Target>
 
@@ -231,10 +239,13 @@
         <Message Text="[PackModWithILRepack] Generated lib args: $(_LibPathArgs)" Importance="High"
                  Condition=" '@(_DllsToPack)' != '' " />
 
-        <Message Text="[PackModWithILRepack] Running ILRepack with minimal output (EnableILRepackVerbose=false). Set EnableILRepackVerbose=true for detailed logging." Importance="High"
-                 Condition=" '@(_DllsToPack)' != '' AND '$(EnableILRepackVerbose)' != 'true' " />
+        <Message
+            Text="[PackModWithILRepack] Running ILRepack with minimal output (EnableILRepackVerbose=false). Set EnableILRepackVerbose=true for detailed logging."
+            Importance="High"
+            Condition=" '@(_DllsToPack)' != '' AND '$(EnableILRepackVerbose)' != 'true' " />
 
-        <Message Text="[PackModWithILRepack] Running ILRepack with verbose output (EnableILRepackVerbose=true)" Importance="High"
+        <Message Text="[PackModWithILRepack] Running ILRepack with verbose output (EnableILRepackVerbose=true)"
+                 Importance="High"
                  Condition=" '@(_DllsToPack)' != '' AND '$(EnableILRepackVerbose)' == 'true' " />
 
         <!-- 先输出到临时文件夹，使用收集的所有 lib 路径 -->
@@ -262,10 +273,14 @@
                  Condition=" '@(_DllsToPack)' != '' " />
         <Message Text="[PackModWithILRepack] PDB file copied: $(_FinalModPdb)" Importance="High"
                  Condition=" '@(_DllsToPack)' != '' AND Exists('$(_TempPackedPdb)') " />
-        <Message Text="[PackModWithILRepack] ILRepack operation completed. @(DllsToPack->Count()) assemblies merged successfully." Importance="High"
-                 Condition=" '@(_DllsToPack)' != '' " />
-        <Message Text="[PackModWithILRepack] Verbose mode was $(EnableILRepackVerbose). Set EnableILRepackVerbose=true for detailed ILRepack output." Importance="High"
-                 Condition=" '@(_DllsToPack)' != '' " />
+        <Message
+            Text="[PackModWithILRepack] ILRepack operation completed. @(DllsToPack->Count()) assemblies merged successfully."
+            Importance="High"
+            Condition=" '@(_DllsToPack)' != '' " />
+        <Message
+            Text="[PackModWithILRepack] Verbose mode was $(EnableILRepackVerbose). Set EnableILRepackVerbose=true for detailed ILRepack output."
+            Importance="High"
+            Condition=" '@(_DllsToPack)' != '' " />
 
         <!-- 删除临时文件夹 -->
         <RemoveDir Directories="$(_ILRepackTempDir)" Condition=" '@(_DllsToPack)' != '' " />
