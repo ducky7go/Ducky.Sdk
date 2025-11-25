@@ -475,6 +475,198 @@ public class ModOptionsTests
         result.ShouldBe(expectedDateTimeOffset);
     }
 
+    [Test]
+    public void SaveAndLoadListString_ShouldConvertToJson()
+    {
+        // Arrange
+        var key = "test_list_string";
+        var originalList = new List<string> { "apple", "banana", "cherry", "123", "测试中文" };
+
+        // Act
+        var saveResult = _modOptions.SaveConfig(key, originalList);
+        var loadedList = _modOptions.LoadConfig<List<string>>(key);
+
+        // Assert
+        saveResult.ShouldBeTrue();
+        loadedList.ShouldNotBeNull();
+        loadedList.Count.ShouldBe(originalList.Count);
+
+        for (int i = 0; i < originalList.Count; i++)
+        {
+            loadedList[i].ShouldBe(originalList[i]);
+        }
+
+        // 验证底层存储的是 JSON 字符串
+        var storedJson = _modOptions.LoadConfig<string>(key);
+        storedJson.ShouldNotBeNull();
+        storedJson.ShouldStartWith("[");
+        storedJson.ShouldEndWith("]");
+    }
+
+    [Test]
+    public void SaveAndLoadEmptyListString_ShouldWork()
+    {
+        // Arrange
+        var key = "test_empty_list_string";
+        var originalList = new List<string>();
+
+        // Act
+        var saveResult = _modOptions.SaveConfig(key, originalList);
+        var loadedList = _modOptions.LoadConfig<List<string>>(key);
+
+        // Assert
+        saveResult.ShouldBeTrue();
+        loadedList.ShouldNotBeNull();
+        loadedList.Count.ShouldBe(0);
+
+        // 验证底层存储的是 "[]"
+        var storedJson = _modOptions.LoadConfig<string>(key);
+        storedJson.ShouldBe("[]");
+    }
+
+    [Test]
+    public void SaveAndLoadListStringWithSpecialCharacters_ShouldWork()
+    {
+        // Arrange
+        var key = "test_list_special_chars";
+        var originalList = new List<string>
+        {
+            "normal string",
+            "string with \"quotes\"",
+            "string with 'single quotes'",
+            "string with \n newline",
+            "string with \t tab",
+            "string with \\ backslash",
+            "string with {braces}",
+            "string with [brackets]",
+            "Unicode: 你好世界 🌍",
+            "emoji: 🍎🍌🍒"
+        };
+
+        // Act
+        var saveResult = _modOptions.SaveConfig(key, originalList);
+        var loadedList = _modOptions.LoadConfig<List<string>>(key);
+
+        // Assert
+        saveResult.ShouldBeTrue();
+        loadedList.ShouldNotBeNull();
+        loadedList.Count.ShouldBe(originalList.Count);
+
+        for (int i = 0; i < originalList.Count; i++)
+        {
+            loadedList[i].ShouldBe(originalList[i]);
+        }
+    }
+
+    [Test]
+    public void SaveAndLoadArrayTypes_ShouldConvertToJson()
+    {
+        // Arrange
+        var stringKey = "test_string_array";
+        var intKey = "test_int_array";
+        var originalStringArray = new[] { "one", "two", "three" };
+        var originalIntArray = new[] { 1, 2, 3, 4, 5 };
+
+        // Act
+        var stringSaveResult = _modOptions.SaveConfig(stringKey, originalStringArray);
+        var intSaveResult = _modOptions.SaveConfig(intKey, originalIntArray);
+        var loadedStringArray = _modOptions.LoadConfig<string[]>(stringKey);
+        var loadedIntArray = _modOptions.LoadConfig<int[]>(intKey);
+
+        // Assert - String array
+        stringSaveResult.ShouldBeTrue();
+        loadedStringArray.ShouldNotBeNull();
+        loadedStringArray.Length.ShouldBe(originalStringArray.Length);
+        for (int i = 0; i < originalStringArray.Length; i++)
+        {
+            loadedStringArray[i].ShouldBe(originalStringArray[i]);
+        }
+
+        // Assert - Int array
+        intSaveResult.ShouldBeTrue();
+        loadedIntArray.ShouldNotBeNull();
+        loadedIntArray.Length.ShouldBe(originalIntArray.Length);
+        for (int i = 0; i < originalIntArray.Length; i++)
+        {
+            loadedIntArray[i].ShouldBe(originalIntArray[i]);
+        }
+
+        // 验证底层存储的是 JSON 字符串
+        var storedStringJson = _modOptions.LoadConfig<string>(stringKey);
+        var storedIntJson = _modOptions.LoadConfig<string>(intKey);
+        storedStringJson.ShouldStartWith("[");
+        storedStringJson.ShouldEndWith("]");
+        storedIntJson.ShouldStartWith("[");
+        storedIntJson.ShouldEndWith("]");
+    }
+
+    [Test]
+    public void VerifyListStringStoredAsJsonString_ShouldPass()
+    {
+        // Arrange
+        var key = "test_json_storage";
+        var originalList = new List<string> { "verify", "json", "storage" };
+
+        // Act
+        var saveResult = _modOptions.SaveConfig(key, originalList);
+
+        // 验证底层存储
+        var storedRawData = _storage.Load<object>(key, _modOptions.GetConfigFilePath());
+        var storedJson = _modOptions.LoadConfig<string>(key);
+        var loadedList = _modOptions.LoadConfig<List<string>>(key);
+
+        // Assert
+        saveResult.ShouldBeTrue();
+
+        // 底层应该存储为 JSON 字符串
+        storedRawData.ShouldBeOfType<string>();
+        storedJson.ShouldNotBeNull();
+        storedJson.ShouldContain("verify");
+        storedJson.ShouldContain("json");
+        storedJson.ShouldContain("storage");
+
+        // 能够正确反序列化
+        loadedList.ShouldNotBeNull();
+        loadedList.Count.ShouldBe(3);
+        loadedList[0].ShouldBe("verify");
+        loadedList[1].ShouldBe("json");
+        loadedList[2].ShouldBe("storage");
+    }
+
+    [Test]
+    public void SaveAndLoadDictionary_ShouldConvertToJson()
+    {
+        // Arrange
+        var key = "test_dictionary";
+        var originalDict = new Dictionary<string, int>
+        {
+            { "apple", 1 },
+            { "banana", 2 },
+            { "cherry", 3 }
+        };
+
+        // Act
+        var saveResult = _modOptions.SaveConfig(key, originalDict);
+        var loadedDict = _modOptions.LoadConfig<Dictionary<string, int>>(key);
+
+        // Assert
+        saveResult.ShouldBeTrue();
+        loadedDict.ShouldNotBeNull();
+        loadedDict.Count.ShouldBe(originalDict.Count);
+
+        foreach (var kvp in originalDict)
+        {
+            loadedDict.ContainsKey(kvp.Key).ShouldBeTrue();
+            loadedDict[kvp.Key].ShouldBe(kvp.Value);
+        }
+
+        // 验证底层存储的是 JSON 字符串
+        var storedJson = _modOptions.LoadConfig<string>(key);
+        storedJson.ShouldNotBeNull();
+        storedJson.ShouldStartWith("{");
+        storedJson.ShouldEndWith("}");
+    }
+
     #endregion
 
     /// <summary>
