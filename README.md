@@ -8,6 +8,7 @@
 [![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download)
 [![NuGet](https://img.shields.io/nuget/v/Ducky.Sdk.svg)](https://www.nuget.org/packages/Ducky.Sdk/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Ducky.Sdk.svg)](https://www.nuget.org/packages/Ducky.Sdk/)
+[![MyGet](https://img.shields.io/myget/dk/v/Ducky.Sdk.svg)](https://www.myget.org/feed/duckysdk/package/nuget/Ducky.Sdk)
 [![GitHub Stars](https://img.shields.io/github/stars/ducky7go/Ducky.Sdk?style=social)](https://github.com/ducky7go/Ducky.Sdk/stargazers)
 [![GitHub Issues](https://img.shields.io/github/issues/ducky7go/Ducky.Sdk)](https://github.com/ducky7go/Ducky.Sdk/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/ducky7go/Ducky.Sdk)](https://github.com/ducky7go/Ducky.Sdk/pulls)
@@ -92,6 +93,31 @@ public class ModBehaviour : ModBehaviourBase
 dotnet build
 # 你的 Mod 会自动部署到游戏目录！
 ```
+
+## 包发布渠道
+
+Ducky.Sdk 通过以下渠道发布：
+
+### NuGet.org (稳定版)
+- **主要发布渠道** - 面向生产环境使用
+- **官方稳定版本** - 经过完整测试的正式版本
+- **访问地址**: [https://www.nuget.org/packages/Ducky.Sdk/](https://www.nuget.org/packages/Ducky.Sdk/)
+
+### MyGet (预览版)
+- **预览发布渠道** - 开发版本和预发布版本
+- **快速分发** - 开发者可快速获取最新功能
+- **持续集成** - main 分支的每次构建都会自动发布
+- **访问地址**: [https://www.myget.org/feed/duckysdk/package/nuget/Ducky.Sdk](https://www.myget.org/feed/duckysdk/package/nuget/Ducky.Sdk)
+
+### 双重发布机制
+- **容错设计**: 即使其中一个发布渠道失败，另一个仍会继续发布
+- **同步版本**: 标签版本会同时发布到两个渠道
+- **开发版本**: main 分支的构建版本优先在 MyGet 上提供
+
+### 推荐使用方式
+- **生产环境**: 使用 NuGet.org 稳定版本
+- **开发测试**: 使用 MyGet 预览版本以获取最新功能
+- **体验测试**: 在项目中指定预发布版本：`<PackageReference Include="Ducky.Sdk" Version="*" />`
 
 ## 核心概念
 
