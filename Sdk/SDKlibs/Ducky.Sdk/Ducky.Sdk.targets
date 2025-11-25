@@ -246,7 +246,8 @@
             <Output TaskParameter="ExitCode" PropertyName="_ExtractJsonExitCode" />
         </Exec>
 
-        <Message Text="  Generated JSON files: @(_ExtractAssetsDirList->'$(ProjectDir)/%(Identity)/lkeys.json', ' | ')" Importance="high"
+        <Message Text="  Generated JSON files: @(_ExtractAssetsDirList->'$(ProjectDir)/%(Identity)/lkeys.json', ' | ')"
+                 Importance="high"
                  Condition="'@(_ExtractAssetsDirList)' != ''" />
 
         <!-- 退出码说明：
@@ -316,9 +317,11 @@
             <_AssetsDirResolved
                 Include="@(_AssetsDirList->'$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(ProjectDir)','%(Identity)'))))')" />
         </ItemGroup>
-        <Message Text="  LocalizationAssetsDir Absolute Each: @(_AssetsDirResolved->'%(Identity)', ' | ')" Importance="high"
+        <Message Text="  LocalizationAssetsDir Absolute Each: @(_AssetsDirResolved->'%(Identity)', ' | ')"
+                 Importance="high"
                  Condition="'@(_AssetsDirResolved)' != ''" />
-        <Warning Text="Effective localization assets dir empty, skipping update-locales-csv execution." Condition="'$(_EffectiveLocalizationAssetsDir)' == ''" />
+        <Warning Text="Effective localization assets dir empty, skipping update-locales-csv execution."
+                 Condition="'$(_EffectiveLocalizationAssetsDir)' == ''" />
         <!-- 计算每个目录的 lkeys.json 路径 -->
         <PropertyGroup>
             <_CurrentLKeysJsonPath>$([System.IO.Path]::Combine('$(ProjectDir)','%(_AssetsDirList.Identity)','lkeys.json'))</_CurrentLKeysJsonPath>
