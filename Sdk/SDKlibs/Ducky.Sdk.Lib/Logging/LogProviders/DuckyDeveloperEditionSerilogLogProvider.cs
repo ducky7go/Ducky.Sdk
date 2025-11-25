@@ -14,7 +14,7 @@ namespace Ducky.Sdk.Logging.LogProviders
         private readonly Func<string, object> _getLoggerByNameDelegate; 
         private static Func<string, object, bool, IDisposable> s_pushProperty; 
  
-        [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "Ducky.Logging.De veloperEdition")] 
+        [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "Ducky.Logging.DeveloperEdition")] 
         public DuckyDeveloperEditionSerilogLogProvider() 
         { 
             if (!IsLoggerAvailable()) throw new LibLogException("Serilog.Log not found"); 
@@ -38,7 +38,7 @@ namespace Ducky.Sdk.Logging.LogProviders
  
         private static Func<string, object, bool, IDisposable> GetPushProperty() 
         { 
-            var ndcContextType = FindType("Serilog.Context.LogContext", new[] {"Ducky.Logging.Li te", "Serilog.FullNetFx"}); 
+            var ndcContextType = FindType("Serilog.Context.LogContext", new[] {"Ducky.Logging.DeveloperEdition", "Serilog.FullNetFx"}); 
  
             var pushPropertyMethod = ndcContextType.GetMethod( 
                 "PushProperty", 
@@ -61,7 +61,7 @@ namespace Ducky.Sdk.Logging.LogProviders
         } 
  
         private static Type GetLogManagerType() 
-            => FindType("Serilog.Log", "Ducky.Logging.LiteE di ti o n"); 
+            => FindType("Serilog.Log", "Ducky.Logging.DeveloperEdition"); 
  
         private static Func<string, object> GetForContextMethodCall() 
         { 
