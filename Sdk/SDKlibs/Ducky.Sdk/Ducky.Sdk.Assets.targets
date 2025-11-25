@@ -1,0 +1,148 @@
+<Project>
+  <!-- Generate preview.png identicon if missing -->
+  <Target Name="GeneratePreview" BeforeTargets="CopyToDuckov"
+          Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' AND '$(IsModLib)' != 'true' ">
+      <PropertyGroup>
+          <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
+          <_GeneratePreviewScriptInProject>$(MSBuildThisFileDirectory)../scripts/generate-preview.csx</_GeneratePreviewScriptInProject>
+          <GeneratePreviewScriptPath Condition="$([System.IO.File]::Exists('$(_GeneratePreviewScriptInProject)'))">$(_GeneratePreviewScriptInProject)</GeneratePreviewScriptPath>
+          <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
+          <_PreviewPngPath>$([System.IO.Path]::Combine('$(AssetsDir)','preview.png'))</_PreviewPngPath>
+      </PropertyGroup>
+
+      <ItemGroup Condition="'$(GeneratePreviewScriptPath)' == ''">
+          <_GeneratePreviewScriptFromContent Include="@(Compile)"
+                                             Condition="'%(Filename)%(Extension)' == 'generate-preview.csx'" />
+      </ItemGroup>
+
+      <PropertyGroup>
+          <GeneratePreviewScriptPath
+              Condition="'$(GeneratePreviewScriptPath)' == '' AND '@(_GeneratePreviewScriptFromContent)' != ''">
+              %(_GeneratePreviewScriptFromContent.FullPath)
+          </GeneratePreviewScriptPath>
+      </PropertyGroup>
+
+      <Message Text="[GeneratePreview] Checking for preview.png in assets..." Importance="high"
+               Condition="'$(GeneratePreviewScriptPath)' != '' AND !Exists('$(_PreviewPngPath)')" />
+      <Message Text="  Assets Dir: $(AssetsDir)" Importance="high"
+               Condition="'$(GeneratePreviewScriptPath)' != '' AND !Exists('$(_PreviewPngPath)')" />
+
+      <Exec Command="dotnet script &quot;$(GeneratePreviewScriptPath)&quot; &quot;$(AssetsDir)&quot;"
+            ContinueOnError="true"
+            IgnoreExitCode="true"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="'$(GeneratePreviewScriptPath)' != '' AND !Exists('$(_PreviewPngPath)')">
+          <Output TaskParameter="ExitCode" PropertyName="_GeneratePreviewExitCode" />
+      </Exec>
+
+      <Message Text="[GeneratePreview] Generation completed (exit code: $(_GeneratePreviewExitCode))"
+               Importance="high"
+               Condition="'$(_GeneratePreviewExitCode)' != ''" />
+      <Message
+          Text="[GeneratePreview] Script failed with exit code $(_GeneratePreviewExitCode), but continuing build"
+          Importance="high"
+          Condition="'$(_GeneratePreviewExitCode)' != '0' AND '$(_GeneratePreviewExitCode)' != ''" />
+  </Target>
+
+  <!-- Log when GeneratePreview is skipped due to IsModLib -->
+  <Target Name="LogGeneratePreviewSkipped" BeforeTargets="BeforeBuild"
+          Condition=" '$(IsModLib)' == 'true' AND '$(ModName)' != '' ">
+      <Message Text="[GeneratePreview] Skipped - IsModLib=true, library projects do not generate preview images" Importance="high" />
+  </Target>
+
+  <!-- Ensure info.ini exists in assets directory before any operations -->
+  <Target Name="EnsureInfoIni" BeforeTargets="CollectFromMod;CopyToDuckov;Build"
+          Condition=" '$(ModName)' != '' AND '$(IsModLib)' != 'true' ">
+      <PropertyGroup>
+          <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
+          <_EnsureInfoScriptInProject>$(MSBuildThisFileDirectory)../scripts/ensure-info-ini.csx</_EnsureInfoScriptInProject>
+          <EnsureInfoScriptPath Condition="$([System.IO.File]::Exists('$(_EnsureInfoScriptInProject)'))">$(_EnsureInfoScriptInProject)</EnsureInfoScriptPath>
+          <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
+      </PropertyGroup>
+
+      <ItemGroup Condition="'$(EnsureInfoScriptPath)' == ''">
+          <_EnsureInfoScriptFromContent Include="@(Compile)"
+                                        Condition="'%(Filename)%(Extension)' == 'ensure-info-ini.csx'" />
+      </ItemGroup>
+
+      <PropertyGroup>
+          <EnsureInfoScriptPath
+              Condition="'$(EnsureInfoScriptPath)' == '' AND '@(_EnsureInfoScriptFromContent)' != ''">
+              %(_EnsureInfoScriptFromContent.FullPath)
+          </EnsureInfoScriptPath>
+      </PropertyGroup>
+
+      <Message Text="[EnsureInfoIni] Checking for info.ini in assets directory..." Importance="high"
+               Condition="'$(EnsureInfoScriptPath)' != ''" />
+
+      <Exec
+          Command="dotnet script &quot;$(EnsureInfoScriptPath)&quot; &quot;$(AssetsDir)&quot; &quot;$(ModName)&quot;"
+          ContinueOnError="true"
+          IgnoreExitCode="true"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(EnsureInfoScriptPath)' != ''">
+          <Output TaskParameter="ExitCode" PropertyName="_EnsureInfoExitCode" />
+      </Exec>
+
+      <Message Text="[EnsureInfoIni] Check completed (exit code: $(_EnsureInfoExitCode))" Importance="high"
+               Condition="'$(_EnsureInfoExitCode)' != ''" />
+      <Message Text="[EnsureInfoIni] Script failed with exit code $(_EnsureInfoExitCode), but continuing build"
+               Importance="high"
+               Condition="'$(_EnsureInfoExitCode)' != '0' AND '$(_EnsureInfoExitCode)' != ''" />
+  </Target>
+
+  <!-- Log when EnsureInfoIni is skipped due to IsModLib -->
+  <Target Name="LogEnsureInfoIniSkipped" BeforeTargets="BeforeBuild"
+          Condition=" '$(IsModLib)' == 'true' AND '$(ModName)' != '' ">
+      <Message Text="[EnsureInfoIni] Skipped - IsModLib=true, library projects do not generate mod metadata" Importance="high" />
+  </Target>
+
+  <!-- Collect publishedFileId from deployed mod back to source assets before copying -->
+  <Target Name="CollectFromMod" BeforeTargets="CopyToDuckov"
+          Condition=" '$(DuckovFolder)' != '' AND '$(ModName)' != '' AND '$(DeployMod)' != 'false' AND '$(_ShouldProcessLocalization)' == 'true' AND '$(IsModLib)' != 'true' ">
+      <PropertyGroup>
+          <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
+          <_CollectScriptInProject>$(MSBuildThisFileDirectory)../scripts/collect-from-mod.csx</_CollectScriptInProject>
+          <CollectScriptPath Condition="$([System.IO.File]::Exists('$(_CollectScriptInProject)'))">$(_CollectScriptInProject)</CollectScriptPath>
+          <!-- Fallback only: allow external override via /p:AssetsDir=... -->
+          <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
+          <_DeployedModDir>$(ModsDirectory)$(ModName)</_DeployedModDir>
+      </PropertyGroup>
+
+      <ItemGroup Condition="'$(CollectScriptPath)' == ''">
+          <_CollectScriptFromContent Include="@(Compile)"
+                                     Condition="'%(Filename)%(Extension)' == 'collect-from-mod.csx'" />
+      </ItemGroup>
+
+      <PropertyGroup>
+          <CollectScriptPath Condition="'$(CollectScriptPath)' == '' AND '@(_CollectScriptFromContent)' != ''">%(_CollectScriptFromContent.FullPath)</CollectScriptPath>
+      </PropertyGroup>
+
+      <Message Text="[CollectFromMod] Syncing publishedFileId from deployed mod to source assets..."
+               Importance="high"
+               Condition="'$(CollectScriptPath)' != '' AND Exists('$(_DeployedModDir)')" />
+      <Message Text="  Script: $(CollectScriptPath)" Importance="high" Condition="'$(CollectScriptPath)' != ''" />
+      <Message Text="  Deployed Mod: $(_DeployedModDir)" Importance="high" Condition="Exists('$(_DeployedModDir)')" />
+      <Message Text="  Assets Dir: $(AssetsDir)" Importance="high" Condition="'$(CollectScriptPath)' != ''" />
+
+      <Exec
+          Command="dotnet script &quot;$(CollectScriptPath)&quot; &quot;$(_DeployedModDir)&quot; &quot;$(AssetsDir)&quot;"
+          ContinueOnError="true"
+          IgnoreExitCode="true"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(CollectScriptPath)' != '' AND Exists('$(_DeployedModDir)')">
+          <Output TaskParameter="ExitCode" PropertyName="_CollectExitCode" />
+      </Exec>
+
+      <Message Text="[CollectFromMod] Sync completed (exit code: $(_CollectExitCode))" Importance="high"
+               Condition="'$(_CollectExitCode)' != ''" />
+      <Warning Text="[CollectFromMod] Script failed with exit code $(_CollectExitCode)"
+               Condition="'$(_CollectExitCode)' != '0' AND '$(_CollectExitCode)' != ''" />
+  </Target>
+
+  <!-- Log when CollectFromMod is skipped due to IsModLib -->
+  <Target Name="LogCollectFromModSkipped" BeforeTargets="BeforeBuild"
+          Condition=" '$(IsModLib)' == 'true' AND '$(ModName)' != '' AND '$(_ShouldProcessLocalization)' == 'true' ">
+      <Message Text="[CollectFromMod] Skipped - IsModLib=true, library projects do not sync mod deployment data" Importance="high" />
+  </Target>
+</Project>

@@ -302,12 +302,33 @@ public static class Player_TakeDamage_Patch
 ```xml
 <PropertyGroup>
   <ModName>MyMod</ModName>
+  <ExcludeSdkLib>true</ExcludeSdkLib>
 </PropertyGroup>
 
 <ItemGroup>
   <ProjectReference Include="../MyMod.Common/MyMod.Common.csproj" />
 </ItemGroup>
 ```
+
+#### IsModLib 行为差异
+
+**共享库项目**（`IsModLib=true`）会跳过以下自动化任务：
+- ❌ 预览图片（`preview.png`）生成
+- ❌ Mod 元数据（`info.ini`）生成
+- ❌ 自动部署到游戏目录
+- ❌ ILRepack 程序集合并
+- ❌ 依赖文件复制
+
+**保留的功能**：
+- ✅ 本地化处理（字符串提取和 CSV 更新）
+- ✅ 编译和程序集生成
+
+**最终发布 Mod 项目**（`IsModLib=false` 或未设置）会执行所有自动化任务。
+
+#### 项目属性说明
+
+- **`IsModLib=true`**: 标记项目为共享库，跳过非必要的自动化任务
+- **`ExcludeSdkLib=true`**: 排除 SDK 源代码编译（用于入口项目，避免重复编译）
 
 ### 自动生成资源
 
@@ -415,7 +436,7 @@ Ducky.Sdk/
 | `AssetsDir` | `assets/` | 自定义资源目录路径（用于一般资源）|
 | `LocalizationAssetsDir` | `$(AssetsDir)` | 本地化资源目录路径（用于 UpdateLocalesCsv target）|
 | `ExcludeSdkLib` | `true` | 排除 SDK 源代码编译（用于入口项目）|
-| `IsModLib` | `false` | 将项目标记为共享库 |
+| `IsModLib` | `false` | 将项目标记为共享库（跳过图片生成、部署、ILRepack 等自动化任务，仅保留本地化处理）|
 
 #### AssetsDir vs LocalizationAssetsDir
 
