@@ -4,6 +4,7 @@ using System.IO;
 using Ducky.Sdk.Logging;
 using Ducky.Sdk.Options;
 using NUnit.Framework;
+using Newtonsoft.Json;
 
 namespace Ducky.Sdk.Lib.Tests;
 
@@ -669,6 +670,248 @@ public class ModOptionsTests
 
     #endregion
 
+    #region 默认值验证测试
+
+    [Test]
+    public void LoadConfig_WithMissingKeyAndSimpleTypeDefaultValue_ShouldValidateAndSave()
+    {
+        // Arrange
+        var key = "test_missing_simple";
+        var defaultValue = 42;
+
+        // Act
+        var result = _modOptions.LoadConfig<int>(key, defaultValue);
+
+        // Assert
+        result.ShouldBe(defaultValue);
+
+        // 验证默认值已经被正确保存
+        var savedValue = _modOptions.LoadConfig<int>(key);
+        savedValue.ShouldBe(defaultValue);
+    }
+
+    [Test]
+    public void LoadConfig_WithMissingKeyAndStringDefaultValue_ShouldValidateAndSave()
+    {
+        // Arrange
+        var key = "test_missing_string";
+        var defaultValue = "default string value";
+
+        // Act
+        var result = _modOptions.LoadConfig<string>(key, defaultValue);
+
+        // Assert
+        result.ShouldBe(defaultValue);
+
+        // 验证默认值已经被正确保存
+        var savedValue = _modOptions.LoadConfig<string>(key);
+        savedValue.ShouldBe(defaultValue);
+    }
+
+    [Test]
+    public void LoadConfig_WithMissingKeyAndBoolDefaultValue_ShouldValidateAndSave()
+    {
+        // Arrange
+        var key = "test_missing_bool";
+        var defaultValue = true;
+
+        // Act
+        var result = _modOptions.LoadConfig<bool>(key, defaultValue);
+
+        // Assert
+        result.ShouldBe(defaultValue);
+
+        // 验证默认值已经被正确保存
+        var savedValue = _modOptions.LoadConfig<bool>(key);
+        savedValue.ShouldBe(defaultValue);
+    }
+
+    [Test]
+    public void LoadConfig_WithMissingKeyAndDateTimeDefaultValue_ShouldConvertToUnixTimestamp()
+    {
+        // Arrange
+        var key = "test_missing_datetime";
+        var defaultValue = new DateTime(2023, 6, 15, 12, 30, 45, DateTimeKind.Utc);
+        var expectedUnixTimestamp = ((DateTimeOffset)defaultValue).ToUnixTimeSeconds();
+
+        // Act
+        var result = _modOptions.LoadConfig<DateTime>(key, defaultValue);
+
+        // Assert
+        result.ShouldBe(defaultValue);
+
+        // 验证底层存储的是 Unix 时间戳
+        var savedUnixTimestamp = _modOptions.LoadConfig<long>(key);
+        savedUnixTimestamp.ShouldBe(expectedUnixTimestamp);
+    }
+
+    [Test]
+    public void LoadConfig_WithMissingKeyAndDateTimeOffsetDefaultValue_ShouldConvertToUnixTimestamp()
+    {
+        // Arrange
+        var key = "test_missing_datetimeoffset";
+        var defaultValue = new DateTimeOffset(2023, 6, 15, 12, 30, 45, TimeSpan.FromHours(8));
+        var expectedUnixTimestamp = defaultValue.ToUnixTimeSeconds();
+
+        // Act
+        var result = _modOptions.LoadConfig<DateTimeOffset>(key, defaultValue);
+
+        // Assert
+        result.ShouldBe(defaultValue);
+
+        // 验证底层存储的是 Unix 时间戳
+        var savedUnixTimestamp = _modOptions.LoadConfig<long>(key);
+        savedUnixTimestamp.ShouldBe(expectedUnixTimestamp);
+    }
+
+    [Test]
+    public void LoadConfig_WithMissingKeyAndNullableDateTimeDefaultValue_ShouldConvertToUnixTimestamp()
+    {
+        // Arrange
+        var key = "test_missing_nullable_datetime";
+        DateTime? defaultValue = new DateTime(2023, 6, 15, 12, 30, 45, DateTimeKind.Utc);
+        var expectedUnixTimestamp = ((DateTimeOffset)defaultValue.Value).ToUnixTimeSeconds();
+
+        // Act
+        var result = _modOptions.LoadConfig<DateTime?>(key, defaultValue);
+
+        // Assert
+        result.ShouldBe(defaultValue);
+
+        // 验证底层存储的是 Unix 时间戳
+        var savedUnixTimestamp = _modOptions.LoadConfig<long>(key);
+        savedUnixTimestamp.ShouldBe(expectedUnixTimestamp);
+    }
+
+    [Test]
+    public void LoadConfig_WithMissingKeyAndComplexTypeDefaultValue_ShouldSerializeToJson()
+    {
+        // Arrange
+        var key = "test_missing_complex";
+        var defaultValue = new TestComplexObject
+        {
+            Name = "Test Object",
+            Value = 123,
+            IsActive = true
+        };
+
+        // Act
+        var result = _modOptions.LoadConfig<TestComplexObject>(key, defaultValue);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Name.ShouldBe(defaultValue.Name);
+        result.Value.ShouldBe(defaultValue.Value);
+        result.IsActive.ShouldBe(defaultValue.IsActive);
+
+        // 验证底层存储的是 JSON 字符串
+        var savedJson = _modOptions.LoadConfig<string>(key);
+        savedJson.ShouldNotBeNull();
+        savedJson.ShouldContain("Test Object");
+        savedJson.ShouldContain("123");
+    }
+
+    [Test]
+    public void LoadConfig_WithMissingKeyAndListDefaultValue_ShouldSerializeToJson()
+    {
+        // Arrange
+        var key = "test_missing_list";
+        var defaultValue = new List<string> { "item1", "item2", "item3" };
+
+        // Act
+        var result = _modOptions.LoadConfig<List<string>>(key, defaultValue);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(defaultValue.Count);
+        for (int i = 0; i < defaultValue.Count; i++)
+        {
+            result[i].ShouldBe(defaultValue[i]);
+        }
+
+        // 验证底层存储的是 JSON 字符串
+        var savedJson = _modOptions.LoadConfig<string>(key);
+        savedJson.ShouldNotBeNull();
+        savedJson.ShouldStartWith("[");
+        savedJson.ShouldEndWith("]");
+    }
+
+    [Test]
+    public void LoadConfig_WithMissingKeyAndArrayDefaultValue_ShouldSerializeToJson()
+    {
+        // Arrange
+        var key = "test_missing_array";
+        var defaultValue = new[] { "array1", "array2", "array3" };
+
+        // Act
+        var result = _modOptions.LoadConfig<string[]>(key, defaultValue);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Length.ShouldBe(defaultValue.Length);
+        for (int i = 0; i < defaultValue.Length; i++)
+        {
+            result[i].ShouldBe(defaultValue[i]);
+        }
+
+        // 验证底层存储的是 JSON 字符串
+        var savedJson = _modOptions.LoadConfig<string>(key);
+        savedJson.ShouldNotBeNull();
+        savedJson.ShouldStartWith("[");
+        savedJson.ShouldEndWith("]");
+    }
+
+    [Test]
+    public void LoadConfig_WithMissingKeyAndDictionaryDefaultValue_ShouldSerializeToJson()
+    {
+        // Arrange
+        var key = "test_missing_dictionary";
+        var defaultValue = new Dictionary<string, int>
+        {
+            { "key1", 1 },
+            { "key2", 2 },
+            { "key3", 3 }
+        };
+
+        // Act
+        var result = _modOptions.LoadConfig<Dictionary<string, int>>(key, defaultValue);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(defaultValue.Count);
+        foreach (var kvp in defaultValue)
+        {
+            result.ContainsKey(kvp.Key).ShouldBeTrue();
+            result[kvp.Key].ShouldBe(kvp.Value);
+        }
+
+        // 验证底层存储的是 JSON 字符串
+        var savedJson = _modOptions.LoadConfig<string>(key);
+        savedJson.ShouldNotBeNull();
+        savedJson.ShouldStartWith("{");
+        savedJson.ShouldEndWith("}");
+    }
+
+    [Test]
+    public void LoadConfig_WithUnserializableDefaultValue_ShouldReturnDefaultWithoutPersisting()
+    {
+        // Arrange
+        var key = "test_missing_unserializable";
+        var unserializableValue = new UnserializableObject();
+
+        // Act
+        var result = _modOptions.LoadConfig<UnserializableObject>(key, unserializableValue);
+
+        // Assert
+        result.ShouldBe(unserializableValue);
+
+        // 验证默认值没有被持久化（键仍然不存在）
+        var keyExists = _storage.KeyExists(key, _modOptions.GetConfigFilePath());
+        keyExists.ShouldBeFalse();
+    }
+
+    #endregion
+
     /// <summary>
     /// 简单的控制台日志类，便于在测试失败时查看内部异常
     /// </summary>
@@ -733,5 +976,29 @@ public class ModOptionsTests
 
             return file;
         }
+    }
+
+    /// <summary>
+    /// 测试用的复杂对象类
+    /// </summary>
+    public class TestComplexObject
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Value { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    /// <summary>
+    /// 测试用的不可序列化对象类
+    /// </summary>
+    public class UnserializableObject
+    {
+        // 通过自定义序列化来强制失败
+        [JsonProperty]
+        public string Name { get; set; } = "Test";
+
+        // 这个属性会在序列化时抛出异常
+        [JsonProperty]
+        public object ProblematicProperty => throw new InvalidOperationException("This property cannot be serialized");
     }
 }

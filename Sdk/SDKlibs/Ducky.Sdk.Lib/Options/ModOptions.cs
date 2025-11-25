@@ -192,6 +192,49 @@ public class ModOptions
     }
 
     /// <summary>
+    /// 验证并保存数据，使用与 SaveConfig 相同的逻辑
+    /// </summary>
+    private bool ValidateAndSaveData<T>(string key, T data, string path)
+    {
+        try
+        {
+            if (IsSimpleType(typeof(T)))
+            {
+                // 处理时间类型
+                if (IsDateTimeType(typeof(T)))
+                {
+                    var unixTimestamp = ConvertToUnixTimestamp(data);
+                    _storage.Save(key, unixTimestamp, path);
+                }
+                else
+                {
+                    _storage.Save(key, data, path);
+                }
+            }
+            else
+            {
+                try
+                {
+                    var json = JsonConvert.SerializeObject(data);
+                    _storage.Save(key, json, path);
+                }
+                catch (Exception ex)
+                {
+                    Log.DebugException($"failed to serialize default value to json for key {key}", ex);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.DebugException($"failed to validate and save default value for key {key}", ex);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// 确保配置文件夹存在
     /// </summary>
     private bool EnsureFolderExists()
@@ -247,35 +290,14 @@ public class ModOptions
                 }
 
                 var path = GetConfigFilePath();
-                if (IsSimpleType(typeof(T)))
+                var saveResult = ValidateAndSaveData(key, data, path);
+
+                if (saveResult)
                 {
-                    // 处理时间类型
-                    if (IsDateTimeType(typeof(T)))
-                    {
-                        var unixTimestamp = ConvertToUnixTimestamp(data);
-                        _storage.Save(key, unixTimestamp, path);
-                    }
-                    else
-                    {
-                        _storage.Save(key, data, path);
-                    }
-                }
-                else
-                {
-                    try
-                    {
-                        var json = JsonConvert.SerializeObject(data);
-                        _storage.Save(key, json, path);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.DebugException($"failed to serialize config to json for key {key}", ex);
-                        return false;
-                    }
+                    Log.Debug($"[ModLocalConfigManager] Saved config to {path}");
                 }
 
-                Log.Debug($"[ModLocalConfigManager] Saved config to {path}");
-                return true;
+                return saveResult;
             }
             catch (Exception ex)
             {
@@ -298,8 +320,15 @@ public class ModOptions
 
                 if (!_storage.KeyExists(key, path))
                 {
-                    _storage.Save(key, defaultValue, path);
-                    return defaultValue;
+                    if (ValidateAndSaveData(key, defaultValue, path))
+                    {
+                        return defaultValue;
+                    }
+                    else
+                    {
+                        // 如果保存默认值失败，仍然返回默认值，但不持久化
+                        return defaultValue;
+                    }
                 }
 
                 // 简单类型直接使用 ES3 加载
