@@ -4,7 +4,7 @@ set -euo pipefail
 # packToLocal.sh
 # Build and pack the Ducky.Sdk NuGet package into the local ./duckylocal source directory.
 # Usage:
-#   ./scripts/packToLocal.sh [--version x.y.z] [--no-build] [--skip-tests] [--configuration Debug|Release] [--no-clear-cache] [--clear-all-caches] [--purge-all-versions]
+#   ./scripts/packToLocal.sh [--version x.y.z] [--no-build] [--skip-tests] [--configuration Debug|Release] [--no-clear-cache] [--no-clear-all-caches] [--purge-all-versions]
 #
 # The script will:
 #   1. Ensure ./duckylocal exists
@@ -33,7 +33,7 @@ OVERRIDE_VERSION=""
 CONFIGURATION="Debug"
 TEMP_NUSPEC=""
 CLEAR_CACHE=true
-CLEAR_ALL_CACHES=false
+CLEAR_ALL_CACHES=true
 PURGE_ALL_VERSIONS=false
 
 function log() { printf "[packToLocal] %s\n" "$*"; }
@@ -55,6 +55,8 @@ while [[ $# -gt 0 ]]; do
       CLEAR_CACHE=false; shift;;
     --clear-all-caches)
       CLEAR_ALL_CACHES=true; shift;;
+    --no-clear-all-caches)
+      CLEAR_ALL_CACHES=false; shift;;
     --purge-all-versions)
       PURGE_ALL_VERSIONS=true; shift;;
     -h|--help)

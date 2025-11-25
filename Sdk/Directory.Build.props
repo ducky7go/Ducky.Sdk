@@ -6,14 +6,14 @@
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <LangVersion>12</LangVersion>
-    <DuckovPath>$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
-    <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
-    <ManagedDirectory>$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>
+    <DuckovFolder Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' != '' ">$(SteamFolder)steamapps/common/Escape from Duckov/</DuckovFolder>
+    <ModsDirectory>$(DuckovFolder)Duckov_Data/Mods/</ModsDirectory>
+    <ManagedDirectory>$(DuckovFolder)Duckov_Data/Managed/</ManagedDirectory>
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
-  <!-- Fail early if SteamDir is not provided -->
-  <Target Name="FailIfSteamDirMissing" BeforeTargets="PrepareForBuild;Restore" Condition="'$(CI)' != 'true'">
-    <Error Text="SteamDir property must be set. Provide it via Local.props or -p:SteamDir=/path/to/steam/"
-           Condition="'$(SteamDir)' == ''" />
+  <!-- Fail early if SteamFolder is not provided -->
+  <Target Name="FailIfSteamFolderMissing" BeforeTargets="PrepareForBuild;Restore" Condition="'$(CI)' != 'true'">
+    <Error Text="SteamFolder property must be set. Provide it via Local.props or -p:SteamFolder=/path/to/steam/"
+           Condition="'$(SteamFolder)' == ''" />
   </Target>
 </Project>
