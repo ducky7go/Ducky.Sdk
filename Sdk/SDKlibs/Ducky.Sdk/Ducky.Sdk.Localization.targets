@@ -1,149 +1,149 @@
 <Project>
-  <!-- Pre-build: Extract localization keys from generated metadata to JSON -->
-  <Target Name="ExtractLKeysJson" AfterTargets="CoreCompile" BeforeTargets="UpdateLocalesCsv"
-          Condition="'$(_ShouldProcessLocalization)' == 'true'">
-      <PropertyGroup>
-          <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
-          <_ExtractScriptInProject>$(MSBuildThisFileDirectory)../scripts/extract-lkeys-json.csx</_ExtractScriptInProject>
-          <ExtractScriptPath Condition="$([System.IO.File]::Exists('$(_ExtractScriptInProject)'))">$(_ExtractScriptInProject)</ExtractScriptPath>
-      </PropertyGroup>
+    <!-- Pre-build: Extract localization keys from generated metadata to JSON -->
+    <Target Name="ExtractLKeysJson" AfterTargets="CoreCompile" BeforeTargets="UpdateLocalesCsv"
+            Condition="'$(_ShouldProcessLocalization)' == 'true'">
+        <PropertyGroup>
+            <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
+            <_ExtractScriptInProject>$(MSBuildThisFileDirectory)../scripts/extract-lkeys-json.csx</_ExtractScriptInProject>
+            <ExtractScriptPath Condition="$([System.IO.File]::Exists('$(_ExtractScriptInProject)'))">$(_ExtractScriptInProject)</ExtractScriptPath>
+        </PropertyGroup>
 
-      <ItemGroup Condition="'$(ExtractScriptPath)' == ''">
-          <_ExtractLKeysScriptFromContent Include="@(Compile)"
-                                          Condition="'%(Filename)%(Extension)' == 'extract-lkeys-json.csx'" />
-      </ItemGroup>
+        <ItemGroup Condition="'$(ExtractScriptPath)' == ''">
+            <_ExtractLKeysScriptFromContent Include="@(Compile)"
+                                            Condition="'%(Filename)%(Extension)' == 'extract-lkeys-json.csx'" />
+        </ItemGroup>
 
-      <PropertyGroup>
-          <ExtractScriptPath Condition="'$(ExtractScriptPath)' == '' AND '@(_ExtractLKeysScriptFromContent)' != ''">%(_ExtractLKeysScriptFromContent.FullPath)</ExtractScriptPath>
-          <!-- Fallback only: allow external override via /p:AssetsDir=... -->
-          <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
-          <!-- For localization, use LocalizationAssetsDir as primary source, fallback to AssetsDir -->
-          <_EffectiveLocalizationAssetsDir Condition="'$(LocalizationAssetsDir)' != ''">$(LocalizationAssetsDir)</_EffectiveLocalizationAssetsDir>
-          <_EffectiveLocalizationAssetsDir Condition="'$(LocalizationAssetsDir)' == ''">$(AssetsDir)</_EffectiveLocalizationAssetsDir>
-          <!-- 使用 CompilerGeneratedFilesOutputPath，如果未设置则使用 IntermediateOutputPath -->
-          <_GeneratedFilesPath Condition="'$(CompilerGeneratedFilesOutputPath)' != ''">$(CompilerGeneratedFilesOutputPath)</_GeneratedFilesPath>
-          <_GeneratedFilesPath Condition="'$(_GeneratedFilesPath)' == ''">$(IntermediateOutputPath)</_GeneratedFilesPath>
-          <_GeneratedFilesFullPath>$([System.IO.Path]::GetFullPath('$(_GeneratedFilesPath)'))</_GeneratedFilesFullPath>
-      </PropertyGroup>
+        <PropertyGroup>
+            <ExtractScriptPath Condition="'$(ExtractScriptPath)' == '' AND '@(_ExtractLKeysScriptFromContent)' != ''">%(_ExtractLKeysScriptFromContent.FullPath)</ExtractScriptPath>
+            <!-- Fallback only: allow external override via /p:AssetsDir=... -->
+            <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
+            <!-- For localization, use LocalizationAssetsDir as primary source, fallback to AssetsDir -->
+            <_EffectiveLocalizationAssetsDir Condition="'$(LocalizationAssetsDir)' != ''">$(LocalizationAssetsDir)</_EffectiveLocalizationAssetsDir>
+            <_EffectiveLocalizationAssetsDir Condition="'$(LocalizationAssetsDir)' == ''">$(AssetsDir)</_EffectiveLocalizationAssetsDir>
+            <!-- 使用 CompilerGeneratedFilesOutputPath，如果未设置则使用 IntermediateOutputPath -->
+            <_GeneratedFilesPath Condition="'$(CompilerGeneratedFilesOutputPath)' != ''">$(CompilerGeneratedFilesOutputPath)</_GeneratedFilesPath>
+            <_GeneratedFilesPath Condition="'$(_GeneratedFilesPath)' == ''">$(IntermediateOutputPath)</_GeneratedFilesPath>
+            <_GeneratedFilesFullPath>$([System.IO.Path]::GetFullPath('$(_GeneratedFilesPath)'))</_GeneratedFilesFullPath>
+        </PropertyGroup>
 
-      <Message Text="Extracting localization keys to JSON..." Importance="high"
-               Condition="'$(ExtractScriptPath)' != ''" />
-      <Message Text="  Script: $(ExtractScriptPath)" Importance="high" />
-      <Message Text="  Generated Files Dir: $(_GeneratedFilesFullPath)" Importance="high" />
-      <Message Text="  Localization Assets Dir: $(_EffectiveLocalizationAssetsDir)" Importance="high" />
+        <Message Text="Extracting localization keys to JSON..." Importance="high"
+                 Condition="'$(ExtractScriptPath)' != ''" />
+        <Message Text="  Script: $(ExtractScriptPath)" Importance="high" />
+        <Message Text="  Generated Files Dir: $(_GeneratedFilesFullPath)" Importance="high" />
+        <Message Text="  Localization Assets Dir: $(_EffectiveLocalizationAssetsDir)" Importance="high" />
 
-      <!-- 支持 LocalizationAssetsDir 以分号分隔的多个目录：展开为 _ExtractAssetsDirList 项 -->
-      <ItemGroup Condition="'$(_EffectiveLocalizationAssetsDir)' != ''">
-          <_ExtractAssetsDirList Include="$(_EffectiveLocalizationAssetsDir)" />
-      </ItemGroup>
-      <Message Text="  Found @(_ExtractAssetsDirList->Count()) localization directories" Importance="high"
-               Condition="'@(_ExtractAssetsDirList)' != ''" />
+        <!-- 支持 LocalizationAssetsDir 以分号分隔的多个目录：展开为 _ExtractAssetsDirList 项 -->
+        <ItemGroup Condition="'$(_EffectiveLocalizationAssetsDir)' != ''">
+            <_ExtractAssetsDirList Include="$(_EffectiveLocalizationAssetsDir)" />
+        </ItemGroup>
+        <Message Text="  Found @(_ExtractAssetsDirList->Count()) localization directories" Importance="high"
+                 Condition="'@(_ExtractAssetsDirList)' != ''" />
 
-      <!-- 针对每个目录生成 JSON 文件 -->
-      <Exec
-          Command="dotnet script &quot;$(ExtractScriptPath)&quot; &quot;$(_GeneratedFilesFullPath)&quot; &quot;$([System.IO.Path]::Combine('$(ProjectDir)','%(_ExtractAssetsDirList.Identity)','lkeys.json'))&quot;"
-          ContinueOnError="true"
-          IgnoreExitCode="true"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
-          Condition="'$(ExtractScriptPath)' != '' AND '@(_ExtractAssetsDirList)' != ''">
-          <Output TaskParameter="ConsoleOutput" ItemName="_ExtractJsonOutput" />
-          <Output TaskParameter="ExitCode" PropertyName="_ExtractJsonExitCode" />
-      </Exec>
+        <!-- 针对每个目录生成 JSON 文件 -->
+        <Exec
+            Command="dotnet script &quot;$(ExtractScriptPath)&quot; &quot;$(_GeneratedFilesFullPath)&quot; &quot;$([System.IO.Path]::Combine('$(ProjectDir)','%(_ExtractAssetsDirList.Identity)','lkeys.json'))&quot;"
+            ContinueOnError="true"
+            IgnoreExitCode="true"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="'$(ExtractScriptPath)' != '' AND '@(_ExtractAssetsDirList)' != ''">
+            <Output TaskParameter="ConsoleOutput" ItemName="_ExtractJsonOutput" />
+            <Output TaskParameter="ExitCode" PropertyName="_ExtractJsonExitCode" />
+        </Exec>
 
-      <Message Text="  Generated JSON files: @(_ExtractAssetsDirList->'$(ProjectDir)/%(Identity)/lkeys.json', ' | ')"
-               Importance="high"
-               Condition="'@(_ExtractAssetsDirList)' != ''" />
+        <Message Text="  Generated JSON files: @(_ExtractAssetsDirList->'$(ProjectDir)/%(Identity)/lkeys.json', ' | ')"
+                 Importance="high"
+                 Condition="'@(_ExtractAssetsDirList)' != ''" />
 
-      <!-- 退出码说明：
+        <!-- 退出码说明：
            0 = 成功提取 JSON
            2 = 项目没有本地化键（不是错误）
            其他 = 实际错误 -->
-      <Message Text="No localization keys found in this project, skipping CSV generation" Importance="high"
-               Condition="'$(_ExtractJsonExitCode)' == '2'" />
+        <Message Text="No localization keys found in this project, skipping CSV generation" Importance="high"
+                 Condition="'$(_ExtractJsonExitCode)' == '2'" />
 
-      <Warning Text="Failed to extract localization keys (exit code $(_ExtractJsonExitCode))"
-               Condition="'$(_ExtractJsonExitCode)' != '0' AND '$(_ExtractJsonExitCode)' != '2' AND '$(_ExtractJsonExitCode)' != ''" />
+        <Warning Text="Failed to extract localization keys (exit code $(_ExtractJsonExitCode))"
+                 Condition="'$(_ExtractJsonExitCode)' != '0' AND '$(_ExtractJsonExitCode)' != '2' AND '$(_ExtractJsonExitCode)' != ''" />
 
-      <Message Text="Localization keys extraction completed successfully" Importance="high"
-               Condition="'$(_ExtractJsonExitCode)' == '0'" />
-  </Target>
+        <Message Text="Localization keys extraction completed successfully" Importance="high"
+                 Condition="'$(_ExtractJsonExitCode)' == '0'" />
+    </Target>
 
-  <!-- Post-build: Update localization CSV files -->
-  <Target Name="UpdateLocalesCsv" AfterTargets="AfterBuild"
-          Condition="'$(_ShouldProcessLocalization)' == 'true'">
-      <PropertyGroup>
-          <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
-          <!-- 获取 NuGet 包的安装路径（$(MSBuildThisFileDirectory) 指向 .targets 所在目录，即 build/） -->
-          <!-- 假设脚本在包的 tools/ 目录，通过 .. 回退到包根目录再进入 tools -->
-          <_ScriptInProject>$(MSBuildThisFileDirectory)../scripts/update-locales-csv.csx</_ScriptInProject>
-          <UpdateScriptPath Condition="$([System.IO.File]::Exists('$(_ScriptInProject)'))">$(_ScriptInProject)</UpdateScriptPath>
-      </PropertyGroup>
+    <!-- Post-build: Update localization CSV files -->
+    <Target Name="UpdateLocalesCsv" AfterTargets="AfterBuild"
+            Condition="'$(_ShouldProcessLocalization)' == 'true'">
+        <PropertyGroup>
+            <ProjectDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectFullPath)'))</ProjectDir>
+            <!-- 获取 NuGet 包的安装路径（$(MSBuildThisFileDirectory) 指向 .targets 所在目录，即 build/） -->
+            <!-- 假设脚本在包的 tools/ 目录，通过 .. 回退到包根目录再进入 tools -->
+            <_ScriptInProject>$(MSBuildThisFileDirectory)../scripts/update-locales-csv.csx</_ScriptInProject>
+            <UpdateScriptPath Condition="$([System.IO.File]::Exists('$(_ScriptInProject)'))">$(_ScriptInProject)</UpdateScriptPath>
+        </PropertyGroup>
 
-      <ItemGroup Condition="'$(UpdateScriptPath)' == ''">
-          <_UpdateLocalesScriptFromContent Include="@(Compile)"
-                                           Condition="'%(Filename)%(Extension)' == 'update-locales-csv.csx'" />
-      </ItemGroup>
+        <ItemGroup Condition="'$(UpdateScriptPath)' == ''">
+            <_UpdateLocalesScriptFromContent Include="@(Compile)"
+                                             Condition="'%(Filename)%(Extension)' == 'update-locales-csv.csx'" />
+        </ItemGroup>
 
-      <PropertyGroup>
-          <UpdateScriptPath Condition="'$(UpdateScriptPath)' == '' AND '@(_UpdateLocalesScriptFromContent)' != ''">%(_UpdateLocalesScriptFromContent.FullPath)</UpdateScriptPath>
-          <!-- Fallback for AssetsDir (used by other targets): allow external override via /p:AssetsDir=... -->
-          <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
-          <!-- For localization, use LocalizationAssetsDir as primary source, fallback to AssetsDir -->
-          <_EffectiveLocalizationAssetsDir Condition="'$(LocalizationAssetsDir)' != ''">$(LocalizationAssetsDir)</_EffectiveLocalizationAssetsDir>
-          <_EffectiveLocalizationAssetsDir Condition="'$(LocalizationAssetsDir)' == ''">$(AssetsDir)</_EffectiveLocalizationAssetsDir>
-          <_UsingAssetsDir Condition="'$(LocalizationAssetsDir)' != ''">false</_UsingAssetsDir>
-          <_UsingAssetsDir Condition="'$(LocalizationAssetsDir)' == ''">true</_UsingAssetsDir>
-          <TargetAssembly>$(TargetPath)</TargetAssembly>
-      </PropertyGroup>
+        <PropertyGroup>
+            <UpdateScriptPath Condition="'$(UpdateScriptPath)' == '' AND '@(_UpdateLocalesScriptFromContent)' != ''">%(_UpdateLocalesScriptFromContent.FullPath)</UpdateScriptPath>
+            <!-- Fallback for AssetsDir (used by other targets): allow external override via /p:AssetsDir=... -->
+            <AssetsDir Condition="'$(AssetsDir)' == ''">$([System.IO.Path]::Combine('$(ProjectDir)','assets'))</AssetsDir>
+            <!-- For localization, use LocalizationAssetsDir as primary source, fallback to AssetsDir -->
+            <_EffectiveLocalizationAssetsDir Condition="'$(LocalizationAssetsDir)' != ''">$(LocalizationAssetsDir)</_EffectiveLocalizationAssetsDir>
+            <_EffectiveLocalizationAssetsDir Condition="'$(LocalizationAssetsDir)' == ''">$(AssetsDir)</_EffectiveLocalizationAssetsDir>
+            <_UsingAssetsDir Condition="'$(LocalizationAssetsDir)' != ''">false</_UsingAssetsDir>
+            <_UsingAssetsDir Condition="'$(LocalizationAssetsDir)' == ''">true</_UsingAssetsDir>
+            <TargetAssembly>$(TargetPath)</TargetAssembly>
+        </PropertyGroup>
 
-      <Message Text="Running update-locales-csv.csx via dotnet script..." Importance="high" />
-      <Message Text="  ProjectDir: $(ProjectDir)" Importance="high" />
-      <Message Text="  Using LocalizationAssetsDir: $(_EffectiveLocalizationAssetsDir)" Importance="high" />
-      <Message Text="  Property Source: $(_UsingAssetsDir)" Importance="high" />
-      <Message Text="  TargetAssembly: $(TargetAssembly)" Importance="high" />
-      <Message Text="  Script candidate (project): $(_ScriptInProject)" Importance="low" />
-      <Message Text="  Script candidate (contentFiles): @(_UpdateLocalesScriptFromContent->'%(FullPath)')"
-               Importance="low" Condition="'@(_UpdateLocalesScriptFromContent)' != ''" />
-      <Message Text="  Chosen Script: $(UpdateScriptPath)" Importance="high" Condition="'$(UpdateScriptPath)' != ''" />
-      <Warning Text="update-locales-csv.csx not found. Checked: $(_ScriptInProject); contentFiles. Skipping Exec."
-               Condition="'$(UpdateScriptPath)' == ''" />
-      <!-- 支持 LocalizationAssetsDir 以分号分隔的多个目录：展开为 _AssetsDirList 项 -->
-      <ItemGroup Condition="'$(_EffectiveLocalizationAssetsDir)' != ''">
-          <!-- 使用 MSBuild 的 Replace 和 Splitting 技巧：先将分号替换为 ;; 再借助 %(Identity) 展开。这里直接利用 @(AssetsDirSplit) 的 Include 逗号/分号分隔特性。 -->
-          <_AssetsDirList Include="$(_EffectiveLocalizationAssetsDir)" />
-      </ItemGroup>
-      <Message Text="  Resolved LocalizationAssetsDir Count: @(_AssetsDirList->Count())" Importance="high"
-               Condition="'@(_AssetsDirList)' != ''" />
-      <Message Text="  LocalizationAssetsDir Each: @(_AssetsDirList->'%(Identity)', ' | ')" Importance="high"
-               Condition="'@(_AssetsDirList)' != ''" />
-      <!-- 计算每个目录的绝对路径，便于日志观测与排错 -->
-      <ItemGroup Condition="'@(_AssetsDirList)' != ''">
-          <_AssetsDirResolved
-              Include="@(_AssetsDirList->'$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(ProjectDir)','%(Identity)'))))')" />
-      </ItemGroup>
-      <Message Text="  LocalizationAssetsDir Absolute Each: @(_AssetsDirResolved->'%(Identity)', ' | ')"
-               Importance="high"
-               Condition="'@(_AssetsDirResolved)' != ''" />
-      <Warning Text="Effective localization assets dir empty, skipping update-locales-csv execution."
-               Condition="'$(_EffectiveLocalizationAssetsDir)' == ''" />
-      <!-- 计算每个目录的 lkeys.json 路径 -->
-      <PropertyGroup>
-          <_CurrentLKeysJsonPath>$([System.IO.Path]::Combine('$(ProjectDir)','%(_AssetsDirList.Identity)','lkeys.json'))</_CurrentLKeysJsonPath>
-      </PropertyGroup>
+        <Message Text="Running update-locales-csv.csx via dotnet script..." Importance="high" />
+        <Message Text="  ProjectDir: $(ProjectDir)" Importance="high" />
+        <Message Text="  Using LocalizationAssetsDir: $(_EffectiveLocalizationAssetsDir)" Importance="high" />
+        <Message Text="  Property Source: $(_UsingAssetsDir)" Importance="high" />
+        <Message Text="  TargetAssembly: $(TargetAssembly)" Importance="high" />
+        <Message Text="  Script candidate (project): $(_ScriptInProject)" Importance="low" />
+        <Message Text="  Script candidate (contentFiles): @(_UpdateLocalesScriptFromContent->'%(FullPath)')"
+                 Importance="low" Condition="'@(_UpdateLocalesScriptFromContent)' != ''" />
+        <Message Text="  Chosen Script: $(UpdateScriptPath)" Importance="high" Condition="'$(UpdateScriptPath)' != ''" />
+        <Warning Text="update-locales-csv.csx not found. Checked: $(_ScriptInProject); contentFiles. Skipping Exec."
+                 Condition="'$(UpdateScriptPath)' == ''" />
+        <!-- 支持 LocalizationAssetsDir 以分号分隔的多个目录：展开为 _AssetsDirList 项 -->
+        <ItemGroup Condition="'$(_EffectiveLocalizationAssetsDir)' != ''">
+            <!-- 使用 MSBuild 的 Replace 和 Splitting 技巧：先将分号替换为 ;; 再借助 %(Identity) 展开。这里直接利用 @(AssetsDirSplit) 的 Include 逗号/分号分隔特性。 -->
+            <_AssetsDirList Include="$(_EffectiveLocalizationAssetsDir)" />
+        </ItemGroup>
+        <Message Text="  Resolved LocalizationAssetsDir Count: @(_AssetsDirList->Count())" Importance="high"
+                 Condition="'@(_AssetsDirList)' != ''" />
+        <Message Text="  LocalizationAssetsDir Each: @(_AssetsDirList->'%(Identity)', ' | ')" Importance="high"
+                 Condition="'@(_AssetsDirList)' != ''" />
+        <!-- 计算每个目录的绝对路径，便于日志观测与排错 -->
+        <ItemGroup Condition="'@(_AssetsDirList)' != ''">
+            <_AssetsDirResolved
+                Include="@(_AssetsDirList->'$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(ProjectDir)','%(Identity)'))))')" />
+        </ItemGroup>
+        <Message Text="  LocalizationAssetsDir Absolute Each: @(_AssetsDirResolved->'%(Identity)', ' | ')"
+                 Importance="high"
+                 Condition="'@(_AssetsDirResolved)' != ''" />
+        <Warning Text="Effective localization assets dir empty, skipping update-locales-csv execution."
+                 Condition="'$(_EffectiveLocalizationAssetsDir)' == ''" />
+        <!-- 计算每个目录的 lkeys.json 路径 -->
+        <PropertyGroup>
+            <_CurrentLKeysJsonPath>$([System.IO.Path]::Combine('$(ProjectDir)','%(_AssetsDirList.Identity)','lkeys.json'))</_CurrentLKeysJsonPath>
+        </PropertyGroup>
 
-      <!-- 针对每个目录批处理执行脚本，每个目录使用自己的 lkeys.json -->
-      <Exec
-          Command="dotnet script &quot;$(UpdateScriptPath)&quot; &quot;$(ProjectDir)&quot; &quot;%(_AssetsDirList.Identity)&quot; &quot;$(TargetAssembly)&quot; &quot;$(_CurrentLKeysJsonPath)&quot;"
-          ContinueOnError="true"
-          IgnoreExitCode="false"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
-          Condition="'$(UpdateScriptPath)' != '' AND '@(_AssetsDirList)' != '' AND Exists('$(_CurrentLKeysJsonPath)')">
-          <Output TaskParameter="ConsoleOutput" ItemName="_LocalesUpdateOutput" />
-      </Exec>
+        <!-- 针对每个目录批处理执行脚本，每个目录使用自己的 lkeys.json -->
+        <Exec
+            Command="dotnet script &quot;$(UpdateScriptPath)&quot; &quot;$(ProjectDir)&quot; &quot;%(_AssetsDirList.Identity)&quot; &quot;$(TargetAssembly)&quot; &quot;$(_CurrentLKeysJsonPath)&quot;"
+            ContinueOnError="true"
+            IgnoreExitCode="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="'$(UpdateScriptPath)' != '' AND '@(_AssetsDirList)' != '' AND Exists('$(_CurrentLKeysJsonPath)')">
+            <Output TaskParameter="ConsoleOutput" ItemName="_LocalesUpdateOutput" />
+        </Exec>
 
-      <Warning Text="Skipping update-locales-csv for directory '%(_AssetsDirList.Identity)' - lkeys.json not found"
-               Condition="'@(_AssetsDirList)' != '' AND !Exists('$(_CurrentLKeysJsonPath)')" />
-      <Message Text="  update-locales-csv outputs: @(_LocalesUpdateOutput->'%(Identity)')" Importance="low"
-               Condition="'@(_LocalesUpdateOutput)' != ''" />
-  </Target>
+        <Warning Text="Skipping update-locales-csv for directory '%(_AssetsDirList.Identity)' - lkeys.json not found"
+                 Condition="'@(_AssetsDirList)' != '' AND !Exists('$(_CurrentLKeysJsonPath)')" />
+        <Message Text="  update-locales-csv outputs: @(_LocalesUpdateOutput->'%(Identity)')" Importance="low"
+                 Condition="'@(_LocalesUpdateOutput)' != ''" />
+    </Target>
 </Project>

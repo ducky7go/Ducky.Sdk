@@ -48,8 +48,10 @@
     <Message Text="[Ducky.Sdk] LocalizationAssetsDir: $(LocalizationAssetsDir)" Importance="high" />
     <Message Text="[Ducky.Sdk] IsModLib: $(IsModLib)" Importance="high" Condition="'$(IsModLib)' != ''" />
     <Message Text="[Ducky.Sdk] DeployMod: $(DeployMod)" Importance="high" />
-    <Message Text="[Ducky.Sdk] Project mode: Library project (automation tasks will be skipped)" Importance="high" Condition="'$(IsModLib)' == 'true'" />
-    <Message Text="[Ducky.Sdk] Project mode: Final release mod project (full automation enabled)" Importance="high" Condition="'$(IsModLib)' != 'true' AND '$(ModName)' != ''" />
+    <Message Text="[Ducky.Sdk] Project mode: Library project (automation tasks will be skipped)" Importance="high"
+             Condition="'$(IsModLib)' == 'true'" />
+    <Message Text="[Ducky.Sdk] Project mode: Final release mod project (full automation enabled)" Importance="high"
+             Condition="'$(IsModLib)' != 'true' AND '$(ModName)' != ''" />
   </Target>
 
 

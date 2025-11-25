@@ -1,7 +1,7 @@
 <Project>
-  <!-- Import modular target files in correct order -->
-  <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Validation.targets" />
-  <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Localization.targets" />
-  <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Assets.targets" />
-  <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Packaging.targets" />
+    <!-- Import modular target files in correct order -->
+    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Validation.targets" />
+    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Localization.targets" />
+    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Assets.targets" />
+    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Packaging.targets" />
 </Project>
