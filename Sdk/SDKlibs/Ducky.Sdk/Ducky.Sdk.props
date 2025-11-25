@@ -5,6 +5,9 @@
     <!-- 指定生成文件的输出目录（可选，默认是 obj/$(Configuration)/$(TargetFramework)/generated） -->
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
 
+    <!-- 全局 using 配置，默认启用 -->
+    <EnableGlobalUsing Condition="'$(EnableGlobalUsing)' == ''">true</EnableGlobalUsing>
+
     <!-- 确保 NuGet 依赖的 DLL 被复制到输出目录，以便 ILRepack 可以合并它们 -->
     <CopyLocalLockFileAssemblies Condition="'$(CopyLocalLockFileAssemblies)' == ''">true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
@@ -52,6 +55,11 @@
              Condition="'$(IsModLib)' == 'true'" />
     <Message Text="[Ducky.Sdk] Project mode: Final release mod project (full automation enabled)" Importance="high"
              Condition="'$(IsModLib)' != 'true' AND '$(ModName)' != ''" />
+    <Message Text="[Ducky.Sdk] Global using: $(EnableGlobalUsing)" Importance="high" />
+    <Message Text="[Ducky.Sdk] Global using enabled - SDK, game engine, and common namespaces will be automatically imported" Importance="high"
+             Condition="'$(EnableGlobalUsing)' == 'true'" />
+    <Message Text="[Ducky.Sdk] Global using disabled - explicit using statements required" Importance="high"
+             Condition="'$(EnableGlobalUsing)' == 'false'" />
   </Target>
 
 
@@ -73,6 +81,41 @@
     <Warning Text="[Ducky.Sdk] IncludeHarmony is true but 0Harmony.dll not found at $(_HarmonyDllPath)"
              Condition="!Exists('$(_HarmonyDllPath)')" />
   </Target>
+
+  <!-- 全局 using 指令 -->
+  <ItemGroup Condition=" '$(EnableGlobalUsing)' == 'true' ">
+    <!-- 核心 SDK 命名空间 -->
+    <Using Include="Ducky.Sdk.ModBehaviours" />
+    <Using Include="Ducky.Sdk.Logging" />
+    <Using Include="Ducky.Sdk.Attributes" />
+    <Using Include="Ducky.Sdk.Options" />
+    <Using Include="Ducky.Sdk.Contracts" />
+    <Using Include="Ducky.Sdk.Contracts.CommandLine" />
+    <Using Include="Ducky.Sdk.Localizations" />
+    <Using Include="Ducky.Sdk.GameApis" />
+
+    <!-- 游戏引擎命名空间 -->
+    <Using Include="TeamSoda" />
+    <Using Include="FOW" />
+    <Using Include="SodaLocalization" />
+    <Using Include="Unity" />
+    <Using Include="UnityEngine" />
+    <Using Include="UnityEngine.UI" />
+    <Using Include="UnityEngine.SceneManagement" />
+    <Using Include="UnityEngine.EventSystems" />
+
+    <!-- 第三方库命名空间 -->
+    <Using Include="Newtonsoft.Json" />
+    <Using Include="Cysharp.Threading.Tasks" />
+    <Using Include="Cysharp.Threading.Tasks.Linq" />
+    <Using Include="Cysharp.Threading.Tasks.Triggers" />
+
+    <!-- 常用系统命名空间 -->
+    <Using Include="System.Linq" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Threading.Tasks" />
+    <Using Include="System.IO" />
+  </ItemGroup>
 
   <!-- Hide content files from Visual Studio solution explorer for this package -->
   <ItemGroup>
