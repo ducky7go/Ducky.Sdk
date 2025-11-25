@@ -6,13 +6,13 @@
     <Nullable>enable</Nullable>
     <!-- to make sure no implicit usings are included -->
     <ImplicitUsings>disable</ImplicitUsings>
-    <DuckovPath>$(SteamDir)steamapps/common/Escape from Duckov/</DuckovPath>
+    <DuckovFolder Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' != '' ">$(SteamFolder)steamapps/common/Escape from Duckov/</DuckovFolder>
     <!-- Resolve ManagedDirectory: if a repo root Managed folder exists, use it; otherwise fallback to game Managed -->
     <_RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../../'))</_RepoRoot>
     <_ManagedDirCandidate>$([System.IO.Path]::Combine('$(_RepoRoot)','Managed'))</_ManagedDirCandidate>
     <ManagedDirectory Condition="Exists('$(_ManagedDirCandidate)')">$(_ManagedDirCandidate)/</ManagedDirectory>
-    <ManagedDirectory Condition="'$(ManagedDirectory)' == ''">$(DuckovPath)Duckov_Data/Managed/</ManagedDirectory>
-    <ModsDirectory>$(DuckovPath)Duckov_Data/Mods/</ModsDirectory>
+    <ManagedDirectory Condition="'$(ManagedDirectory)' == ''">$(DuckovFolder)Duckov_Data/Managed/</ManagedDirectory>
+    <ModsDirectory>$(DuckovFolder)Duckov_Data/Mods/</ModsDirectory>
     <LangVersion>12</LangVersion>
   </PropertyGroup>
 

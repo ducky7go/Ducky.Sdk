@@ -11,7 +11,7 @@ set -euo pipefail
 #   4. Restores and rebuilds the Docky.Sdk.Sample.slnx solution
 #
 # Usage:
-#   ./scripts/rebuild_samples.sh [--version x.y.z] [--purge-all-versions] [--clear-all-caches]
+#   ./scripts/rebuild_samples.sh [--version x.y.z] [--purge-all-versions] [--no-clear-all-caches]
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PACK_SCRIPT="${ROOT_DIR}/scripts/packToLocal.sh"
@@ -19,7 +19,7 @@ SAMPLES_DIR="${ROOT_DIR}/Samples"
 SAMPLE_SOLUTION="${SAMPLES_DIR}/Docky.Sdk.Sample.slnx"
 VERSION="0.0.1"
 PURGE_ALL_VERSIONS=false
-CLEAR_ALL_CACHES=false
+CLEAR_ALL_CACHES=true
 FORWARD_PACK_FLAGS=()
 PACKAGE_ID="Ducky.Sdk"
 PACKAGE_ID_LOWER="ducky.sdk"
@@ -36,6 +36,8 @@ while [[ $# -gt 0 ]]; do
       PURGE_ALL_VERSIONS=true; shift;;
     --clear-all-caches)
       CLEAR_ALL_CACHES=true; shift;;
+    --no-clear-all-caches)
+      CLEAR_ALL_CACHES=false; shift;;
     --skip-tests|--no-build)
       FORWARD_PACK_FLAGS+=("$1"); shift;;
     --configuration)
