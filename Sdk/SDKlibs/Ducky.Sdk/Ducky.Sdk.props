@@ -56,8 +56,10 @@
     <Message Text="[Ducky.Sdk] Project mode: Final release mod project (full automation enabled)" Importance="high"
              Condition="'$(IsModLib)' != 'true' AND '$(ModName)' != ''" />
     <Message Text="[Ducky.Sdk] Global using: $(EnableGlobalUsing)" Importance="high" />
-    <Message Text="[Ducky.Sdk] Global using enabled - SDK, game engine, and common namespaces will be automatically imported" Importance="high"
-             Condition="'$(EnableGlobalUsing)' == 'true'" />
+    <Message
+      Text="[Ducky.Sdk] Global using enabled - SDK, game engine, and common namespaces will be automatically imported"
+      Importance="high"
+      Condition="'$(EnableGlobalUsing)' == 'true'" />
     <Message Text="[Ducky.Sdk] Global using disabled - explicit using statements required" Importance="high"
              Condition="'$(EnableGlobalUsing)' == 'false'" />
   </Target>
