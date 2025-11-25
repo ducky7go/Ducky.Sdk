@@ -10,12 +10,17 @@ namespace Ducky.Sdk.Utils;
 public class Helper
 {
     private static string? _modName;
+    private static int _modNameLogShown = 0;
 
     internal static string GetModName()
     {
         if (!string.IsNullOrEmpty(_modName))
         {
-            Debug.Log($"[Helper] Returning cached mod name: {_modName}");
+            if (_modNameLogShown == 0)
+            {
+                Debug.Log($"[Helper] Returning cached mod name: {_modName}");
+                _modNameLogShown = 1;
+            }
             return _modName!;
         }
 
@@ -44,7 +49,11 @@ public class Helper
             _modName = Assembly.GetExecutingAssembly().GetName().Name ?? "Mod";
         }
 
-        Debug.Log($"[Helper] Returning cached mod name: {_modName}");
+        if (_modNameLogShown == 0)
+        {
+            Debug.Log($"[Helper] Returning cached mod name: {_modName}");
+            _modNameLogShown = 1;
+        }
         return _modName!;
     }
 
