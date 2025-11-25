@@ -21,6 +21,7 @@ public class Helper
                 Debug.Log($"[Helper] Returning cached mod name: {_modName}");
                 _modNameLogShown = 1;
             }
+
             return _modName!;
         }
 
@@ -54,6 +55,7 @@ public class Helper
             Debug.Log($"[Helper] Returning cached mod name: {_modName}");
             _modNameLogShown = 1;
         }
+
         return _modName!;
     }
 
