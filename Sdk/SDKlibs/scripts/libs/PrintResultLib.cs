@@ -61,7 +61,8 @@ public static class PrintResultLib
         var overallStatus = buildResult.OverallSuccess ? "[SUCCESS]" : "[FAILED]";
 
         // Summary line with box
-        var summaryLine = $"    [INFO] Build Status: {overallStatus} | Duration: {duration} | Steps: {buildResult.TotalSteps}";
+        var summaryLine =
+            $"    [INFO] Build Status: {overallStatus} | Duration: {duration} | Steps: {buildResult.TotalSteps}";
         var boxWidth = summaryLine.Length - 4;
 
         Console.WriteLine("    " + new string('=', boxWidth));
@@ -122,11 +123,13 @@ public static class PrintResultLib
                 {
                     Console.WriteLine($"         Error: {step.ErrorMessage}");
                 }
+
                 if (!string.IsNullOrEmpty(step.StackTrace) && step.StackTrace.Length > 100)
                 {
                     var shortTrace = step.StackTrace.Substring(0, 100) + "...";
                     Console.WriteLine($"         Stack: {shortTrace}");
                 }
+
                 break;
 
             case StepStatus.Skipped:

@@ -11,6 +11,7 @@
     -->
 
     <!-- Import the new pure orchestration targets -->
-    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Orchestration.targets" Condition="Exists('$(MSBuildThisFileDirectory)Ducky.Sdk.Orchestration.targets')" />
+    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Orchestration.targets"
+            Condition="Exists('$(MSBuildThisFileDirectory)Ducky.Sdk.Orchestration.targets')" />
 
 </Project>

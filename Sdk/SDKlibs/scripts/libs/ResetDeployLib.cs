@@ -135,7 +135,8 @@ public class ResetDeployLib
         // Skip for library projects
         if (context.IsModLib)
         {
-            context.LogInfo("Skipping directory reset: IsModLib=true, library projects don't need deployment directory reset");
+            context.LogInfo(
+                "Skipping directory reset: IsModLib=true, library projects don't need deployment directory reset");
             result.Success = true;
             return true;
         }

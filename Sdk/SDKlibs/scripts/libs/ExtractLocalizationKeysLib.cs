@@ -48,6 +48,7 @@ public class ExtractLocalizationKeysLib
                 {
                     Console.WriteLine($"  - {file}");
                 }
+
                 if (result.SourceFiles.Count > 5)
                 {
                     Console.WriteLine($"  ... and {result.SourceFiles.Count - 5} more");
@@ -148,4 +149,3 @@ public class ExtractLocalizationKeysLib
         return result;
     }
 }
-

@@ -27,7 +27,8 @@ public class ValidateProjectPathLib
             // Basic validation - check if directory exists
             var directoryExists = Directory.Exists(projectDir);
             var isAbsolutePath = Path.IsPathRooted(projectDir);
-            var isValidFormat = !string.IsNullOrEmpty(projectDir) && !projectDir.Contains("..") && !projectDir.Contains("//");
+            var isValidFormat = !string.IsNullOrEmpty(projectDir) && !projectDir.Contains("..") &&
+                                !projectDir.Contains("//");
 
             var valid = directoryExists && isAbsolutePath && isValidFormat;
 

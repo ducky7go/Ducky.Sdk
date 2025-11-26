@@ -45,6 +45,7 @@ public class CopyDependenciesLib
                 {
                     context.LogInfo($"  - {file}");
                 }
+
                 if (result.CopiedFiles.Count > 10)
                 {
                     context.LogInfo($"  ... and {result.CopiedFiles.Count - 10} more");
@@ -120,7 +121,8 @@ public class CopyDependenciesLib
             }
 
             result.Success = true;
-            context.LogInfo($"Dependency copying completed: {result.DependenciesCopied} copied, {result.SkippedFiles.Count} skipped");
+            context.LogInfo(
+                $"Dependency copying completed: {result.DependenciesCopied} copied, {result.SkippedFiles.Count} skipped");
         }
         catch (Exception ex)
         {
@@ -209,4 +211,3 @@ public class CopyDependenciesLib
         return sourceTime > targetTime;
     }
 }
-

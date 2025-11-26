@@ -170,7 +170,8 @@ public class DeployModLib
         }
 
         // Check target DLL
-        var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug", context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
+        var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
+            context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
         if (!File.Exists(targetDll))
         {
             result.Errors.Add($"Target DLL not found: {targetDll}");
@@ -191,7 +192,7 @@ public class DeployModLib
         return Path.Combine(modsDirectory, context.ModName);
     }
 
-    
+
     private class AssetsCopyResult
     {
         public bool Success { get; set; }
@@ -254,7 +255,8 @@ public class DeployModLib
     {
         try
         {
-            var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug", context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
+            var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
+                context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
             var destDll = Path.Combine(targetDir ?? "", $"{context.ModName ?? "mod"}.dll");
 
             if (File.Exists(targetDll))
@@ -286,7 +288,8 @@ public class DeployModLib
     {
         try
         {
-            var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug", context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
+            var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
+                context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
             var targetDirName = Path.GetDirectoryName(targetDll) ?? "";
             var dependencyDir = Path.Combine(targetDir, "Dependency");
 
@@ -321,4 +324,3 @@ public class DeployModLib
         }
     }
 }
-

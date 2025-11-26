@@ -66,7 +66,6 @@ public class InitializeBuildLoggingLib
 }
 
 
-
 /// <summary>
 /// Simple Build Logger for tracking detailed build information
 /// </summary>
@@ -110,7 +109,8 @@ public class BuildLogger
     public void LogScriptExecution(string scriptName, string command, int exitCode, string category = "Script")
     {
         var status = exitCode == 0 ? "SUCCESS" : "FAILED";
-        var entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{category}] [{status}] {scriptName} - Exit Code: {exitCode}";
+        var entry =
+            $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{category}] [{status}] {scriptName} - Exit Code: {exitCode}";
         _entries.Add(entry);
         _entries.Add($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{category}] [COMMAND] {command}");
         Console.WriteLine(entry);
@@ -127,7 +127,8 @@ public class BuildLogger
 
     public void LogTargetExecution(string targetName, TimeSpan duration, string category = "Targets")
     {
-        var entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{category}] [EXECUTED] {targetName} - Duration: {duration.TotalMilliseconds}ms";
+        var entry =
+            $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{category}] [EXECUTED] {targetName} - Duration: {duration.TotalMilliseconds}ms";
         _entries.Add(entry);
         Console.WriteLine(entry);
     }

@@ -135,7 +135,7 @@ public class ResolveSdkPropertiesLib
         }
 
         properties.ShouldProcessLocalization = !string.IsNullOrEmpty(context.LocalizationAssetsDir) ||
-                                              !string.IsNullOrEmpty(context.AssetsDir);
+                                               !string.IsNullOrEmpty(context.AssetsDir);
 
         if (!properties.ShouldProcessLocalization)
         {
@@ -206,7 +206,8 @@ public class ResolveSdkPropertiesLib
         // Check for SodaLocalization references
         properties.HasSodaLocalization = csFiles.Any(f => File.ReadAllText(f).Contains("SodaLocalization"));
 
-        context.LogInfo($"Game dependencies detected - TeamSoda: {properties.HasTeamSoda}, Unity: {properties.HasUnity}, FOW: {properties.HasFOW}, SodaLocalization: {properties.HasSodaLocalization}");
+        context.LogInfo(
+            $"Game dependencies detected - TeamSoda: {properties.HasTeamSoda}, Unity: {properties.HasUnity}, FOW: {properties.HasFOW}, SodaLocalization: {properties.HasSodaLocalization}");
     }
 
     private static void ValidateConfiguration(BuildContext context, SdkProperties properties)
@@ -248,7 +249,8 @@ public class ResolveSdkPropertiesLib
             }
             else if (!Directory.Exists(properties.EffectiveLocalizationAssetsDir))
             {
-                context.LogWarning($"Localization assets directory does not exist: {properties.EffectiveLocalizationAssetsDir}");
+                context.LogWarning(
+                    $"Localization assets directory does not exist: {properties.EffectiveLocalizationAssetsDir}");
             }
         }
 
@@ -265,4 +267,3 @@ public class ResolveSdkPropertiesLib
         }
     }
 }
-

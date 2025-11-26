@@ -142,7 +142,9 @@ public class GeneratePreviewLib
         var bgColor = new SixLabors.ImageSharp.PixelFormats.Rgba32(hash[0], hash[1], hash[2]);
 
         // Foreground color (complementary)
-        var fgColor = new SixLabors.ImageSharp.PixelFormats.Rgba32((byte)(255 - hash[0]), (byte)(255 - hash[1]), (byte)(255 - hash[2]));
+        var fgColor =
+            new SixLabors.ImageSharp.PixelFormats.Rgba32((byte)(255 - hash[0]), (byte)(255 - hash[1]),
+                (byte)(255 - hash[2]));
 
         image.Mutate(ctx =>
         {
@@ -165,7 +167,8 @@ public class GeneratePreviewLib
                         // Mirror to right side
                         if (x != gridSize / 2) // Don't double-draw center column
                         {
-                            ctx.Fill(fgColor, new RectangleF((gridSize - 1 - x) * cellSize, y * cellSize, cellSize, cellSize));
+                            ctx.Fill(fgColor,
+                                new RectangleF((gridSize - 1 - x) * cellSize, y * cellSize, cellSize, cellSize));
                         }
                     }
                 }
@@ -182,4 +185,3 @@ public class GeneratePreviewLib
         return context.GetFullPath(assetsDir);
     }
 }
-

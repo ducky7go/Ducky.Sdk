@@ -210,7 +210,8 @@ public class ILRepackAssembliesLib
         var outDir = Path.GetDirectoryName(outputPath);
         var existingDlls = Directory.GetFiles(outDir, "*.dll");
         context.LogInfo($"Found {existingDlls.Length} DLLs in output directory: {outDir}");
-        var managedDlls = Directory.GetFiles(Path.Combine(context.ManagedDirectory), "*.dll").Select(f => Path.GetFileName(f)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var managedDlls = Directory.GetFiles(Path.Combine(context.ManagedDirectory), "*.dll")
+            .Select(f => Path.GetFileName(f)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         context.LogInfo($"Found {managedDlls.Count} DLLs in Managed directory: {context.ManagedDirectory}");
         var dependencies = new List<string>();
         foreach (var dll in existingDlls)
@@ -230,7 +231,8 @@ public class ILRepackAssembliesLib
 
     private static string FindMainAssembly(BuildContext context)
     {
-        var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug", context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
+        var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
+            context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
         return File.Exists(targetDll) ? targetDll : "";
     }
 
@@ -240,7 +242,8 @@ public class ILRepackAssembliesLib
         return Path.Combine(modsDirectory, context.ModName);
     }
 
-    private static string BuildILRepackArgs(string mainAssembly, List<string> dependencies, string outputPath, BuildContext context)
+    private static string BuildILRepackArgs(string mainAssembly, List<string> dependencies, string outputPath,
+        BuildContext context)
     {
         var args = new List<string>();
 
@@ -270,4 +273,3 @@ public class ILRepackAssembliesLib
         return string.Join(" ", args);
     }
 }
-

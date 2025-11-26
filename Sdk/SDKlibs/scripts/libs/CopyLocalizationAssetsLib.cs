@@ -45,6 +45,7 @@ public class CopyLocalizationAssetsLib
                 {
                     context.LogInfo($"  - {file}");
                 }
+
                 if (result.CopiedFiles.Count > 10)
                 {
                     context.LogInfo($"  ... and {result.CopiedFiles.Count - 10} more");
@@ -103,7 +104,8 @@ public class CopyLocalizationAssetsLib
             }
 
             result.Success = true;
-            context.LogInfo($"Localization asset copying completed: {result.FilesCopied} copied, {result.FilesSkipped} skipped");
+            context.LogInfo(
+                $"Localization asset copying completed: {result.FilesCopied} copied, {result.FilesSkipped} skipped");
         }
         catch (Exception ex)
         {
@@ -141,10 +143,11 @@ public class CopyLocalizationAssetsLib
             foreach (var targetDir in targetDirs)
             {
                 if (string.Equals(Path.GetFullPath(sourceDir).TrimEnd(Path.DirectorySeparatorChar),
-                                 Path.GetFullPath(targetDir).TrimEnd(Path.DirectorySeparatorChar),
-                                 StringComparison.OrdinalIgnoreCase))
+                        Path.GetFullPath(targetDir).TrimEnd(Path.DirectorySeparatorChar),
+                        StringComparison.OrdinalIgnoreCase))
                 {
-                    context.LogInfo("Skipping asset copying: LocalizationAssetsDir is the same as assets/Locales directory");
+                    context.LogInfo(
+                        "Skipping asset copying: LocalizationAssetsDir is the same as assets/Locales directory");
                     result.Success = true;
                     return true;
                 }
@@ -251,4 +254,3 @@ public class CopyLocalizationAssetsLib
         return sourceTime > targetTime;
     }
 }
-

@@ -33,7 +33,7 @@ public class CollectFromModLib
     {
         try
         {
-            if(context.DeployMod == false)
+            if (context.DeployMod == false)
             {
                 context.LogInfo("Mod deployment is disabled. Skipping collection.");
                 return 0;
@@ -248,6 +248,7 @@ public class CollectFromModLib
             {
                 content += Environment.NewLine;
             }
+
             content += $"publishedFileId = {publishedFileId}{Environment.NewLine}";
 
             File.WriteAllText(infoPath, content);
@@ -258,5 +259,4 @@ public class CollectFromModLib
             throw new Exception($"Failed to add publishedFileId to assets info.ini: {ex.Message}", ex);
         }
     }
-
 }

@@ -98,7 +98,7 @@ public class EnsureInfoIniLib
             {
                 context.LogInfo("No name field found in existing info.ini. Adding name field...");
                 var updatedContent = string.Join(Environment.NewLine, existingLines) +
-                                    $"{Environment.NewLine}name = {modName}{Environment.NewLine}";
+                                     $"{Environment.NewLine}name = {modName}{Environment.NewLine}";
                 File.WriteAllText(infoPath, updatedContent, Encoding.UTF8);
                 context.LogInfo($"Successfully added name field: {modName}");
             }
@@ -139,4 +139,3 @@ public class EnsureInfoIniLib
         }
     }
 }
-

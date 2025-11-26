@@ -83,7 +83,8 @@ public class UpdateLocalizationCsvLib
         }
     }
 
-    private static (List<string> keys, Dictionary<string, string> keyFileExtensions, List<string> supportedLanguages) LoadKeysFromJson(string jsonKeyFile, BuildContext context)
+    private static (List<string> keys, Dictionary<string, string> keyFileExtensions, List<string> supportedLanguages)
+        LoadKeysFromJson(string jsonKeyFile, BuildContext context)
     {
         var keys = new List<string>();
         var keyFileExtensions = new Dictionary<string, string>();
@@ -108,7 +109,9 @@ public class UpdateLocalizationCsvLib
                         supportedLanguages.Add(lang.ToLowerInvariant());
                     }
                 }
-                context.LogInfo($"Found {supportedLanguages.Count} supported languages: {string.Join(", ", supportedLanguages)}");
+
+                context.LogInfo(
+                    $"Found {supportedLanguages.Count} supported languages: {string.Join(", ", supportedLanguages)}");
             }
 
             if (root.TryGetProperty("keys", out var keysArray) || root.TryGetProperty("Keys", out keysArray))
@@ -141,7 +144,8 @@ public class UpdateLocalizationCsvLib
                                         if (!string.IsNullOrWhiteSpace(ext))
                                         {
                                             keyFileExtensions[key] = ext;
-                                            context.LogInfo($"Key '{key}' marked as file reference with extension '.{ext}'");
+                                            context.LogInfo(
+                                                $"Key '{key}' marked as file reference with extension '.{ext}'");
                                         }
                                     }
                                 }
@@ -173,7 +177,8 @@ public class UpdateLocalizationCsvLib
                     }
                 }
 
-                context.LogInfo($"Loaded {keys.Count} keys from JSON file ({keyFileExtensions.Count} with file references)");
+                context.LogInfo(
+                    $"Loaded {keys.Count} keys from JSON file ({keyFileExtensions.Count} with file references)");
             }
             else
             {
@@ -202,6 +207,7 @@ public class UpdateLocalizationCsvLib
                 var idx = (byte)((crc ^ by) & 0xFF);
                 crc = (crc >> 8) ^ table[idx];
             }
+
             crc ^= 0xFFFFFFFFu;
             return crc.ToString("x8");
         }
@@ -220,8 +226,10 @@ public class UpdateLocalizationCsvLib
                     else
                         crc >>= 1;
                 }
+
                 table[i] = crc;
             }
+
             return table;
         }
 
@@ -275,13 +283,15 @@ public class UpdateLocalizationCsvLib
         }
     }
 
-    private static List<(string LangCode, string CsvPath, string LangDir)> GetLanguageEntries(List<string> supportedLanguages, string localesDir, BuildContext context)
+    private static List<(string LangCode, string CsvPath, string LangDir)> GetLanguageEntries(
+        List<string> supportedLanguages, string localesDir, BuildContext context)
     {
         var languageEntries = new List<(string LangCode, string CsvPath, string LangDir)>();
 
         if (supportedLanguages != null && supportedLanguages.Count > 0)
         {
-            context.LogInfo($"Using languages specified in LanguageSupport attribute: {string.Join(", ", supportedLanguages)}");
+            context.LogInfo(
+                $"Using languages specified in LanguageSupport attribute: {string.Join(", ", supportedLanguages)}");
             foreach (var langCode in supportedLanguages)
             {
                 var csvPath = Path.Combine(localesDir, langCode + ".csv");
@@ -337,10 +347,13 @@ public class UpdateLocalizationCsvLib
         return languageEntries;
     }
 
-    private static bool IsUpdateNeeded(string hashFile, string assemblyHash, List<(string LangCode, string CsvPath, string LangDir)> languageEntries, string localesDir, List<string> distinctKeys)
+    private static bool IsUpdateNeeded(string hashFile, string assemblyHash,
+        List<(string LangCode, string CsvPath, string LangDir)> languageEntries, string localesDir,
+        List<string> distinctKeys)
     {
         // Pre-scan language entries to determine if any CSV is missing or empty
-        var needUpdateForMissing = languageEntries.Any(entry => !File.Exists(entry.CsvPath) || new FileInfo(entry.CsvPath).Length == 0);
+        var needUpdateForMissing =
+            languageEntries.Any(entry => !File.Exists(entry.CsvPath) || new FileInfo(entry.CsvPath).Length == 0);
 
         // Detect obsolete keys
         int obsoleteKeysDetected = 0;
@@ -365,6 +378,7 @@ public class UpdateLocalizationCsvLib
                             fileObsolete++;
                         }
                     }
+
                     if (fileObsolete > 0)
                     {
                         obsoleteKeysDetected += fileObsolete;
@@ -387,12 +401,13 @@ public class UpdateLocalizationCsvLib
         return true;
     }
 
-    private static (int languagesProcessed, int csvsUpdated, int totalStandaloneFilesIncluded, int totalRowsWritten) ProcessLanguages(
-        List<(string LangCode, string CsvPath, string LangDir)> languageEntries,
-        List<string> distinctKeys,
-        Dictionary<string, string> keyFileExtensions,
-        string localesDir,
-        BuildContext context)
+    private static (int languagesProcessed, int csvsUpdated, int totalStandaloneFilesIncluded, int totalRowsWritten)
+        ProcessLanguages(
+            List<(string LangCode, string CsvPath, string LangDir)> languageEntries,
+            List<string> distinctKeys,
+            Dictionary<string, string> keyFileExtensions,
+            string localesDir,
+            BuildContext context)
     {
         int languagesProcessed = 0;
         int csvsUpdated = 0;
@@ -428,9 +443,10 @@ public class UpdateLocalizationCsvLib
                     var value = line.Substring(idx + 1);
                     if (value.Length >= 2 && value[0] == '"' && value[^1] == '"')
                     {
-                        value = value.Substring(1, value.Length - 2).Replace("\"\"" , '"'.ToString());
+                        value = value.Substring(1, value.Length - 2).Replace("\"\"", '"'.ToString());
                     }
-                    value = value.Replace("\"\"" , '"'.ToString());
+
+                    value = value.Replace("\"\"", '"'.ToString());
                     csvMap[key] = value;
                 }
             }
@@ -449,6 +465,7 @@ public class UpdateLocalizationCsvLib
                     localStandaloneCount++;
                 }
             }
+
             totalStandaloneFilesIncluded += localStandaloneCount;
 
             // Ensure language directory exists
@@ -497,6 +514,7 @@ public class UpdateLocalizationCsvLib
                 var v = r.Value?.Replace("\"", "\"\"") ?? string.Empty;
                 sbNew.AppendLine($"{r.Key},\"{v}\"");
             }
+
             var newContent = sbNew.ToString();
             var oldContent = File.Exists(csvPath) ? File.ReadAllText(csvPath) : string.Empty;
 
@@ -524,7 +542,9 @@ public class UpdateLocalizationCsvLib
         return (languagesProcessed, csvsUpdated, totalStandaloneFilesIncluded, totalRowsWritten);
     }
 
-    private static void PrintStats((int languagesProcessed, int csvsUpdated, int totalStandaloneFilesIncluded, int totalRowsWritten) stats, BuildContext context)
+    private static void PrintStats(
+        (int languagesProcessed, int csvsUpdated, int totalStandaloneFilesIncluded, int totalRowsWritten) stats,
+        BuildContext context)
     {
         context.LogInfo("--- Update stats ---");
         context.LogInfo($"Languages processed: {stats.languagesProcessed}");
@@ -534,4 +554,3 @@ public class UpdateLocalizationCsvLib
         context.LogInfo("---------------------");
     }
 }
-

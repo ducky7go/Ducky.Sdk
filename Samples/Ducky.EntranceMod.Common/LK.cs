@@ -15,7 +15,6 @@ public static class LK
 
     public static class Help
     {
-        [TranslateFile("md")]
-        public const string Documentation = "Help";
+        [TranslateFile("md")] public const string Documentation = "Help";
     }
 }

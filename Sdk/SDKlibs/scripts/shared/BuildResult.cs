@@ -31,7 +31,8 @@ public class BuildStepResult
             ExitCode = 0
         };
 
-    public static BuildStepResult Failed(string stepName, DateTime startTime, DateTime endTime, string errorMessage, string? stackTrace = null, int exitCode = 1)
+    public static BuildStepResult Failed(string stepName, DateTime startTime, DateTime endTime, string errorMessage,
+        string? stackTrace = null, int exitCode = 1)
         => new BuildStepResult
         {
             StepName = stepName,
@@ -107,7 +108,8 @@ public class BuildResult
     /// <summary>
     /// Records a failed step execution
     /// </summary>
-    public void RecordFailure(string stepName, DateTime startTime, DateTime endTime, string errorMessage, string? stackTrace = null, int exitCode = 1)
+    public void RecordFailure(string stepName, DateTime startTime, DateTime endTime, string errorMessage,
+        string? stackTrace = null, int exitCode = 1)
     {
         StepResults.RemoveAll(r => r.StepName == stepName);
         StepResults.Add(BuildStepResult.Failed(stepName, startTime, endTime, errorMessage, stackTrace, exitCode));
@@ -256,7 +258,8 @@ public static class BuildResultUtils
             if (exitCode == 0)
             {
                 buildResult.RecordSuccess(stepName, startTime, endTime);
-                Console.WriteLine($"[BuildResult] ✅ {stepName} completed successfully in {(endTime - startTime).TotalSeconds:F1}s");
+                Console.WriteLine(
+                    $"[BuildResult] ✅ {stepName} completed successfully in {(endTime - startTime).TotalSeconds:F1}s");
             }
             else
             {

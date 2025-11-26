@@ -137,4 +137,3 @@ public class ValidateDuckovFolderLib
         public List<string> Warnings { get; set; } = new();
     }
 }
-

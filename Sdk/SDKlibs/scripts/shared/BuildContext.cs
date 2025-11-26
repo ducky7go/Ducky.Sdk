@@ -27,7 +27,6 @@ public class BuildContext
     /// USAGE: Contains the final compiled DLL for ILRepack processing
     /// EXAMPLE: "bin/Debug/netstandard2.1"
     /// </summary>
-
     /// <summary>
     /// ModName: The name of the mod being built.
     /// AFFECTS: info.ini generation, mod metadata, output assembly naming, mod deployment paths
@@ -160,7 +159,8 @@ public class BuildContext
     // Utility Methods
     public string GetFullPath(string relativePath) => Path.GetFullPath(Path.Combine(ProjectDir, relativePath));
 
-    public bool Exists(string relativePath) => File.Exists(GetFullPath(relativePath)) || Directory.Exists(GetFullPath(relativePath));
+    public bool Exists(string relativePath) =>
+        File.Exists(GetFullPath(relativePath)) || Directory.Exists(GetFullPath(relativePath));
 
     public void LogInfo(string message) => Console.WriteLine($"[BuildContext] {message}");
     public void LogWarning(string message) => Console.WriteLine($"[BuildContext][WARN] {message}");
@@ -201,7 +201,11 @@ public class BuildContext
             DeployMod = bool.Parse(context.GetValueOrDefault("deploymod", "true")),
             ExcludeSdkLib = bool.Parse(context.GetValueOrDefault("excludesdklib", "false")),
             IsModLib = bool.Parse(context.GetValueOrDefault("ismodlib", "false")),
-            OutputPath = context.GetValueOrDefault("outputpath", Path.Combine(context.GetValueOrDefault("projectdir", Directory.GetCurrentDirectory()), "bin", context.GetValueOrDefault("configuration", "Debug"), context.GetValueOrDefault("targetframework", "net8.0"), $"{context.GetValueOrDefault("modname", "mod")}.dll")),
+            OutputPath = context.GetValueOrDefault("outputpath",
+                Path.Combine(context.GetValueOrDefault("projectdir", Directory.GetCurrentDirectory()), "bin",
+                    context.GetValueOrDefault("configuration", "Debug"),
+                    context.GetValueOrDefault("targetframework", "net8.0"),
+                    $"{context.GetValueOrDefault("modname", "mod")}.dll")),
         };
     }
 
@@ -282,7 +286,8 @@ public static class BuildUtils
     /// <summary>
     /// Gets all files matching pattern in directory and subdirectories
     /// </summary>
-    public static IEnumerable<string> GetFiles(string path, string searchPattern, SearchOption searchOption = SearchOption.AllDirectories)
+    public static IEnumerable<string> GetFiles(string path, string searchPattern,
+        SearchOption searchOption = SearchOption.AllDirectories)
     {
         if (!Directory.Exists(path))
             return Enumerable.Empty<string>();
@@ -293,7 +298,8 @@ public static class BuildUtils
     /// <summary>
     /// Executes a command and returns output
     /// </summary>
-    public static (int exitCode, string output) ExecuteCommand(string command, string workingDirectory, params string[] args)
+    public static (int exitCode, string output) ExecuteCommand(string command, string workingDirectory,
+        params string[] args)
     {
         var process = new System.Diagnostics.Process
         {

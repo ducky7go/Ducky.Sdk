@@ -45,19 +45,26 @@
         <PropertyGroup>
             <_AbsoluteIntermediateOutputPath Condition="!$([System.IO.Path]::IsPathRooted($(IntermediateOutputPath)))">$([System.IO.Path]::GetFullPath($(MSBuildProjectDirectory)\$(IntermediateOutputPath)))</_AbsoluteIntermediateOutputPath>
             <_AbsoluteIntermediateOutputPath Condition="$([System.IO.Path]::IsPathRooted($(IntermediateOutputPath)))">$(IntermediateOutputPath)</_AbsoluteIntermediateOutputPath>
-            <_AbsoluteBaseIntermediateOutputPath Condition="!$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">$([System.IO.Path]::GetFullPath($(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)))</_AbsoluteBaseIntermediateOutputPath>
-            <_AbsoluteBaseIntermediateOutputPath Condition="$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">$(BaseIntermediateOutputPath)</_AbsoluteBaseIntermediateOutputPath>
+            <_AbsoluteBaseIntermediateOutputPath
+                Condition="!$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">
+                $([System.IO.Path]::GetFullPath($(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)))
+            </_AbsoluteBaseIntermediateOutputPath>
+            <_AbsoluteBaseIntermediateOutputPath
+                Condition="$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">
+                $(BaseIntermediateOutputPath)
+            </_AbsoluteBaseIntermediateOutputPath>
         </PropertyGroup>
 
         <!-- Ensure obj directory exists before script execution -->
         <MakeDir Directories="$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)"
-               Condition="!Exists('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)')" />
+                 Condition="!Exists('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)')" />
 
         <!-- Generate BuildContext JSON using dedicated script -->
-        <Exec Command="dotnet script &quot;$(_ContextJsonScript)&quot; 1 &quot;$(MSBuildProjectDirectory)&quot; 2 &quot;$(ModName)&quot; 3 &quot;$(Configuration)&quot; 4 &quot;$(TargetFramework)&quot; 5 &quot;$(DuckovFolder)&quot; 6 &quot;$(SteamFolder)&quot; 7 &quot;$(AssetsDir)&quot; 8 &quot;$(LocalizationAssetsDir)&quot; 9 &quot;$(EnableILRepack)&quot; 10 &quot;$(EnableGlobalUsing)&quot; 11 &quot;$(IncludeHarmony)&quot; 12 &quot;$(DeployMod)&quot; 13 &quot;$(ExcludeSdkLib)&quot; 14 &quot;$(IsModLib)&quot; 15 &quot;$(_AbsoluteIntermediateOutputPath)&quot; 16 &quot;$(_AbsoluteBaseIntermediateOutputPath)&quot; 17 &quot;$(OutputPath)&quot;"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_ContextJsonScript)')">
+        <Exec
+            Command="dotnet script &quot;$(_ContextJsonScript)&quot; 1 &quot;$(MSBuildProjectDirectory)&quot; 2 &quot;$(ModName)&quot; 3 &quot;$(Configuration)&quot; 4 &quot;$(TargetFramework)&quot; 5 &quot;$(DuckovFolder)&quot; 6 &quot;$(SteamFolder)&quot; 7 &quot;$(AssetsDir)&quot; 8 &quot;$(LocalizationAssetsDir)&quot; 9 &quot;$(EnableILRepack)&quot; 10 &quot;$(EnableGlobalUsing)&quot; 11 &quot;$(IncludeHarmony)&quot; 12 &quot;$(DeployMod)&quot; 13 &quot;$(ExcludeSdkLib)&quot; 14 &quot;$(IsModLib)&quot; 15 &quot;$(_AbsoluteIntermediateOutputPath)&quot; 16 &quot;$(_AbsoluteBaseIntermediateOutputPath)&quot; 17 &quot;$(OutputPath)&quot;"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_ContextJsonScript)')">
             <Output TaskParameter="ExitCode" PropertyName="_SerializeContextExitCode" />
         </Exec>
 
@@ -78,40 +85,46 @@
                Condition="!Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute InitializeBuildLoggingLib -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; InitializeBuildLoggingLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; InitializeBuildLoggingLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute ValidateProjectPathLib -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ValidateProjectPathLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ValidateProjectPathLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute ResolveSdkPropertiesLib -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ResolveSdkPropertiesLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ResolveSdkPropertiesLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute ExtractLocalizationKeysLib -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ExtractLocalizationKeysLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ExtractLocalizationKeysLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute UpdateLocalizationCsvLib -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; UpdateLocalizationCsvLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; UpdateLocalizationCsvLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute CopyLocalizationAssetsLib -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CopyLocalizationAssetsLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CopyLocalizationAssetsLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute EnsureInfoIniLib -->
         <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; EnsureInfoIniLib"
@@ -120,22 +133,25 @@
               Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute GeneratePreviewLib -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; GeneratePreviewLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; GeneratePreviewLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute ValidateDuckovFolderLib -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ValidateDuckovFolderLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ValidateDuckovFolderLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute CollectFromModLib -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CollectFromModLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CollectFromModLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <Message Text="✅ Pre-build script libraries executed successfully" Importance="normal" />
     </Target>
@@ -156,16 +172,18 @@
               Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute ILRepackAssembliesLib - needs compiled assemblies -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ILRepackAssembliesLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ILRepackAssembliesLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute CopyDependenciesLib - needs compiled assemblies -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CopyDependenciesLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Exec
+            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CopyDependenciesLib"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
 
         <!-- Execute DeployModLib - needs final assemblies -->
         <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; DeployModLib"
