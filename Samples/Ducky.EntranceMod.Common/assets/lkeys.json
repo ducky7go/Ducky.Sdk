@@ -1,0 +1,17 @@
+
+{
+  "namespace": "Ducky.EntranceMod.Common",
+  "hash": "6ba57a24ecec791c4e0a07246b8b7e7737184bc95f147fb7a1ff8e7ee660f4e5",
+  "keyCount": 5,
+  "supportedLanguages": [
+    "en",
+    "zh"
+  ],
+  "keys": [
+    "ducky_entrancemod.common.ui.nicewelcomemessage",
+    "Exit",
+    "Help",
+    "Settings",
+    "Welcome"
+  ]
+}

@@ -122,6 +122,12 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
             }
         }
 
+        // If no LanguageSupport attribute found, default to zh and en
+        if (supportedLanguages == null || supportedLanguages.Count == 0)
+        {
+            supportedLanguages = new List<string> { "zh", "en" };
+        }
+
         var groups = new List<GroupDescriptor>();
         foreach (var nested in symbol.GetTypeMembers())
         {
@@ -272,19 +278,8 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
             var entry = allEntries[i];
             var comma = i < allEntries.Count - 1 ? "," : "";
 
-            if (entry.FileExtension != null)
-            {
-                // Key with file reference
-                json.AppendLine("    {");
-                json.AppendLine($"      \"key\": \"{EscapeJson(entry.Value)}\",");
-                json.AppendLine($"      \"fileExtension\": \"{EscapeJson(entry.FileExtension)}\"");
-                json.AppendLine("    }" + comma);
-            }
-            else
-            {
-                // Simple string key
-                json.AppendLine($"    \"{EscapeJson(entry.Value)}\"{comma}");
-            }
+            // All keys should be simple strings in the standard format
+            json.AppendLine($"    \"{EscapeJson(entry.Value)}\"{comma}");
         }
 
         json.AppendLine("  ]");

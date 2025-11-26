@@ -432,43 +432,6 @@ Only add complexity with:
 3. Review recent archives
 4. Ask for clarification
 
-## SDK Development Testing
-
-### Testing Local SDK Changes
-
-**Critical**: Samples projects reference the SDK through a local NuGet feed, not direct source references. Therefore:
-
-```bash
-# ✅ CORRECT: Use rebuild script for testing local changes
-./scripts/rebuild_samples.sh
-
-# ❌ INCORRECT: Direct build won't use local SDK changes
-cd Samples/Ducky.TryHarmony && dotnet build  # Won't work
-```
-
-**Why this matters:**
-- `rebuild_samples.sh` packs the local SDK to `duckylocal/` feed
-- Clears NuGet caches to force using the new version
-- Cleans and rebuilds all sample projects with the updated SDK
-
-**When to use:**
-- After modifying SDK source code (analyzers, attributes, scripts)
-- When testing changes to build processes or generators
-- Before finalizing any SDK-related changes
-
-**Example workflow:**
-1. Make SDK code changes
-2. Run `./scripts/rebuild_samples.sh`
-3. Verify expected behavior in sample outputs
-4. Archive change when satisfied
-
-### Success Case: LanguageSupport("all") Feature
-The `add-language-support-all` change successfully demonstrated this workflow by:
-- Adding "all" keyword support to LanguageSupport attribute
-- Expanding to 10 predefined languages (de, en, es, fr, ja, ko, pt, ru, zh-hant, zh)
-- Testing with `rebuild_samples.sh` confirmed CSV generation for all languages
-- Result: Developers can now use `LanguageSupport("all")` for easy multi-language support
-
 ## Quick Reference
 
 ### Stage Indicators

@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\Local.props" Condition="Exists('../Local.props')" />
 
+
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
@@ -10,14 +11,11 @@
     <!-- Dynamic AssetsDir: allow external override; fallback derive from solution dir then project guess -->
     <_SolutionDirBase Condition="'$(SolutionDir)' != ''">$(SolutionDir)</_SolutionDirBase>
     <_SolutionDirBase Condition="'$(SolutionDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../'))</_SolutionDirBase>
-    <LocalizationAssetsDir>
-      $([System.IO.Path]::Combine('$(_SolutionDirBase)','Ducky.EntranceMod','assets'));
-      $([System.IO.Path]::Combine('$(_SolutionDirBase)','Ducky.EntranceMod2','assets'))
-    </LocalizationAssetsDir>
+    <LocalizationAssetsDir>$([System.IO.Path]::Combine('$(_SolutionDirBase)','Ducky.EntranceMod','assets'));$([System.IO.Path]::Combine('$(_SolutionDirBase)','Ducky.EntranceMod2','assets'))</LocalizationAssetsDir>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ducky.Sdk" Version="0.0.1">
+    <PackageReference Include="Ducky.Sdk" Version="0.0.100146-dev">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
