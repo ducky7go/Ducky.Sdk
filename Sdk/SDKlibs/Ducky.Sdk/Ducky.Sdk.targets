@@ -1,7 +1,16 @@
 <Project>
-    <!-- Import modular target files in correct order -->
-    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Validation.targets" />
-    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Localization.targets" />
-    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Assets.targets" />
-    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Packaging.targets" />
+    <!--
+    Ducky.Sdk - CSX-Enhanced Build System
+
+    This imports the new pure orchestration targets that delegate all business logic to CSX scripts.
+    The targets file only contains orchestration logic, making the build system:
+    - More maintainable (C# instead of MSBuild XML)
+    - More testable (CSX scripts can be unit tested)
+    - More debuggable (regular C# debugging)
+    - More performant (caching and conditional execution)
+    -->
+
+    <!-- Import the new pure orchestration targets -->
+    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Orchestration.targets" Condition="Exists('$(MSBuildThisFileDirectory)Ducky.Sdk.Orchestration.targets')" />
+
 </Project>

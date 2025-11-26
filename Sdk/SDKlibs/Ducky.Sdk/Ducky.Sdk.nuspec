@@ -59,14 +59,12 @@
 
         <!-- 👇 Package all .cs files in the project, and place them in the contentFiles folder -->
         <file src="../Ducky.Sdk.Lib/**/*.cs" exclude="**/obj/**/*.cs" target="contentFiles/cs/netstandard2.1/Sdk/" />
-        <file src="scripts/**/*.csx" target="scripts" />
+        <file src="../scripts/**/*.csx" target="scripts" />
+        <file src="../scripts/**/*.cs" target="scripts" />
         <!-- 👇 Hide content files from Visual Studio solution explorer  -->
         <file src="Ducky.Sdk.props" target="build/Ducky.Sdk.props" />
         <file src="Ducky.Sdk.targets" target="build/Ducky.Sdk.targets" />
-        <file src="Ducky.Sdk.Validation.targets" target="build/Ducky.Sdk.Validation.targets" />
-        <file src="Ducky.Sdk.Assets.targets" target="build/Ducky.Sdk.Assets.targets" />
-        <file src="Ducky.Sdk.Localization.targets" target="build/Ducky.Sdk.Localization.targets" />
-        <file src="Ducky.Sdk.Packaging.targets" target="build/Ducky.Sdk.Packaging.targets" />
+        <file src="Ducky.Sdk.Orchestration.targets" target="build/Ducky.Sdk.Orchestration.targets" />
 
         <!-- 打包 0Harmony.dll 到 tools 目录，供条件引用（不会自动添加引用） -->
         <file src="0Harmony.dll" target="tools/0Harmony.dll" />

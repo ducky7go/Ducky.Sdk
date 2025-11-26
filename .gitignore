@@ -1,2 +1,6 @@
 
 duckylocal/
+
+obj/ducky-build/
+
+Sdk/SDKlibs/Ducky.Sdk/*.nuspec

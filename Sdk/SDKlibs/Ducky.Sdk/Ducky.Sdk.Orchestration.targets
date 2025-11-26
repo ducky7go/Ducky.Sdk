@@ -1,0 +1,186 @@
+<Project>
+    <!--
+    Simplified Orchestration Targets - Uses unified entry.csx system
+    All script execution goes through the unified entry point with BuildContext JSON.
+
+    Architecture:
+    - Generate BuildContext JSON with all project configuration
+    - Execute all script libraries in sequence
+    - Each library handles its own conditional execution logic internally
+    - No conditional logic in MSBuild targets - keep it simple
+
+    Execution Order:
+    1. InitializeBuildLoggingLib - Start build logging
+    2. ValidateProjectPathLib - Validate project structure
+    3. ResolveSdkPropertiesLib - Resolve SDK properties and paths
+    4. ExtractLocalizationKeysLib - Extract localization keys from source
+    5. UpdateLocalizationCsvLib - Update CSV localization files
+    6. CopyLocalizationAssetsLib - Copy localization assets
+    7. EnsureInfoIniLib - Generate/update info.ini
+    8. GeneratePreviewLib - Generate preview image
+    9. ValidateDuckovFolderLib - Validate game installation
+    10. CollectFromModLib - Collect mod data
+    11. DeployModLib - Deploy mod to game directory
+    12. ILRepackAssembliesLib - Merge assemblies (if enabled)
+    13. CopyDependenciesLib - Copy dependencies (if ILRepack disabled)
+    -->
+
+    <!-- Configuration Properties -->
+    <PropertyGroup>
+        <!-- Entry script path -->
+        <_EntryScript>$(MSBuildThisFileDirectory)../scripts/entry.csx</_EntryScript>
+        <_BuildContextJsonFile>$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)ducky-build-context.json</_BuildContextJsonFile>
+        <_ContextJsonScript>$(MSBuildThisFileDirectory)../scripts/ContextJsonBuild.csx</_ContextJsonScript>
+
+        <!-- Script libraries execution order -->
+        <ScriptLibraries>InitializeBuildLoggingLib;ValidateProjectPathLib;ResolveSdkPropertiesLib;ExtractLocalizationKeysLib;UpdateLocalizationCsvLib;CopyLocalizationAssetsLib;EnsureInfoIniLib;GeneratePreviewLib;ValidateDuckovFolderLib;CollectFromModLib;DeployModLib;ILRepackAssembliesLib;CopyDependenciesLib</ScriptLibraries>
+    </PropertyGroup>
+
+    <!-- Generate BuildContext JSON -->
+    <Target Name="GenerateBuildContext" BeforeTargets="BeforeBuild">
+        <Message Text="=== Generate BuildContext ===" Importance="normal" />
+        <Message Text="Generating BuildContext JSON for: $(MSBuildProjectDirectory)" Importance="normal" />
+
+        <!-- Convert paths to absolute paths -->
+        <PropertyGroup>
+            <_AbsoluteIntermediateOutputPath Condition="!$([System.IO.Path]::IsPathRooted($(IntermediateOutputPath)))">$([System.IO.Path]::GetFullPath($(MSBuildProjectDirectory)\$(IntermediateOutputPath)))</_AbsoluteIntermediateOutputPath>
+            <_AbsoluteIntermediateOutputPath Condition="$([System.IO.Path]::IsPathRooted($(IntermediateOutputPath)))">$(IntermediateOutputPath)</_AbsoluteIntermediateOutputPath>
+            <_AbsoluteBaseIntermediateOutputPath Condition="!$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">$([System.IO.Path]::GetFullPath($(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)))</_AbsoluteBaseIntermediateOutputPath>
+            <_AbsoluteBaseIntermediateOutputPath Condition="$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">$(BaseIntermediateOutputPath)</_AbsoluteBaseIntermediateOutputPath>
+        </PropertyGroup>
+
+        <!-- Ensure obj directory exists before script execution -->
+        <MakeDir Directories="$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)"
+               Condition="!Exists('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)')" />
+
+        <!-- Generate BuildContext JSON using dedicated script -->
+        <Exec Command="dotnet script &quot;$(_ContextJsonScript)&quot; 1 &quot;$(MSBuildProjectDirectory)&quot; 2 &quot;$(ModName)&quot; 3 &quot;$(Configuration)&quot; 4 &quot;$(TargetFramework)&quot; 5 &quot;$(DuckovFolder)&quot; 6 &quot;$(SteamFolder)&quot; 7 &quot;$(AssetsDir)&quot; 8 &quot;$(LocalizationAssetsDir)&quot; 9 &quot;$(EnableILRepack)&quot; 10 &quot;$(EnableGlobalUsing)&quot; 11 &quot;$(IncludeHarmony)&quot; 12 &quot;$(DeployMod)&quot; 13 &quot;$(ExcludeSdkLib)&quot; 14 &quot;$(IsModLib)&quot; 15 &quot;$(_AbsoluteIntermediateOutputPath)&quot; 16 &quot;$(_AbsoluteBaseIntermediateOutputPath)&quot; 17 &quot;$(OutputPath)&quot;"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_ContextJsonScript)')">
+            <Output TaskParameter="ExitCode" PropertyName="_SerializeContextExitCode" />
+        </Exec>
+
+        <Error Condition="'$(_SerializeContextExitCode)' != '0'"
+               Text="Failed to serialize BuildContext JSON" />
+
+        <Message Text="✅ BuildContext generated successfully" Importance="normal"
+                 Condition="'$(_SerializeContextExitCode)' == '0'" />
+    </Target>
+
+    <!-- Execute Pre-Build Script Libraries (after CoreCompile) -->
+    <Target Name="ExecutePreBuildScripts" AfterTargets="CoreCompile"
+            DependsOnTargets="GenerateBuildContext">
+        <Message Text="=== Execute Pre-Build Script Libraries ===" Importance="normal" />
+
+        <!-- Error text changed from "does not exist" to "not found" -->
+        <Error Text="BuildContext JSON file not found: $(_BuildContextJsonFile)"
+               Condition="!Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute InitializeBuildLoggingLib -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; InitializeBuildLoggingLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute ValidateProjectPathLib -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ValidateProjectPathLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute ResolveSdkPropertiesLib -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ResolveSdkPropertiesLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute ExtractLocalizationKeysLib -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ExtractLocalizationKeysLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute UpdateLocalizationCsvLib -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; UpdateLocalizationCsvLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute CopyLocalizationAssetsLib -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CopyLocalizationAssetsLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute EnsureInfoIniLib -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; EnsureInfoIniLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute GeneratePreviewLib -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; GeneratePreviewLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute ValidateDuckovFolderLib -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ValidateDuckovFolderLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute CollectFromModLib -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CollectFromModLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <Message Text="✅ Pre-build script libraries executed successfully" Importance="normal" />
+    </Target>
+
+    <!-- Execute Post-Build Script Libraries (after full Build completion) -->
+    <Target Name="ExecutePostBuildScripts" AfterTargets="Build"
+            DependsOnTargets="ExecutePreBuildScripts">
+        <Message Text="=== Execute Post-Build Script Libraries ===" Importance="normal" />
+
+        <!-- Error text changed from "does not exist" to "not found" -->
+        <Error Text="BuildContext JSON file not found: $(_BuildContextJsonFile)"
+               Condition="!Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Reset deployment target directory first -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ResetDeployLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute ILRepackAssembliesLib - needs compiled assemblies -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ILRepackAssembliesLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute CopyDependenciesLib - needs compiled assemblies -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CopyDependenciesLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute DeployModLib - needs final assemblies -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; DeployModLib"
+              ContinueOnError="false"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+
+        <Message Text="✅ Post-build script libraries executed successfully" Importance="normal" />
+
+        <!-- Execute PrintResultLib to display build results -->
+        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; PrintResultLib"
+              ContinueOnError="true"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+    </Target>
+
+
+</Project>
