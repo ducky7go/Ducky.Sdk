@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using Duckov.Modding;
 using Ducky.Sdk.Contracts;
+using Ducky.Sdk.Contracts.ModProtocols;
 using Ducky.Sdk.Localizations;
 using Ducky.Sdk.Logging;
 using Ducky.Sdk.Utils;
@@ -13,6 +14,17 @@ namespace Ducky.Sdk.ModBehaviours;
 public abstract class ModBehaviourBase : ModBehaviour
 {
     private static readonly ConcurrentDictionary<Type, EnableState> EnableStates = new();
+
+    /// <summary>
+    /// Gets or sets whether this mod should enable MessageHub host functionality.
+    /// Default is true. Set to false to opt out of automatic host startup.
+    /// </summary>
+    protected virtual bool EnableMessageHubHost { get; set; } = true;
+
+    /// <summary>
+    /// Gets whether this mod instance is currently acting as the MessageHub host.
+    /// </summary>
+    public bool IsMessageHubHost => MessageHubManager.GetCurrentHost() != null;
 
     protected void OnEnable()
     {
@@ -64,6 +76,10 @@ public abstract class ModBehaviourBase : ModBehaviour
                 Log.Debug("Set localization language to: {Language}", LocalizationManager.CurrentLanguage);
                 BuffsContract.Instance.EnsureBuffIdRegion(); // ensure BuffRegistrator is initialized
                 Log.Debug("Ensured BuffRegistrator is initialized.");
+
+                // Initialize MessageHub host if enabled
+                InitializeMessageHubHost();
+
                 ModEnabled();
             }
             catch (Exception e)
@@ -107,6 +123,43 @@ public abstract class ModBehaviourBase : ModBehaviour
     /// mod disabled, override to remove your logic, unpatch, etc.
     /// </summary>
     protected abstract void ModDisabled();
+
+    /// <summary>
+    /// Initialize MessageHub host if enabled and no host is already running
+    /// </summary>
+    private void InitializeMessageHubHost()
+    {
+        if (!EnableMessageHubHost)
+        {
+            Log.Debug("MessageHub host functionality is disabled for this mod");
+            return;
+        }
+
+        try
+        {
+            // Check if host is already running
+            if (MessageHubManager.IsHostRunning())
+            {
+                Log.Debug("MessageHub host is already running, connecting as client");
+                return;
+            }
+
+            // Start new host
+            var host = MessageHubManager.StartHost();
+            if (host != null)
+            {
+                Log.Info("This mod has started the MessageHub host");
+            }
+            else
+            {
+                Log.Warn("Failed to start MessageHub host");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error initializing MessageHub host");
+        }
+    }
 
     private EnableState GetStateForType()
     {

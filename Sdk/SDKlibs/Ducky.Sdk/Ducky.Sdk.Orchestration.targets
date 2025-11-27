@@ -13,16 +13,17 @@
     1. InitializeBuildLoggingLib - Start build logging
     2. ValidateProjectPathLib - Validate project structure
     3. ResolveSdkPropertiesLib - Resolve SDK properties and paths
-    4. ExtractLocalizationKeysLib - Extract localization keys from source
-    5. UpdateLocalizationCsvLib - Update CSV localization files
-    6. CopyLocalizationAssetsLib - Copy localization assets
-    7. EnsureInfoIniLib - Generate/update info.ini
-    8. GeneratePreviewLib - Generate preview image
-    9. ValidateDuckovFolderLib - Validate game installation
-    10. CollectFromModLib - Collect mod data
-    11. DeployModLib - Deploy mod to game directory
-    12. ILRepackAssembliesLib - Merge assemblies (if enabled)
-    13. CopyDependenciesLib - Copy dependencies (if ILRepack disabled)
+    4. UpdateBuildContextAfterBuildLib - Update BuildContext with post-compilation dependency information
+    5. ExtractLocalizationKeysLib - Extract localization keys from source
+    6. UpdateLocalizationCsvLib - Update CSV localization files
+    7. CopyLocalizationAssetsLib - Copy localization assets
+    8. EnsureInfoIniLib - Generate/update info.ini
+    9. GeneratePreviewLib - Generate preview image
+    10. ValidateDuckovFolderLib - Validate game installation
+    11. CollectFromModLib - Collect mod data
+    12. DeployModLib - Deploy mod to game directory
+    13. ILRepackAssembliesLib - Merge assemblies (if enabled)
+    14. CopyDependenciesLib - Copy dependencies (if ILRepack disabled)
     -->
 
     <!-- Configuration Properties -->
@@ -166,6 +167,13 @@
         <!-- Error text changed from "does not exist" to "not found" -->
         <Error Text="BuildContext JSON file not found: $(_BuildContextJsonFile)"
                Condition="!Exists('$(_BuildContextJsonFile)')" />
+
+        <!-- Execute UpdateBuildContextAfterBuildLib - needs compiled assemblies -->
+        <Exec
+            Command="dotnet script &quot;$(MSBuildThisFileDirectory)../scripts/UpdateBuildContextAfterBuildLib.csx&quot; &quot;$(MSBuildProjectDirectory)&quot;"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="Exists('$(MSBuildThisFileDirectory)../scripts/UpdateBuildContextAfterBuildLib.csx')" />
 
         <!-- Reset deployment target directory first -->
         <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ResetDeployLib"

@@ -82,7 +82,7 @@ if [[ -f "${ROOT_DIR}/nuget.props" ]]; then
       dotnet add package "Ducky.Sdk" --version "$ACTUAL_VERSION" --source "${ROOT_DIR}/duckylocal" || err "Failed to update Ducky.Sdk in $(basename "$proj")"
       cd "$SAMPLES_DIR"
     done
-
+    dotnet restore "$SAMPLE_SOLUTION" || err "Failed to restore sample solution after updating versions"
     log "✓ All Sample projects updated to Ducky.Sdk ${ACTUAL_VERSION}"
   else
     err "Failed to extract version from nuget.props"

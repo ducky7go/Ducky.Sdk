@@ -423,6 +423,7 @@ public class ModHttpV1Proxy
         {
             // 执行实际的ModHttpV1对象检查
             var go = UnityEngine.GameObject.Find("ModHttpV1");
+
             if (go != null)
             {
                 var components = go.GetComponents<UnityEngine.MonoBehaviour>();
@@ -486,6 +487,7 @@ public class ModHttpV1Proxy
     public static ModHttpV1Proxy CreateFromSingleton()
     {
         var go = UnityEngine.GameObject.Find("ModHttpV1");
+
         if (go != null)
         {
             // 通过反射获取 ModHttpV1 类型并获取组件

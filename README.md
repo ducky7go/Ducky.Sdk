@@ -247,6 +247,50 @@ Log.Error(exception, "加载资源失败：{ResourceId}", resourceId);
 
 ## 高级功能
 
+### MessageHub 跨 Mod 通信
+
+SDK 集成了 MessageHub 功能，允许 mod 之间进行通信，无需安装额外的 host mod。
+
+#### 自动 Host 功能
+
+```csharp
+public class MyModBehaviour : ModBehaviourBase
+{
+    // 默认启用，可以选择禁用
+    protected override bool EnableMessageHubHost { get; set; } = true;
+
+    protected override void ModEnabled()
+    {
+        // 检查此 mod 是否是 host
+        if (IsMessageHubHost)
+        {
+            Log.Info("此 Mod 是 MessageHub Host!");
+        }
+
+        // 注册为消息接收方
+        var proxy = ModHttpV1Proxy.CreateFromSingleton();
+        proxy.RegisterClient("MyMod", async (fromMod, contentType, body) =>
+        {
+            Log.Info($"收到来自 {fromMod} 的消息: {body}");
+            // 处理消息...
+        });
+    }
+}
+```
+
+#### 发送消息到其他 Mod
+
+```csharp
+var proxy = ModHttpV1Proxy.CreateFromSingleton();
+await proxy.Notify("MyMod", "TargetModName", "custom_event", "Hello World!");
+```
+
+#### 特性
+- ✅ **无需额外安装** - 自动集成在 SDK 中
+- ✅ **自动 Host 检测** - 第一个启动的 mod 成为 host
+- ✅ **向后兼容** - 与现有代码完全兼容
+- ✅ **生命周期管理** - Host 会持续运行，即使创建它的 mod 已禁用
+
 ### Harmony 运行时补丁
 
 启用运行时方法补丁以实现高级 Mod：

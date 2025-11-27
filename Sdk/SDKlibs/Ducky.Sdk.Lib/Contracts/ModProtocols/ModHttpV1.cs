@@ -1,19 +1,21 @@
-﻿using Cysharp.Threading.Tasks;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using System.Collections.Concurrent;
 using Ducky.Sdk.Logging;
 
-// 主程序专属脚本，编译在主程序 DLL 中
-// ModHttp v1
-namespace Ducky.MessageHubHost;
+namespace Ducky.Sdk.Contracts.ModProtocols;
 
 /// <summary>
-/// ModHttp v1
+/// MessageHub Host v1 - Integrated into SDK core for inter-mod communication
 /// </summary>
 internal class ModHttpV1 : MonoBehaviour
 {
     public const string HubGameObjectName = "ModHttpV1";
-    internal static ModHttpV1 Instance { get; set; }
+    internal static ModHttpV1? Instance { get; set; }
 
     // 存储：mod id (string) → 委托（Func<fromModId, contentType, body, UniTask>），并发字典实现无锁访问
     private readonly ConcurrentDictionary<string, Func<string, string, string, UniTask>> _eventMap = new();
