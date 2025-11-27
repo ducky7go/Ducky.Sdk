@@ -116,6 +116,7 @@ public class ILRepackAssembliesLib
                 {
                     File.Delete(finalOutput);
                 }
+
                 context.LogInfo($"Moving {tempOutput} to {finalOutput}");
                 File.Move(tempOutput, finalOutput);
 
@@ -128,6 +129,7 @@ public class ILRepackAssembliesLib
                     {
                         File.Delete(finalPdb);
                     }
+
                     context.LogInfo($"Moving {tempPdb} to {finalPdb}");
                     File.Move(tempPdb, finalPdb);
                 }
