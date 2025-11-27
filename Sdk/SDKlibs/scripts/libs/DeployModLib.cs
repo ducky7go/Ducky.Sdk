@@ -99,12 +99,17 @@ public class DeployModLib
             result.AssetsCopied = assetsResult.FilesCopied;
 
             // Copy main DLL
-            CopyMainDll(targetModDir, context, result);
 
             // Copy dependencies if ILRepack is disabled
             if (!context.EnableILRepack)
             {
+                CopyMainDll(targetModDir, context, result);
                 CopyDependencies(targetModDir, context, result);
+                context.LogInfo("Main DLL and dependencies copied");
+            }
+            else
+            {
+                context.LogInfo("ILRepack is enabled, skipping main DLL and dependencies copy");
             }
 
             result.Success = result.Errors.Count == 0;

@@ -189,6 +189,17 @@ public class CollectFromModLib
             return true;
         }
 
+        // skip if ini not found
+        var modDir = GetModDirectory(context);
+        var modInfoPath = Path.Combine(modDir, "info.ini");
+        if (!File.Exists(modInfoPath))
+        {
+            context.LogInfo($"Skipping collection: Mod info.ini not found at {modInfoPath}");
+            result.Skipped = true;
+            result.Success = true;
+            return true;
+        }
+
         return false;
     }
 

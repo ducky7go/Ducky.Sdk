@@ -53,6 +53,8 @@
                 Condition="$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">
                 $(BaseIntermediateOutputPath)
             </_AbsoluteBaseIntermediateOutputPath>
+            <_AbsoluteOutputPath Condition="!$([System.IO.Path]::IsPathRooted($(OutputPath)))">$([System.IO.Path]::GetFullPath($(MSBuildProjectDirectory)\$(OutputPath)))</_AbsoluteOutputPath>
+            <_AbsoluteOutputPath Condition="$([System.IO.Path]::IsPathRooted($(OutputPath)))">$(OutputPath)</_AbsoluteOutputPath>
         </PropertyGroup>
 
         <!-- Ensure obj directory exists before script execution -->
@@ -61,7 +63,7 @@
 
         <!-- Generate BuildContext JSON using dedicated script -->
         <Exec
-            Command="dotnet script &quot;$(_ContextJsonScript)&quot; 1 &quot;$(MSBuildProjectDirectory)&quot; 2 &quot;$(ModName)&quot; 3 &quot;$(Configuration)&quot; 4 &quot;$(TargetFramework)&quot; 5 &quot;$(DuckovFolder)&quot; 6 &quot;$(SteamFolder)&quot; 7 &quot;$(AssetsDir)&quot; 8 &quot;$(LocalizationAssetsDir)&quot; 9 &quot;$(EnableILRepack)&quot; 10 &quot;$(EnableGlobalUsing)&quot; 11 &quot;$(IncludeHarmony)&quot; 12 &quot;$(DeployMod)&quot; 13 &quot;$(ExcludeSdkLib)&quot; 14 &quot;$(IsModLib)&quot; 15 &quot;$(_AbsoluteIntermediateOutputPath)&quot; 16 &quot;$(_AbsoluteBaseIntermediateOutputPath)&quot; 17 &quot;$(OutputPath)&quot;"
+            Command="dotnet script &quot;$(_ContextJsonScript)&quot; 1 &quot;$(MSBuildProjectDirectory)&quot; 2 &quot;$(ModName)&quot; 3 &quot;$(Configuration)&quot; 4 &quot;$(TargetFramework)&quot; 5 &quot;$(DuckovFolder)&quot; 6 &quot;$(SteamFolder)&quot; 7 &quot;$(AssetsDir)&quot; 8 &quot;$(LocalizationAssetsDir)&quot; 9 &quot;$(EnableILRepack)&quot; 10 &quot;$(EnableGlobalUsing)&quot; 11 &quot;$(IncludeHarmony)&quot; 12 &quot;$(DeployMod)&quot; 13 &quot;$(ExcludeSdkLib)&quot; 14 &quot;$(IsModLib)&quot; 15 &quot;$(_AbsoluteIntermediateOutputPath)&quot; 16 &quot;$(_AbsoluteBaseIntermediateOutputPath)&quot; 17 &quot;$(_AbsoluteOutputPath)&quot;"
             ContinueOnError="false"
             WorkingDirectory="$(MSBuildProjectDirectory)"
             Condition="Exists('$(_ContextJsonScript)')">
