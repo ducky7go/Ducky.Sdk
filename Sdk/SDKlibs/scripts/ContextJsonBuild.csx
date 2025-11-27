@@ -159,7 +159,8 @@ string GetSafeString(Dictionary<string, string> dict, string key, string default
     {
         return defaultValue;
     }
-    return value;
+    // Trim whitespace and newlines to prevent issues in JSON generation
+    return value.Trim();
 }
 
 bool ParseSafeBool(Dictionary<string, string> dict, string key, bool defaultValue)
