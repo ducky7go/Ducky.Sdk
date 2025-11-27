@@ -36,7 +36,7 @@ public class CollectFromModLib
             if (context.DeployMod == false)
             {
                 context.LogInfo("Mod deployment is disabled. Skipping collection.");
-                return 0;
+                return SkipExitCode;
             }
 
             context.LogInfo("=== Collect From Mod Results ===");

@@ -45,7 +45,7 @@ public class GeneratePreviewLib
                 context.LogError($"Error: {result.ErrorMessage}");
             }
 
-            return result.Success ? 0 : 1;
+            return result.ExitCode;
         }
         catch (Exception ex)
         {
@@ -110,11 +110,13 @@ public class GeneratePreviewLib
 
     private static bool ShouldSkipGeneration(BuildContext context, GenerationResult result)
     {
-        // Skip if no ModName (library projects)
-        if (string.IsNullOrEmpty(context.ModName))
+        // Skip if no ModName (library projects) or IsModLib (library projects)
+        if (string.IsNullOrEmpty(context.ModName) || context.IsModLib)
         {
-            context.LogInfo("Skipping preview generation: ModName not specified (library project)");
+            context.LogInfo(
+                $"Skipping preview generation: {(string.IsNullOrEmpty(context.ModName) ? "ModName not specified" : "IsModLib is true")} (library project)");
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 

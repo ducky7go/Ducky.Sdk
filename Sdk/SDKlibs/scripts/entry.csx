@@ -137,6 +137,14 @@ try
     });
 
     Console.WriteLine($"[ScriptEntry] {scriptLibrary} completed with exit code: {exitCode}");
+
+    // Convert skip exit code to 0 for MSBuild to avoid compilation interruption
+    if (exitCode == SkipExitCode)
+    {
+        Console.WriteLine($"[ScriptEntry] Converting skip exit code {SkipExitCode} to 0 for MSBuild compatibility");
+        return 0;
+    }
+
     return exitCode;
 }
 catch (Exception ex)

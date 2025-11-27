@@ -19,6 +19,7 @@ public class CopyDependenciesLib
         public List<string> SkippedFiles { get; set; } = new();
         public string ErrorMessage { get; set; } = "";
         public DateTime CopiedAt { get; set; } = DateTime.UtcNow;
+        public int ExitCode { get; set; }
     }
 
     /// <summary>
@@ -57,7 +58,7 @@ public class CopyDependenciesLib
                 context.LogError($"Error: {result.ErrorMessage}");
             }
 
-            return result.Success ? 0 : 1;
+            return result.ExitCode;
         }
         catch (Exception ex)
         {
@@ -87,6 +88,7 @@ public class CopyDependenciesLib
             {
                 context.LogInfo("No dependencies found to copy");
                 result.Success = true;
+                result.ExitCode = 0;
                 return result;
             }
 
@@ -121,12 +123,14 @@ public class CopyDependenciesLib
             }
 
             result.Success = true;
+            result.ExitCode = 0;
             context.LogInfo(
                 $"Dependency copying completed: {result.DependenciesCopied} copied, {result.SkippedFiles.Count} skipped");
         }
         catch (Exception ex)
         {
             result.Success = false;
+            result.ExitCode = 1;
             result.ErrorMessage = $"Dependency copying error: {ex.Message}";
             context.LogError($"Exception: {ex}");
         }
@@ -141,6 +145,7 @@ public class CopyDependenciesLib
         {
             context.LogInfo("Skipping dependency copying: ILRepack is enabled");
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 
@@ -149,6 +154,7 @@ public class CopyDependenciesLib
         {
             context.LogInfo("Skipping dependency copying: IsModLib=true");
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 

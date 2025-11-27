@@ -29,11 +29,12 @@ public class EnsureInfoIniLib
             context.LogInfo($"Assets Directory: {assetsDir}");
             context.LogInfo($"Mod Name: {modName}");
 
-            // Skip if no ModName (library projects)
-            if (string.IsNullOrEmpty(modName))
+            // Skip if no ModName (library projects) or IsModLib (library projects)
+            if (string.IsNullOrEmpty(modName) || context.IsModLib)
             {
-                context.LogInfo("Skipping info.ini generation: ModName not specified (library project)");
-                return 0;
+                context.LogInfo(
+                    $"Skipping info.ini generation: {(string.IsNullOrEmpty(modName) ? "ModName not specified" : "IsModLib is true")} (library project)");
+                return SkipExitCode;
             }
 
             if (!Directory.Exists(assetsDir))

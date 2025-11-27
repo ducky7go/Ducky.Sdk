@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 using System.Linq;
 using Newtonsoft.Json;
 
@@ -14,31 +13,31 @@ public class BuildStepResult
 {
     public string StepName { get; set; } = string.Empty;
     public StepStatus Status { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public TimeSpan Duration => EndTime - StartTime;
+    public long StartTimeUnix { get; set; }
+    public long EndTimeUnix { get; set; }
+    public double DurationSeconds => EndTimeUnix - StartTimeUnix;
     public string? ErrorMessage { get; set; }
     public string? StackTrace { get; set; }
     public int ExitCode { get; set; }
 
-    public static BuildStepResult Success(string stepName, DateTime startTime, DateTime endTime)
+    public static BuildStepResult Success(string stepName, long startTimeUnix, long endTimeUnix)
         => new BuildStepResult
         {
             StepName = stepName,
             Status = StepStatus.Success,
-            StartTime = startTime,
-            EndTime = endTime,
+            StartTimeUnix = startTimeUnix,
+            EndTimeUnix = endTimeUnix,
             ExitCode = 0
         };
 
-    public static BuildStepResult Failed(string stepName, DateTime startTime, DateTime endTime, string errorMessage,
+    public static BuildStepResult Failed(string stepName, long startTimeUnix, long endTimeUnix, string errorMessage,
         string? stackTrace = null, int exitCode = 1)
         => new BuildStepResult
         {
             StepName = stepName,
             Status = StepStatus.Failed,
-            StartTime = startTime,
-            EndTime = endTime,
+            StartTimeUnix = startTimeUnix,
+            EndTimeUnix = endTimeUnix,
             ErrorMessage = errorMessage,
             StackTrace = stackTrace,
             ExitCode = exitCode
@@ -49,10 +48,25 @@ public class BuildStepResult
         {
             StepName = stepName,
             Status = StepStatus.Skipped,
-            StartTime = DateTime.MinValue,
-            EndTime = DateTime.MinValue,
-            ExitCode = 0
+            StartTimeUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            EndTimeUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            ExitCode = 36524
         };
+
+    /// <summary>
+    /// Gets a formatted string representation of the duration
+    /// </summary>
+    public string GetFormattedDuration()
+    {
+        if (Status == StepStatus.Skipped)
+            return "skipped";
+
+        var totalSeconds = DurationSeconds;
+        if (totalSeconds < 1.0)
+            return $"{totalSeconds * 1000:F0}ms";
+        else
+            return $"{totalSeconds:F1}s";
+    }
 }
 
 /// <summary>
@@ -72,12 +86,33 @@ public enum StepStatus
 public class BuildResult
 {
     public required string ProjectDirectory { get; init; }
-    public required DateTime BuildStartTime { get; init; }
-    public DateTime BuildEndTime { get; private set; }
     public List<BuildStepResult> StepResults { get; private set; } = new();
 
-    public TimeSpan TotalDuration => BuildEndTime - BuildStartTime;
-    public bool IsComplete => BuildEndTime != default;
+    public bool IsComplete => StepResults.Count > 0;
+
+    public TimeSpan TotalDuration
+    {
+        get
+        {
+            if (StepResults.Count == 0)
+                return TimeSpan.Zero;
+
+            // Calculate duration based on actual step execution times
+            var firstStep = StepResults.OrderBy(s => s.StartTimeUnix).First();
+            var lastStep = StepResults.OrderBy(s => s.EndTimeUnix).Last();
+
+            if (firstStep.StartTimeUnix <= 0 || lastStep.EndTimeUnix <= 0)
+                return TimeSpan.Zero;
+
+            var duration = lastStep.EndTimeUnix - firstStep.StartTimeUnix;
+
+            // If duration is unreasonable (more than 1 day), assume it's corrupted data
+            if (duration > 86400 || duration < 0) // 1 day in seconds
+                return TimeSpan.Zero;
+
+            return TimeSpan.FromSeconds(duration);
+        }
+    }
 
     public int SuccessfulSteps => StepResults.Count(r => r.Status == StepStatus.Success);
     public int FailedSteps => StepResults.Count(r => r.Status == StepStatus.Failed);
@@ -99,20 +134,21 @@ public class BuildResult
     /// <summary>
     /// Records a successful step execution
     /// </summary>
-    public void RecordSuccess(string stepName, DateTime startTime, DateTime endTime)
+    public void RecordSuccess(string stepName, long startTimeUnix, long endTimeUnix)
     {
         StepResults.RemoveAll(r => r.StepName == stepName);
-        StepResults.Add(BuildStepResult.Success(stepName, startTime, endTime));
+        StepResults.Add(BuildStepResult.Success(stepName, startTimeUnix, endTimeUnix));
     }
 
     /// <summary>
     /// Records a failed step execution
     /// </summary>
-    public void RecordFailure(string stepName, DateTime startTime, DateTime endTime, string errorMessage,
+    public void RecordFailure(string stepName, long startTimeUnix, long endTimeUnix, string errorMessage,
         string? stackTrace = null, int exitCode = 1)
     {
         StepResults.RemoveAll(r => r.StepName == stepName);
-        StepResults.Add(BuildStepResult.Failed(stepName, startTime, endTime, errorMessage, stackTrace, exitCode));
+        StepResults.Add(
+            BuildStepResult.Failed(stepName, startTimeUnix, endTimeUnix, errorMessage, stackTrace, exitCode));
     }
 
     /// <summary>
@@ -122,14 +158,6 @@ public class BuildResult
     {
         StepResults.RemoveAll(r => r.StepName == stepName);
         StepResults.Add(BuildStepResult.Skipped(stepName));
-    }
-
-    /// <summary>
-    /// Marks the build as complete
-    /// </summary>
-    public void Complete()
-    {
-        BuildEndTime = DateTime.Now;
     }
 
     /// <summary>
@@ -167,8 +195,7 @@ public class BuildResult
         // Create new BuildResult
         var newResult = new BuildResult
         {
-            ProjectDirectory = projectDirectory,
-            BuildStartTime = DateTime.Now
+            ProjectDirectory = projectDirectory
         };
 
         Console.WriteLine($"[BuildResult] Created new result for: {projectDirectory}");
@@ -198,13 +225,6 @@ public class BuildResult
             Console.WriteLine($"[BuildResult][WARN] Failed to save result: {ex.Message}");
         }
     }
-
-    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-        WriteIndented = true
-    };
 
     /// <summary>
     /// Serializes the result to JSON
@@ -238,6 +258,12 @@ public class BuildResult
 }
 
 /// <summary>
+/// Exit code for script libraries that are intentionally skipped
+/// This code is used to distinguish skip status from success (0) and failure (non-zero)
+/// </summary>
+public const int SkipExitCode = 36524;
+
+/// <summary>
 /// Utilities for BuildResult operations
 /// </summary>
 public static class BuildResultUtils
@@ -247,23 +273,29 @@ public static class BuildResultUtils
     /// </summary>
     public static int ExecuteAndRecord(BuildResult buildResult, string stepName, Func<int> action)
     {
-        var startTime = DateTime.Now;
+        var startTimeUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         buildResult.StartStep(stepName);
 
         try
         {
             var exitCode = action();
-            var endTime = DateTime.Now;
+            var endTimeUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var duration = endTimeUnix - startTimeUnix;
 
             if (exitCode == 0)
             {
-                buildResult.RecordSuccess(stepName, startTime, endTime);
+                buildResult.RecordSuccess(stepName, startTimeUnix, endTimeUnix);
                 Console.WriteLine(
-                    $"[BuildResult] ✅ {stepName} completed successfully in {(endTime - startTime).TotalSeconds:F1}s");
+                    $"[BuildResult] ✅ {stepName} completed successfully in {duration:F1}s");
+            }
+            else if (exitCode == SkipExitCode)
+            {
+                buildResult.RecordSkipped(stepName);
+                Console.WriteLine($"[BuildResult] ⏭️ {stepName} was skipped");
             }
             else
             {
-                buildResult.RecordFailure(stepName, startTime, endTime, $"Exit code: {exitCode}");
+                buildResult.RecordFailure(stepName, startTimeUnix, endTimeUnix, $"Exit code: {exitCode}");
                 Console.WriteLine($"[BuildResult] ❌ {stepName} failed with exit code {exitCode}");
             }
 
@@ -271,8 +303,8 @@ public static class BuildResultUtils
         }
         catch (Exception ex)
         {
-            var endTime = DateTime.Now;
-            buildResult.RecordFailure(stepName, startTime, endTime, ex.Message, ex.StackTrace);
+            var endTimeUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            buildResult.RecordFailure(stepName, startTimeUnix, endTimeUnix, ex.Message, ex.StackTrace);
 
             Console.WriteLine($"[BuildResult] ❌ {stepName} failed with exception: {ex.Message}");
             return 1;

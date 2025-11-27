@@ -19,6 +19,7 @@ public class ResetDeployLib
         public List<string> Errors { get; set; } = new();
         public List<string> Warnings { get; set; } = new();
         public DateTime ResetAt { get; set; } = DateTime.UtcNow;
+        public int ExitCode { get; set; }
     }
 
     /// <summary>
@@ -60,7 +61,7 @@ public class ResetDeployLib
 
             context.LogInfo("=== Reset Deploy Directory Results ===");
 
-            return result.Success ? 0 : 1;
+            return result.ExitCode;
         }
         catch (Exception ex)
         {
@@ -118,11 +119,13 @@ public class ResetDeployLib
             }
 
             result.Success = true;
+            result.ExitCode = 0;
             context.LogInfo("Deployment directory reset completed successfully");
         }
         catch (Exception ex)
         {
             result.Success = false;
+            result.ExitCode = 1;
             result.Errors.Add($"Reset operation failed: {ex.Message}");
             context.LogError($"Exception: {ex}");
         }
@@ -138,6 +141,7 @@ public class ResetDeployLib
             context.LogInfo(
                 "Skipping directory reset: IsModLib=true, library projects don't need deployment directory reset");
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 
@@ -147,6 +151,7 @@ public class ResetDeployLib
             result.Warnings.Add("ModName is not specified, cannot determine target directory");
             context.LogWarning("ModName is not specified, cannot determine target directory");
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 
