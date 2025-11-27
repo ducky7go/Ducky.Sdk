@@ -32,7 +32,8 @@ public class EnsureInfoIniLib
             // Skip if no ModName (library projects) or IsModLib (library projects)
             if (string.IsNullOrEmpty(modName) || context.IsModLib)
             {
-                context.LogInfo($"Skipping info.ini generation: {(string.IsNullOrEmpty(modName) ? "ModName not specified" : "IsModLib is true")} (library project)");
+                context.LogInfo(
+                    $"Skipping info.ini generation: {(string.IsNullOrEmpty(modName) ? "ModName not specified" : "IsModLib is true")} (library project)");
                 return SkipExitCode;
             }
 

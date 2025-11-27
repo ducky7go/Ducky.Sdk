@@ -113,7 +113,8 @@ public class GeneratePreviewLib
         // Skip if no ModName (library projects) or IsModLib (library projects)
         if (string.IsNullOrEmpty(context.ModName) || context.IsModLib)
         {
-            context.LogInfo($"Skipping preview generation: {(string.IsNullOrEmpty(context.ModName) ? "ModName not specified" : "IsModLib is true")} (library project)");
+            context.LogInfo(
+                $"Skipping preview generation: {(string.IsNullOrEmpty(context.ModName) ? "ModName not specified" : "IsModLib is true")} (library project)");
             result.Success = true;
             result.ExitCode = SkipExitCode;
             return true;

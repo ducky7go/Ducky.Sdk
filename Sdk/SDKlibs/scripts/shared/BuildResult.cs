@@ -89,6 +89,7 @@ public class BuildResult
     public List<BuildStepResult> StepResults { get; private set; } = new();
 
     public bool IsComplete => StepResults.Count > 0;
+
     public TimeSpan TotalDuration
     {
         get
@@ -146,7 +147,8 @@ public class BuildResult
         string? stackTrace = null, int exitCode = 1)
     {
         StepResults.RemoveAll(r => r.StepName == stepName);
-        StepResults.Add(BuildStepResult.Failed(stepName, startTimeUnix, endTimeUnix, errorMessage, stackTrace, exitCode));
+        StepResults.Add(
+            BuildStepResult.Failed(stepName, startTimeUnix, endTimeUnix, errorMessage, stackTrace, exitCode));
     }
 
     /// <summary>
