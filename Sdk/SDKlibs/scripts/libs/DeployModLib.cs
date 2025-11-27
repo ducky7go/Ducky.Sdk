@@ -109,7 +109,15 @@ public class DeployModLib
             }
             else
             {
-                context.LogInfo("ILRepack is enabled, skipping main DLL and dependencies copy");
+                if(!context.HasDependencies)
+                {
+                    CopyMainDll(targetModDir, context, result);
+                    context.LogInfo("Main DLL copied");
+                }
+                else
+                {
+                    context.LogInfo("ILRepack is enabled with dependencies, skipping main DLL copy");
+                }
             }
 
             result.Success = result.Errors.Count == 0;

@@ -117,6 +117,22 @@ public class BuildContext
     /// </summary>
     public bool IsModLib { get; init; } = false;
 
+    // Dependency Resolution Properties
+
+    /// <summary>
+    /// MainAssemblyPath: Path to the primary mod assembly.
+    /// COMPUTED: Updated by UpdateBuildContextAfterBuildLib after compilation
+    /// AFFECTS: ILRepack input identification, dependency filtering
+    /// </summary>
+    public string? MainAssemblyPath { get; set; }
+
+    /// <summary>
+    /// DependencyAssemblies: List of dependency assembly paths.
+    /// COMPUTED: Scanned and populated by UpdateBuildContextAfterBuildLib after compilation
+    /// AFFECTS: ILRepack merging, deployment decisions
+    /// </summary>
+    public List<string>? DependencyAssemblies { get; set; }
+
     // Computed Properties
 
     /// <summary>
@@ -153,8 +169,21 @@ public class BuildContext
     /// AFFECTS: Key extraction, CSV generation, asset copying
     /// SCOPE: Mod-specific localization only, not SDK standard library files
     /// </summary>
-    [System.Text.Json.Serialization.JsonIgnore]
     public bool ShouldProcessLocalization => true; // Will be computed by CSX logic
+
+    /// <summary>
+    /// HasDependencies: Computed property indicating whether the mod has external dependencies.
+    /// COMPUTED: Based on DependencyAssemblies list
+    /// AFFECTS: Build decisions, deployment strategy
+    /// </summary>
+    public bool HasDependencies => DependencyAssemblies?.Count > 0;
+
+    /// <summary>
+    /// ShouldUseILRepack: Computed property indicating whether ILRepack should be used.
+    /// COMPUTED: Based on EnableILRepack flag and HasDependencies
+    /// AFFECTS: ILRepack execution decision
+    /// </summary>
+    public bool ShouldUseILRepack => EnableILRepack && HasDependencies;
 
     // Utility Methods
     public string GetFullPath(string relativePath) => Path.GetFullPath(Path.Combine(ProjectDir, relativePath));

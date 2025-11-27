@@ -83,15 +83,15 @@ public class ILRepackAssembliesLib
                 return result;
             }
 
-            // Find target assembly and dependencies
-            var mainAssembly = FindMainAssembly(context);
+            // Get target assembly and dependencies from BuildContext
+            var mainAssembly = context.MainAssemblyPath ?? FindMainAssembly(context);
             if (string.IsNullOrEmpty(mainAssembly))
             {
                 result.Errors.Add("Main assembly not found");
                 return result;
             }
 
-            var dependencies = FindDependencies(mainAssembly, context);
+            var dependencies = context.DependencyAssemblies ?? new List<string>();
             // Prepare output paths
             var targetModDir = GetTargetModDirectory(context);
             var tempDir = Path.Combine(targetModDir, ".ilrepack_temp");
@@ -184,10 +184,10 @@ public class ILRepackAssembliesLib
             return true;
         }
 
-        // Skip if ILRepack is disabled
-        if (!context.EnableILRepack)
+        // Skip if ILRepack is disabled or no dependencies
+        if (!context.ShouldUseILRepack)
         {
-            context.LogInfo("Skipping ILRepack: EnableILRepack=false");
+            context.LogInfo($"Skipping ILRepack: ShouldUseILRepack={context.ShouldUseILRepack} (EnableILRepack={context.EnableILRepack}, HasDependencies={context.HasDependencies})");
             result.RepackSkipped = true;
             result.Success = true;
             result.ExitCode = SkipExitCode;
@@ -211,43 +211,7 @@ public class ILRepackAssembliesLib
             return false;
         }
 
-        // analyze the output folder contains only the main assembly if comparing to Managed folder
-        var dependsToPack = FindDependencies(FindMainAssembly(context), context);
-        if (dependsToPack.Count == 0)
-        {
-            context.LogInfo("Skipping ILRepack: Only main assembly present, no dependencies to merge");
-            result.RepackSkipped = true;
-            result.Success = true;
-            result.ExitCode = SkipExitCode;
-            return true;
-        }
-
         return false;
-    }
-
-    private static List<string> FindDependencies(string mainAssembly, BuildContext context)
-    {
-        var outputPath = context.OutputPath;
-        var outDir = Path.GetDirectoryName(outputPath);
-        var existingDlls = Directory.GetFiles(outDir, "*.dll");
-        context.LogInfo($"Found {existingDlls.Length} DLLs in output directory: {outDir}");
-        var managedDlls = Directory.GetFiles(Path.Combine(context.ManagedDirectory), "*.dll")
-            .Select(f => Path.GetFileName(f)).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        context.LogInfo($"Found {managedDlls.Count} DLLs in Managed directory: {context.ManagedDirectory}");
-        var dependencies = new List<string>();
-        foreach (var dll in existingDlls)
-        {
-            var fileName = Path.GetFileName(dll);
-            // Skip if it's the main assembly itself or not in Managed folder
-            if (!string.Equals(fileName, Path.GetFileName(mainAssembly), StringComparison.OrdinalIgnoreCase) &&
-                !managedDlls.Contains(fileName))
-            {
-                context.LogInfo($"Adding dependency: {fileName}");
-                dependencies.Add(dll);
-            }
-        }
-
-        return dependencies;
     }
 
     private static string FindMainAssembly(BuildContext context)
