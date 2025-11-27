@@ -109,7 +109,7 @@ public class DeployModLib
             }
             else
             {
-                if(!context.HasDependencies)
+                if (!context.HasDependencies)
                 {
                     CopyMainDll(targetModDir, context, result);
                     context.LogInfo("Main DLL copied");

@@ -187,7 +187,8 @@ public class ILRepackAssembliesLib
         // Skip if ILRepack is disabled or no dependencies
         if (!context.ShouldUseILRepack)
         {
-            context.LogInfo($"Skipping ILRepack: ShouldUseILRepack={context.ShouldUseILRepack} (EnableILRepack={context.EnableILRepack}, HasDependencies={context.HasDependencies})");
+            context.LogInfo(
+                $"Skipping ILRepack: ShouldUseILRepack={context.ShouldUseILRepack} (EnableILRepack={context.EnableILRepack}, HasDependencies={context.HasDependencies})");
             result.RepackSkipped = true;
             result.Success = true;
             result.ExitCode = SkipExitCode;
