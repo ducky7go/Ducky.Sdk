@@ -111,6 +111,12 @@ public class ILRepackAssembliesLib
             if (exitCode == 0 && File.Exists(tempOutput))
             {
                 // Move to final location
+                // Delete target if it exists to allow overwrite
+                if (File.Exists(finalOutput))
+                {
+                    File.Delete(finalOutput);
+                }
+                context.LogInfo($"Moving {tempOutput} to {finalOutput}");
                 File.Move(tempOutput, finalOutput);
 
                 // Move PDB if exists
@@ -118,6 +124,11 @@ public class ILRepackAssembliesLib
                 if (File.Exists(tempPdb))
                 {
                     var finalPdb = Path.ChangeExtension(finalOutput, ".pdb");
+                    if (File.Exists(finalPdb))
+                    {
+                        File.Delete(finalPdb);
+                    }
+                    context.LogInfo($"Moving {tempPdb} to {finalPdb}");
                     File.Move(tempPdb, finalPdb);
                 }
 
@@ -272,6 +283,7 @@ public class ILRepackAssembliesLib
         args.Add("/wildcards");
         args.Add("/internalize");
         args.Add("/ndebug");
+        args.Add("/parallel");
 
         // reference resolution
         args.Add($"/lib:\"{Path.GetDirectoryName(mainAssembly)}\"");
