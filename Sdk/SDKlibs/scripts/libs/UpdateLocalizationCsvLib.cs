@@ -31,14 +31,14 @@ public class UpdateLocalizationCsvLib
             if (!File.Exists(jsonKeyFile))
             {
                 context.LogInfo($"Key JSON file not found: {jsonKeyFile}. Skipping CSV generation.");
-                return 0;
+                return SkipExitCode;
             }
 
             var (keys, keyFileExtensions, supportedLanguages) = LoadKeysFromJson(jsonKeyFile, context);
             if (keys.Count == 0)
             {
                 context.LogInfo("No keys found in JSON file. Skipping CSV generation.");
-                return 0;
+                return SkipExitCode;
             }
 
             var distinctKeys = keys.Distinct().OrderBy(k => k).ToList();
@@ -58,7 +58,7 @@ public class UpdateLocalizationCsvLib
             if (!IsUpdateNeeded(hashFile, assemblyHash, languageEntries, localesDir, distinctKeys))
             {
                 context.LogInfo("Hash matches existing hash file and all CSVs exist; skipping CSV updates.");
-                return 0;
+                return SkipExitCode;
             }
 
             // Ensure locales dir exists

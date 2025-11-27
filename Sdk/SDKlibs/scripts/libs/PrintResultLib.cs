@@ -18,11 +18,7 @@ public static class PrintResultLib
     {
         try
         {
-            // Mark the build as complete since we're displaying results
-            if (!buildResult.IsComplete)
-            {
-                buildResult.Complete();
-            }
+            // No need to mark complete - time is calculated from actual steps
 
             Console.WriteLine();
             DisplayHeader();
@@ -89,10 +85,9 @@ public static class PrintResultLib
         Console.WriteLine("    " + new string('-', 60));
         Console.WriteLine();
 
-        foreach (var step in buildResult.StepResults.OrderBy(s => s.StartTime))
+        foreach (var step in buildResult.StepResults.OrderBy(s => s.StartTimeUnix))
         {
             DisplaySingleStep(step);
-            Console.WriteLine();
         }
     }
 
@@ -113,8 +108,7 @@ public static class PrintResultLib
         switch (step.Status)
         {
             case StepStatus.Success:
-                var duration = step.Duration.TotalSeconds.ToString("F1");
-                Console.WriteLine($" ({duration}s)");
+                Console.WriteLine($" ({step.GetFormattedDuration()})");
                 break;
 
             case StepStatus.Failed:
@@ -140,13 +134,9 @@ public static class PrintResultLib
 
     private static void DisplayFooter()
     {
-        var footer = @"
-
-    [COMPLETE] Build completed! Check the results above for any issues.
-    [INFO]     All build results are saved in obj/ducky-build-result.json
-
-";
-        Console.WriteLine(footer);
+        Console.WriteLine();
+        Console.WriteLine("    [COMPLETE] Build completed! Check the results above for any issues.");
+        Console.WriteLine("    [INFO]     All build results are saved in obj/ducky-build-result.json");
     }
 
     private static string TruncateWithEllipsis(string text, int maxLength)

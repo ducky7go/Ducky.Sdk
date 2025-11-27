@@ -18,6 +18,7 @@ public class CopyLocalizationAssetsLib
         public List<string> CopiedFiles { get; set; } = new();
         public string ErrorMessage { get; set; } = "";
         public DateTime CopiedAt { get; set; } = DateTime.UtcNow;
+        public int ExitCode { get; set; }
     }
 
     /// <summary>
@@ -57,7 +58,7 @@ public class CopyLocalizationAssetsLib
                 context.LogError($"Error: {result.ErrorMessage}");
             }
 
-            return result.Success ? 0 : 1;
+            return result.ExitCode;
         }
         catch (Exception ex)
         {
@@ -124,6 +125,7 @@ public class CopyLocalizationAssetsLib
         {
             context.LogInfo("Skipping asset copying: ShouldProcessLocalization=false");
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 
@@ -132,6 +134,7 @@ public class CopyLocalizationAssetsLib
         {
             context.LogInfo("Skipping asset copying: LocalizationAssetsDir not specified");
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 

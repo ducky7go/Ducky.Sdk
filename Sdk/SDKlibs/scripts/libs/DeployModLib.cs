@@ -19,6 +19,7 @@ public class DeployModLib
         public List<string> Errors { get; set; } = new();
         public List<string> Warnings { get; set; } = new();
         public DateTime DeployedAt { get; set; } = DateTime.UtcNow;
+        public int ExitCode { get; set; }
     }
 
     /// <summary>
@@ -58,7 +59,7 @@ public class DeployModLib
                 }
             }
 
-            return result.Success ? 0 : 1;
+            return result.ExitCode;
         }
         catch (Exception ex)
         {
@@ -130,6 +131,7 @@ public class DeployModLib
         {
             context.LogInfo("Skipping deployment: DeployMod=false");
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 
@@ -138,6 +140,7 @@ public class DeployModLib
         {
             context.LogInfo("Skipping deployment: IsModLib=true, library projects are not deployed to game directory");
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 
@@ -146,6 +149,7 @@ public class DeployModLib
         {
             context.LogError("Skipping deployment: ModName not specified");
             result.Success = false;
+            result.ExitCode = SkipExitCode;
             result.Errors.Add("ModName is required for deployment");
             return true;
         }

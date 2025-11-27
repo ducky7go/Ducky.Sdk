@@ -20,6 +20,7 @@ public class ILRepackAssembliesLib
         public List<string> Errors { get; set; } = new();
         public List<string> Warnings { get; set; } = new();
         public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
+        public int ExitCode { get; set; }
     }
 
     /// <summary>
@@ -59,7 +60,7 @@ public class ILRepackAssembliesLib
                 }
             }
 
-            return result.Success ? 0 : 1;
+            return result.ExitCode;
         }
         catch (Exception ex)
         {
@@ -123,11 +124,13 @@ public class ILRepackAssembliesLib
                 result.Success = true;
                 result.OutputPath = finalOutput;
                 result.AssembliesMerged = dependencies.Count + 1; // +1 for main assembly
+                result.ExitCode = 0;
                 context.LogInfo($"ILRepack completed successfully: {result.AssembliesMerged} assemblies merged");
             }
             else
             {
                 result.Success = false;
+                result.ExitCode = 1;
                 result.Errors.Add($"ILRepack failed with exit code: {exitCode}");
                 result.Errors.Add($"Output: {output}");
             }
@@ -148,6 +151,7 @@ public class ILRepackAssembliesLib
         catch (Exception ex)
         {
             result.Success = false;
+            result.ExitCode = 1;
             result.Errors.Add($"ILRepack error: {ex.Message}");
             context.LogError($"Exception: {ex}");
         }
@@ -163,6 +167,7 @@ public class ILRepackAssembliesLib
             context.LogInfo("Skipping ILRepack: DeployMod=false");
             result.RepackSkipped = true;
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 
@@ -172,6 +177,7 @@ public class ILRepackAssembliesLib
             context.LogInfo("Skipping ILRepack: EnableILRepack=false");
             result.RepackSkipped = true;
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 
@@ -181,6 +187,7 @@ public class ILRepackAssembliesLib
             context.LogInfo("Skipping ILRepack: IsModLib=true, library projects are not repacked");
             result.RepackSkipped = true;
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 
@@ -198,6 +205,7 @@ public class ILRepackAssembliesLib
             context.LogInfo("Skipping ILRepack: Only main assembly present, no dependencies to merge");
             result.RepackSkipped = true;
             result.Success = true;
+            result.ExitCode = SkipExitCode;
             return true;
         }
 

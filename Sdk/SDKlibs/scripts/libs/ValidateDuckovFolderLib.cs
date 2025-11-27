@@ -30,7 +30,7 @@ public class ValidateDuckovFolderLib
                 context.LogInfo("Valid: True");
                 context.LogInfo($"Validation Time: {DateTime.UtcNow:u}");
                 context.LogInfo("✅ Duckov folder validation skipped (library project)");
-                return 0;
+                return SkipExitCode;
             }
 
             var result = ValidateDuckovFolder(context.DuckovFolder ?? "", context.SteamFolder ?? "");
