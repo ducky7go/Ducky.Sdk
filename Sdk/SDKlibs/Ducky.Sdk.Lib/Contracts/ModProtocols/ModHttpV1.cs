@@ -1,13 +1,14 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using UnityEngine;
-using System.Collections.Concurrent;
 using Ducky.Sdk.Logging;
+using Ducky.Sdk.Options;
+using UnityEngine;
 
-namespace Ducky.Sdk.Contracts.ModProtocols;
+namespace Ducky.Sdk.Contracts;
 
 /// <summary>
 /// MessageHub Host v1 - Integrated into SDK core for inter-mod communication
@@ -16,6 +17,12 @@ internal class ModHttpV1 : MonoBehaviour
 {
     public const string HubGameObjectName = "ModHttpV1";
     internal static ModHttpV1? Instance { get; set; }
+
+    /// <summary>
+    /// 获取或设置是否启用 ModHttpV1 的日志输出
+    /// 默认值为 false，以减少日志噪音
+    /// </summary>
+    public static bool EnableLogging { get; private set; }
 
     // 存储：mod id (string) → 委托（Func<fromModId, contentType, body, UniTask>），并发字典实现无锁访问
     private readonly ConcurrentDictionary<string, Func<string, string, string, UniTask>> _eventMap = new();
@@ -36,12 +43,39 @@ internal class ModHttpV1 : MonoBehaviour
     /// <summary>
     /// 消息项
     /// </summary>
-    private record MessageItem(string FromModId, string ContentType, string Body, DateTime Timestamp, int TtlSeconds = DefaultTtlSeconds)
+    private record MessageItem(
+        string FromModId,
+        string ContentType,
+        string Body,
+        DateTime Timestamp,
+        int TtlSeconds = DefaultTtlSeconds)
     {
         /// <summary>
         /// 检查消息是否已过期
         /// </summary>
         public bool IsExpired => DateTime.UtcNow > Timestamp.AddSeconds(TtlSeconds);
+    }
+
+    /// <summary>
+    /// 条件日志记录方法，仅当启用 ModHttpV1 日志时才记录
+    /// </summary>
+    private static void LogIfEnabled(Action logAction)
+    {
+        if (EnableLogging)
+        {
+            logAction();
+        }
+    }
+
+    /// <summary>
+    /// 条件日志记录方法，仅当启用 ModHttpV1 日志时才记录（带消息）
+    /// </summary>
+    private static void LogIfEnabled(string message, Action<string> logAction)
+    {
+        if (EnableLogging)
+        {
+            logAction(message);
+        }
     }
 
     private void Awake()
@@ -53,14 +87,21 @@ internal class ModHttpV1 : MonoBehaviour
             return;
         }
 
+        if (Instance == this)
+        {
+            return;
+        }
+
         Instance = this;
+        EnableLogging = ModOptions.Load("ModHttpV1_EnableLogging", false);
+        Log.Info("ModHttpV1 Awake() called, logging is " + (EnableLogging ? "enabled" : "disabled"));
         gameObject.name = HubGameObjectName;
         DontDestroyOnLoad(gameObject);
     }
 
     public void Active()
     {
-        Ducky.Sdk.Logging.Log.Info("ModHttpV1 Active() called.");
+        LogIfEnabled("ModHttpV1 Active() called.", Log.Info);
     }
 
     #region 公共方法（供主程序直接调用、插件反射调用）
@@ -72,7 +113,7 @@ internal class ModHttpV1 : MonoBehaviour
     /// <param name="callback">异步回调委托，参数为 (fromModId, contentType, body)，返回 UniTask</param>
     public void RegisterClient(string modId, Func<string, string, string, UniTask> callback)
     {
-        Log.Info($"ModHttpV1: RegisterClient called for modId: {modId}");
+        LogIfEnabled($"ModHttpV1: RegisterClient called for modId: {modId}", Log.Info);
         _eventMap[modId] = callback;
 
         // 确保消息队列存在
@@ -87,7 +128,7 @@ internal class ModHttpV1 : MonoBehaviour
     /// </summary>
     public void UnregisterClient(string modId)
     {
-        Log.Info($"ModHttpV1: UnregisterClient called for modId: {modId}");
+        LogIfEnabled($"ModHttpV1: UnregisterClient called for modId: {modId}", Log.Info);
         _eventMap.TryRemove(modId, out _);
 
         // 停止消息处理协程
@@ -117,13 +158,13 @@ internal class ModHttpV1 : MonoBehaviour
         if (queue.Count >= MaxQueueSize)
         {
             queue.TryDequeue(out _);
-            Log.Warn($"ModHttpV1: Message queue for {toModId} is full, removing oldest message");
+            LogIfEnabled($"ModHttpV1: Message queue for {toModId} is full, removing oldest message", Log.Warn);
         }
 
         // 将消息添加到队列，包含当前时间戳
         var messageItem = new MessageItem(fromModId, contentType, body, DateTime.UtcNow);
         queue.Enqueue(messageItem);
-        Log.Debug($"ModHttpV1: Notify - Message enqueued from {fromModId} to {toModId}: {body}");
+        LogIfEnabled($"ModHttpV1: Notify - Message enqueued from {fromModId} to {toModId}: {body}", Log.Debug);
 
         // 如果还没有启动处理协程，现在启动
         if (!_processingCts.ContainsKey(toModId))
@@ -152,7 +193,7 @@ internal class ModHttpV1 : MonoBehaviour
         var cts = new CancellationTokenSource();
         if (_processingCts.TryAdd(modId, cts))
         {
-            Log.Info($"ModHttpV1: Starting message processing for modId: {modId}");
+            LogIfEnabled($"ModHttpV1: Starting message processing for modId: {modId}", Log.Info);
             ProcessMessageQueueAsync(modId, cts.Token).Forget();
             CleanupExpiredMessagesAsync(modId, cts.Token).Forget();
         }
@@ -167,7 +208,7 @@ internal class ModHttpV1 : MonoBehaviour
     /// </summary>
     private async UniTaskVoid ProcessMessageQueueAsync(string modId, CancellationToken ct)
     {
-        Log.Info($"ModHttpV1: Message processing started for modId: {modId}");
+        LogIfEnabled($"ModHttpV1: Message processing started for modId: {modId}", Log.Info);
 
         while (!ct.IsCancellationRequested)
         {
@@ -183,10 +224,18 @@ internal class ModHttpV1 : MonoBehaviour
                 // 先检查是否有注册的处理器
                 if (!_eventMap.TryGetValue(modId, out var callback))
                 {
-                    // 没有处理器，等待后继续检查，不要取出消息以保持顺序
+                    // 没有处理器，检查队列中是否有消息
+                    if (queue.IsEmpty)
+                    {
+                        // 队列为空且没有处理器，停止处理协程
+                        LogIfEnabled($"ModHttpV1: No handler for {modId} and queue is empty, stopping processing", Log.Debug);
+                        break;
+                    }
+
+                    // 队列中有消息但没有处理器，等待一段时间再检查是否注册了处理器
                     // 过期消息将由 CleanupExpiredMessagesAsync 定期清理
-                    Log.Debug($"ModHttpV1: No handler for {modId}, waiting...");
-                    await UniTask.Delay(500, cancellationToken: ct);
+                    LogIfEnabled($"ModHttpV1: No handler for {modId}, waiting for handler registration...", Log.Debug);
+                    await UniTask.Delay(5000, cancellationToken: ct); // 延长等待时间到5秒
                     continue;
                 }
 
@@ -198,18 +247,21 @@ internal class ModHttpV1 : MonoBehaviour
                         // 检查消息是否已过期
                         if (messageItem.IsExpired)
                         {
-                            Log.Debug($"ModHttpV1: Message expired for {modId} from {messageItem.FromModId}, discarding");
+                            LogIfEnabled(
+                                $"ModHttpV1: Message expired for {modId} from {messageItem.FromModId}, discarding",
+                                Log.Debug);
                             continue;
                         }
 
-                        Log.Debug(
-                            $"ModHttpV1: Processing message for {modId} from {messageItem.FromModId}: {messageItem.Body}");
+                        LogIfEnabled(
+                            $"ModHttpV1: Processing message for {modId} from {messageItem.FromModId}: {messageItem.Body}",
+                            Log.Debug);
                         await callback.Invoke(messageItem.FromModId, messageItem.ContentType, messageItem.Body);
-                        Log.Debug($"ModHttpV1: Message processed successfully for {modId}");
+                        LogIfEnabled($"ModHttpV1: Message processed successfully for {modId}", Log.Debug);
                     }
                     catch (Exception ex)
                     {
-                        Log.Error($"ModHttpV1: Error processing message for {modId}: {ex}");
+                        LogIfEnabled($"ModHttpV1: Error processing message for {modId}: {ex}", Log.Error);
                     }
                 }
                 else
@@ -220,17 +272,17 @@ internal class ModHttpV1 : MonoBehaviour
             }
             catch (OperationCanceledException)
             {
-                Log.Info($"ModHttpV1: Message processing cancelled for modId: {modId}");
+                LogIfEnabled($"ModHttpV1: Message processing cancelled for modId: {modId}", Log.Info);
                 break;
             }
             catch (Exception ex)
             {
-                Log.Error($"ModHttpV1: Unexpected error in message processing for {modId}: {ex}");
+                LogIfEnabled($"ModHttpV1: Unexpected error in message processing for {modId}: {ex}", Log.Error);
                 await UniTask.Delay(1000, cancellationToken: ct);
             }
         }
 
-        Log.Info($"ModHttpV1: Message processing stopped for modId: {modId}");
+        LogIfEnabled($"ModHttpV1: Message processing stopped for modId: {modId}", Log.Info);
     }
 
     /// <summary>
@@ -238,7 +290,7 @@ internal class ModHttpV1 : MonoBehaviour
     /// </summary>
     private async UniTaskVoid CleanupExpiredMessagesAsync(string modId, CancellationToken ct)
     {
-        Log.Info($"ModHttpV1: Cleanup task started for modId: {modId}");
+        LogIfEnabled($"ModHttpV1: Cleanup task started for modId: {modId}", Log.Info);
 
         while (!ct.IsCancellationRequested)
         {
@@ -277,21 +329,28 @@ internal class ModHttpV1 : MonoBehaviour
 
                 if (expiredCount > 0)
                 {
-                    Log.Debug($"ModHttpV1: Cleaned up {expiredCount} expired messages for {modId}");
+                    LogIfEnabled($"ModHttpV1: Cleaned up {expiredCount} expired messages for {modId}", Log.Debug);
+                }
+
+                // 如果清理后队列为空且没有处理器，停止清理任务
+                if (queue.IsEmpty && !_eventMap.ContainsKey(modId))
+                {
+                    LogIfEnabled($"ModHttpV1: Cleanup task stopping for {modId}: queue empty and no handler", Log.Debug);
+                    break;
                 }
             }
             catch (OperationCanceledException)
             {
-                Log.Info($"ModHttpV1: Cleanup task cancelled for modId: {modId}");
+                LogIfEnabled($"ModHttpV1: Cleanup task cancelled for modId: {modId}", Log.Info);
                 break;
             }
             catch (Exception ex)
             {
-                Log.Error($"ModHttpV1: Error in cleanup task for {modId}: {ex}");
+                LogIfEnabled($"ModHttpV1: Error in cleanup task for {modId}: {ex}", Log.Error);
             }
         }
 
-        Log.Info($"ModHttpV1: Cleanup task stopped for modId: {modId}");
+        LogIfEnabled($"ModHttpV1: Cleanup task stopped for modId: {modId}", Log.Info);
     }
 
     #endregion

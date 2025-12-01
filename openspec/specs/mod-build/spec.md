@@ -478,3 +478,23 @@ The ModHttpV1 message system SHALL support Time-To-Live (TTL) for messages to pr
 - **THEN** the TTL value SHALL be configurable via system settings
 - **AND** the default TTL SHALL remain 60 seconds if not configured
 
+### Requirement: ModHttpV1 Configurable Logging
+ModHttpV1 and ModHttpV1Proxy components SHALL respect the logging configuration from ModOptions to control log output.
+
+#### Scenario: ModHttpV1 Respects Logging Configuration
+- **WHEN** ModHttpV1 performs operations that generate logs
+- **AND** ModOptions.EnableHttpV1Logging is false
+- **THEN** ModHttpV1 SHALL NOT output any logs
+- **AND** SHALL skip log message formatting for performance
+
+#### Scenario: ModHttpV1Proxy Respects Logging Configuration
+- **WHEN** ModHttpV1Proxy performs operations that generate logs
+- **AND** ModOptions.EnableHttpV1Logging is false
+- **THEN** ModHttpV1Proxy SHALL NOT output any logs
+- **AND** SHALL skip log message formatting for performance
+
+#### Scenario: Logging Enabled Behavior
+- **WHEN** ModOptions.EnableHttpV1Logging is true
+- **THEN** both ModHttpV1 and ModHttpV1Proxy SHALL log normally
+- **AND** all existing log messages SHALL be preserved
+

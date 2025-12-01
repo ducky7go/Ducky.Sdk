@@ -4,6 +4,7 @@ using Ducky.Sdk.Contracts;
 using Ducky.Sdk.Contracts.CommandLine;
 using Ducky.Sdk.Logging;
 using Ducky.Sdk.ModBehaviours;
+using Ducky.Sdk.Utils;
 
 namespace Ducky.MessageHubClient;
 
@@ -30,6 +31,8 @@ public class ModBehaviour : ModBehaviourBase
                     await parseResult.InvokeAsync();
                 }
             });
+            var nativeClient = ModHttpV1ClientContract.GetOrCreate(Helper.GetModId());
+            await nativeClient.SendTo("someonemissing", "command", "Hello from Ducky.MessageHubClient Mod!");
         });
     }
 

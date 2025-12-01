@@ -32,6 +32,39 @@ public class ModHttpV1Proxy
     private static CancellationTokenSource? s_checkProcessorCts;
     private static bool s_checkProcessorRunning = false;
 
+    /// <summary>
+    /// 条件日志记录方法，仅当启用 ModHttpV1 日志时才记录
+    /// </summary>
+    private static void LogIfEnabled(Action logAction)
+    {
+        if (ModHttpV1.EnableLogging)
+        {
+            logAction();
+        }
+    }
+
+    /// <summary>
+    /// 条件日志记录方法，仅当启用 ModHttpV1 日志时才记录（带消息）
+    /// </summary>
+    private static void LogIfEnabled(string message, Action<string> logAction)
+    {
+        if (ModHttpV1.EnableLogging)
+        {
+            logAction(message);
+        }
+    }
+
+    /// <summary>
+    /// 条件日志记录方法，仅当启用 ModHttpV1 日志时才记录（带异常）
+    /// </summary>
+    private static void LogIfEnabled(Exception ex, string message, Action<Exception, string, object[]> logAction)
+    {
+        if (ModHttpV1.EnableLogging)
+        {
+            logAction(ex, message, []);
+        }
+    }
+
     private ModHttpV1Proxy()
     {
         _virtualHub = new VirtualHub();
@@ -206,7 +239,7 @@ public class ModHttpV1Proxy
         if (_isSearching || !_isVirtual) return;
 
         _isSearching = true;
-        Log.Info("[ModHttpV1Proxy] 真实对象未挂载，启动基于队列的后台检测任务");
+        LogIfEnabled("[ModHttpV1Proxy] 真实对象未挂载，启动基于队列的后台检测任务", Log.Info);
 
         // 添加定时检查请求：5秒间隔，最多720次（3600秒）
         var periodicRequest = new CheckRequest
@@ -231,12 +264,12 @@ public class ModHttpV1Proxy
         {
             // 直接注册场景加载事件
             SceneLoader.onAfterSceneInitialize += OnSceneLoad;
-            Log.Info("[ModHttpV1Proxy] 场景监控已启动，将监听base场景进入事件");
+            LogIfEnabled("[ModHttpV1Proxy] 场景监控已启动，将监听base场景进入事件", Log.Info);
         }
         catch (Exception ex)
         {
-            Log.Warn(ex, "[ModHttpV1Proxy] 无法注册场景监控，将仅依赖定时检查");
-            Log.Info("[ModHttpV1Proxy] 场景监控启动完成（仅定时检查模式）");
+            LogIfEnabled(ex, "[ModHttpV1Proxy] 无法注册场景监控，将仅依赖定时检查", Log.Warn);
+            LogIfEnabled("[ModHttpV1Proxy] 场景监控启动完成（仅定时检查模式）", Log.Info);
         }
     }
 
@@ -247,12 +280,12 @@ public class ModHttpV1Proxy
     {
         try
         {
-            Log.Debug($"[ModHttpV1Proxy] 检测到场景加载: {context.sceneName}");
+            LogIfEnabled($"[ModHttpV1Proxy] 检测到场景加载: {context.sceneName}", Log.Debug);
 
             // 检查是否是base场景（参考ModBehaviour中的逻辑）
             if (IsBaseScene(context.sceneName))
             {
-                Log.Info("[ModHttpV1Proxy] 检测到进入base场景，触发立即检查");
+                LogIfEnabled("[ModHttpV1Proxy] 检测到进入base场景，触发立即检查", Log.Info);
 
                 // 为所有虚拟代理实例触发进入base检查
                 TriggerEnterBaseCheckForAllVirtualProxies();
@@ -260,7 +293,7 @@ public class ModHttpV1Proxy
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[ModHttpV1Proxy] 处理场景加载事件时发生异常");
+            LogIfEnabled(ex, "[ModHttpV1Proxy] 处理场景加载事件时发生异常", Log.Error);
         }
     }
 
@@ -308,7 +341,7 @@ public class ModHttpV1Proxy
         if (checkedCount > 0)
         {
             StartCheckProcessorIfNeeded();
-            Log.Info($"[ModHttpV1Proxy] 已为 {checkedCount} 个虚拟代理实例触发进入base检查");
+            LogIfEnabled($"[ModHttpV1Proxy] 已为 {checkedCount} 个虚拟代理实例触发进入base检查", Log.Info);
         }
     }
 
@@ -346,7 +379,7 @@ public class ModHttpV1Proxy
     private static void EnqueueCheckRequest(CheckRequest request)
     {
         s_checkQueue.Enqueue(request);
-        Log.Debug($"[ModHttpV1Proxy] 检查请求已入队: {request.Type}, 请求者: {request.Requester.GetHashCode()}");
+        LogIfEnabled($"[ModHttpV1Proxy] 检查请求已入队: {request.Type}, 请求者: {request.Requester.GetHashCode()}", Log.Debug);
     }
 
     /// <summary>
@@ -367,7 +400,7 @@ public class ModHttpV1Proxy
             UniTask.RunOnThreadPool(() => ProcessCheckQueue(s_checkProcessorCts.Token),
                 cancellationToken: s_checkProcessorCts.Token);
 
-            Log.Info("[ModHttpV1Proxy] 检查处理器已启动");
+            LogIfEnabled("[ModHttpV1Proxy] 检查处理器已启动", Log.Info);
         }
     }
 
@@ -393,11 +426,11 @@ public class ModHttpV1Proxy
         }
         catch (OperationCanceledException)
         {
-            Log.Info("[ModHttpV1Proxy] 检查处理器已取消");
+            LogIfEnabled("[ModHttpV1Proxy] 检查处理器已取消", Log.Info);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[ModHttpV1Proxy] 检查处理器发生异常");
+            LogIfEnabled(ex, "[ModHttpV1Proxy] 检查处理器发生异常", Log.Error);
         }
         finally
         {
@@ -406,7 +439,7 @@ public class ModHttpV1Proxy
                 s_checkProcessorRunning = false;
             }
 
-            Log.Info("[ModHttpV1Proxy] 检查处理器已停止");
+            LogIfEnabled("[ModHttpV1Proxy] 检查处理器已停止", Log.Info);
         }
     }
 
@@ -415,7 +448,8 @@ public class ModHttpV1Proxy
     /// </summary>
     private static async UniTask ProcessCheckRequest(CheckRequest request, CancellationToken cancellationToken)
     {
-        Log.Debug($"[ModHttpV1Proxy] 处理检查请求: {request.Type}, 尝试次数: {request.AttemptCount + 1}/{request.MaxAttempts}");
+        LogIfEnabled($"[ModHttpV1Proxy] 处理检查请求: {request.Type}, 尝试次数: {request.AttemptCount + 1}/{request.MaxAttempts}",
+            Log.Debug);
 
         request.AttemptCount++;
 
@@ -440,10 +474,12 @@ public class ModHttpV1Proxy
                 if (hub != null)
                 {
                     // 找到真实对象，执行升级
-                    Log.Info($"[ModHttpV1Proxy] 检测到真实对象挂载 (请求类型: {request.Type}, 尝试次数: {request.AttemptCount})，开始迁移数据");
+                    LogIfEnabled(
+                        $"[ModHttpV1Proxy] 检测到真实对象挂载 (请求类型: {request.Type}, 尝试次数: {request.AttemptCount})，开始迁移数据",
+                        Log.Info);
                     request.Requester.InitializeRealHub(hub);
                     await request.Requester._virtualHub.MigrateToRealHub(request.Requester);
-                    Log.Info("[ModHttpV1Proxy] 数据迁移完成，虚拟载体已销毁");
+                    LogIfEnabled("[ModHttpV1Proxy] 数据迁移完成，虚拟载体已销毁", Log.Info);
                     request.Requester._isSearching = false;
                     return;
                 }
@@ -455,12 +491,13 @@ public class ModHttpV1Proxy
                 // 达到最大尝试次数
                 if (request.Type == CheckRequestType.EnterBase)
                 {
-                    Log.Error("[ModHttpV1Proxy] 进入base检查失败，终止检查");
+                    LogIfEnabled("[ModHttpV1Proxy] 进入base检查失败，终止检查", Log.Error);
                     request.Requester._isSearching = false;
                 }
                 else
                 {
-                    Log.Warn($"[ModHttpV1Proxy] {request.Type} 检查达到最大尝试次数 ({request.MaxAttempts})，继续使用虚拟载体");
+                    LogIfEnabled($"[ModHttpV1Proxy] {request.Type} 检查达到最大尝试次数 ({request.MaxAttempts})，继续使用虚拟载体",
+                        Log.Warn);
                     request.Requester._isSearching = false;
                 }
             }
@@ -478,7 +515,7 @@ public class ModHttpV1Proxy
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"[ModHttpV1Proxy] 处理检查请求时发生异常: {request.Type}");
+            LogIfEnabled(ex, $"[ModHttpV1Proxy] 处理检查请求时发生异常: {request.Type}", Log.Error);
             request.Requester._isSearching = false;
         }
     }
@@ -504,13 +541,13 @@ public class ModHttpV1Proxy
 
             if (hub != null)
             {
-                Log.Info("[ModHttpV1Proxy] 找到真实 ModHttpV1 对象，直接使用");
+                LogIfEnabled("[ModHttpV1Proxy] 找到真实 ModHttpV1 对象，直接使用", Log.Info);
                 return new ModHttpV1Proxy(hub);
             }
         }
 
         // 未找到真实对象，创建虚拟载体
-        Log.Warn("[ModHttpV1Proxy] 未找到 ModHttpV1 对象，创建虚拟载体并启动后台检测");
+        LogIfEnabled("[ModHttpV1Proxy] 未找到 ModHttpV1 对象，创建虚拟载体并启动后台检测", Log.Warn);
         return new ModHttpV1Proxy();
     }
 
@@ -527,13 +564,13 @@ public class ModHttpV1Proxy
         public void RegisterClient(string modId, Func<string, string, string, UniTask> callback)
         {
             _clients[modId] = callback;
-            Log.Debug($"[VirtualHub] 注册客户端: {modId}");
+            LogIfEnabled($"[VirtualHub] 注册客户端: {modId}", Log.Debug);
         }
 
         public void UnregisterClient(string modId)
         {
             _clients.Remove(modId);
-            Log.Debug($"[VirtualHub] 注销客户端: {modId}");
+            LogIfEnabled($"[VirtualHub] 注销客户端: {modId}", Log.Debug);
         }
 
         public UniTask Notify(string fromModId, string toModId, string contentType, string body)
@@ -542,7 +579,7 @@ public class ModHttpV1Proxy
             {
                 _pendingMessages.Dequeue();
                 _droppedMessageCount++;
-                Log.Warn($"[VirtualHub] 消息队列已满，丢弃最早的消息 (已丢弃: {_droppedMessageCount})");
+                LogIfEnabled($"[VirtualHub] 消息队列已满，丢弃最早的消息 (已丢弃: {_droppedMessageCount})", Log.Warn);
             }
 
             _pendingMessages.Enqueue(new PendingMessage
@@ -554,7 +591,7 @@ public class ModHttpV1Proxy
                 Timestamp = DateTime.UtcNow
             });
 
-            Log.Debug($"[VirtualHub] 暂存消息: {fromModId} -> {toModId} (队列长度: {_pendingMessages.Count})");
+            LogIfEnabled($"[VirtualHub] 暂存消息: {fromModId} -> {toModId} (队列长度: {_pendingMessages.Count})", Log.Debug);
             return UniTask.CompletedTask;
         }
 
@@ -565,7 +602,7 @@ public class ModHttpV1Proxy
 
         public async UniTask MigrateToRealHub(ModHttpV1Proxy realProxy)
         {
-            Log.Info($"[VirtualHub] 开始迁移 {_clients.Count} 个客户端和 {_pendingMessages.Count} 条消息");
+            LogIfEnabled($"[VirtualHub] 开始迁移 {_clients.Count} 个客户端和 {_pendingMessages.Count} 条消息", Log.Info);
 
             // 迁移客户端注册
             foreach (var kvp in _clients)
@@ -585,12 +622,13 @@ public class ModHttpV1Proxy
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(ex, $"[VirtualHub] 重放消息失败: {msg.FromModId} -> {msg.ToModId}");
+                    LogIfEnabled(ex, $"[VirtualHub] 重放消息失败: {msg.FromModId} -> {msg.ToModId}", Log.Error);
                 }
             }
 
-            Log.Info(
-                $"[VirtualHub] 迁移完成: 客户端 {_clients.Count}, 消息 {migratedCount}/{migratedCount + _droppedMessageCount} (丢弃: {_droppedMessageCount})");
+            LogIfEnabled(
+                $"[VirtualHub] 迁移完成: 客户端 {_clients.Count}, 消息 {migratedCount}/{migratedCount + _droppedMessageCount} (丢弃: {_droppedMessageCount})",
+                Log.Info);
 
             _clients.Clear();
         }
