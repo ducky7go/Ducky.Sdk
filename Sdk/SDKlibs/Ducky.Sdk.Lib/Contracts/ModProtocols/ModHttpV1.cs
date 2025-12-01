@@ -28,12 +28,21 @@ internal class ModHttpV1 : MonoBehaviour
 
     private const int MaxQueueSize = 200;
 
+    // 默认 TTL：60 秒
+    private const int DefaultTtlSeconds = 60;
+
     public IReadOnlyList<string> ModIds => _eventMap.Keys.ToList();
 
     /// <summary>
     /// 消息项
     /// </summary>
-    private record MessageItem(string FromModId, string ContentType, string Body);
+    private record MessageItem(string FromModId, string ContentType, string Body, DateTime Timestamp, int TtlSeconds = DefaultTtlSeconds)
+    {
+        /// <summary>
+        /// 检查消息是否已过期
+        /// </summary>
+        public bool IsExpired => DateTime.UtcNow > Timestamp.AddSeconds(TtlSeconds);
+    }
 
     private void Awake()
     {
@@ -111,8 +120,8 @@ internal class ModHttpV1 : MonoBehaviour
             Log.Warn($"ModHttpV1: Message queue for {toModId} is full, removing oldest message");
         }
 
-        // 将消息添加到队列
-        var messageItem = new MessageItem(fromModId, contentType, body);
+        // 将消息添加到队列，包含当前时间戳
+        var messageItem = new MessageItem(fromModId, contentType, body, DateTime.UtcNow);
         queue.Enqueue(messageItem);
         Log.Debug($"ModHttpV1: Notify - Message enqueued from {fromModId} to {toModId}: {body}");
 
@@ -145,6 +154,7 @@ internal class ModHttpV1 : MonoBehaviour
         {
             Log.Info($"ModHttpV1: Starting message processing for modId: {modId}");
             ProcessMessageQueueAsync(modId, cts.Token).Forget();
+            CleanupExpiredMessagesAsync(modId, cts.Token).Forget();
         }
         else
         {
@@ -174,6 +184,7 @@ internal class ModHttpV1 : MonoBehaviour
                 if (!_eventMap.TryGetValue(modId, out var callback))
                 {
                     // 没有处理器，等待后继续检查，不要取出消息以保持顺序
+                    // 过期消息将由 CleanupExpiredMessagesAsync 定期清理
                     Log.Debug($"ModHttpV1: No handler for {modId}, waiting...");
                     await UniTask.Delay(500, cancellationToken: ct);
                     continue;
@@ -184,6 +195,13 @@ internal class ModHttpV1 : MonoBehaviour
                 {
                     try
                     {
+                        // 检查消息是否已过期
+                        if (messageItem.IsExpired)
+                        {
+                            Log.Debug($"ModHttpV1: Message expired for {modId} from {messageItem.FromModId}, discarding");
+                            continue;
+                        }
+
                         Log.Debug(
                             $"ModHttpV1: Processing message for {modId} from {messageItem.FromModId}: {messageItem.Body}");
                         await callback.Invoke(messageItem.FromModId, messageItem.ContentType, messageItem.Body);
@@ -213,6 +231,67 @@ internal class ModHttpV1 : MonoBehaviour
         }
 
         Log.Info($"ModHttpV1: Message processing stopped for modId: {modId}");
+    }
+
+    /// <summary>
+    /// 定期清理过期消息的异步协程
+    /// </summary>
+    private async UniTaskVoid CleanupExpiredMessagesAsync(string modId, CancellationToken ct)
+    {
+        Log.Info($"ModHttpV1: Cleanup task started for modId: {modId}");
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                // 每30秒清理一次过期消息
+                await UniTask.Delay(TimeSpan.FromSeconds(30), cancellationToken: ct);
+
+                if (!_messageQueues.TryGetValue(modId, out var queue))
+                {
+                    continue;
+                }
+
+                // 使用临时队列来存储有效消息，保持顺序
+                var tempQueue = new ConcurrentQueue<MessageItem>();
+                var expiredCount = 0;
+
+                // 遍历队列中的所有消息
+                while (queue.TryDequeue(out var messageItem))
+                {
+                    if (messageItem.IsExpired)
+                    {
+                        expiredCount++;
+                        continue;
+                    }
+
+                    // 将有效消息加入临时队列
+                    tempQueue.Enqueue(messageItem);
+                }
+
+                // 将有效消息重新放回原队列，保持原有顺序
+                while (tempQueue.TryDequeue(out var validMessage))
+                {
+                    queue.Enqueue(validMessage);
+                }
+
+                if (expiredCount > 0)
+                {
+                    Log.Debug($"ModHttpV1: Cleaned up {expiredCount} expired messages for {modId}");
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Log.Info($"ModHttpV1: Cleanup task cancelled for modId: {modId}");
+                break;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"ModHttpV1: Error in cleanup task for {modId}: {ex}");
+            }
+        }
+
+        Log.Info($"ModHttpV1: Cleanup task stopped for modId: {modId}");
     }
 
     #endregion
