@@ -174,15 +174,24 @@ public class DeployModLib
     {
         var isValid = true;
 
-        // Check DuckovFolder
-        if (string.IsNullOrEmpty(context.DuckovFolder))
+        // Check ModsDirectory or DuckovFolder
+        if (!string.IsNullOrEmpty(context.ModsDirectory))
         {
-            result.Errors.Add("DuckovFolder is not specified");
-            isValid = false;
+            // CI environment: using ModsDirectory
+            context.LogInfo($"Using ModsDirectory: {context.ModsDirectory}");
         }
-        else if (!Directory.Exists(context.DuckovFolder))
+        else if (!string.IsNullOrEmpty(context.DuckovFolder))
         {
-            result.Errors.Add($"DuckovFolder does not exist: {context.DuckovFolder}");
+            // Local development: using DuckovFolder
+            if (!Directory.Exists(context.DuckovFolder))
+            {
+                result.Errors.Add($"DuckovFolder does not exist: {context.DuckovFolder}");
+                isValid = false;
+            }
+        }
+        else
+        {
+            result.Errors.Add("Neither ModsDirectory nor DuckovFolder is specified");
             isValid = false;
         }
 

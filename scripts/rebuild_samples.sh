@@ -53,6 +53,10 @@ done
 [[ -d "$SAMPLES_DIR" ]] || err "Samples directory not found: $SAMPLES_DIR"
 [[ -f "$SAMPLE_SOLUTION" ]] || err "Sample solution not found: $SAMPLE_SOLUTION"
 
+# Install required .NET tools
+log "Installing .NET tools..."
+dotnet tool restore || err "Failed to restore .NET tools"
+
 # Step 1: Pack Ducky.Sdk with auto-incremented version to local feed
 log "Step 1: Packing Ducky.Sdk with auto-incremented version to local feed"
 PACK_ARGS=(--configuration Debug)

@@ -160,18 +160,26 @@ public class ResetDeployLib
 
     private static string GetTargetModDirectory(BuildContext context)
     {
-        // Calculate the target mod directory: {DuckovFolder}/Mods/{ModName}
-        var duckovFolder = context.DuckovFolder;
+        // Prefer ModsDirectory (supports CI environment with Git root based paths)
+        var modsDirectory = context.ModsDirectory;
         var modName = context.ModName;
-
-        if (string.IsNullOrEmpty(duckovFolder))
-        {
-            throw new ArgumentException("DuckovFolder is not specified");
-        }
 
         if (string.IsNullOrEmpty(modName))
         {
             throw new ArgumentException("ModName is not specified");
+        }
+
+        // If ModsDirectory is specified, use it directly (CI environment)
+        if (!string.IsNullOrEmpty(modsDirectory))
+        {
+            return Path.Combine(modsDirectory, modName);
+        }
+
+        // Fallback to DuckovFolder for local development
+        var duckovFolder = context.DuckovFolder;
+        if (string.IsNullOrEmpty(duckovFolder))
+        {
+            throw new ArgumentException("Neither ModsDirectory nor DuckovFolder is specified");
         }
 
         return Path.Combine(duckovFolder, "Duckov_Data", "Mods", modName);

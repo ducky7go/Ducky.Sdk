@@ -1,5 +1,5 @@
 <Project>
     <PropertyGroup>
-        <LocalNuGetVersion>0.0.100184-dev</LocalNuGetVersion>
+        <LocalNuGetVersion>0.0.100191-dev</LocalNuGetVersion>
     </PropertyGroup>
 </Project>
