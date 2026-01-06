@@ -17,8 +17,10 @@
     <PropertyGroup>
       <!-- DuckovFolder: if already specified externally, use it; otherwise require SteamFolder -->
       <DuckovFolder Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' != '' ">$(SteamFolder)steamapps/common/Escape from Duckov/</DuckovFolder>
-      <ModsDirectory>$(DuckovFolder)Duckov_Data/Mods/</ModsDirectory>
-      <ManagedDirectory>$(DuckovFolder)Duckov_Data/Managed/</ManagedDirectory>
+      <!-- Allow explicit override of ManagedDirectory and ModsDirectory for CI environments -->
+      <!-- Only set from DuckovFolder if not already explicitly set -->
+      <ManagedDirectory Condition=" '$(ManagedDirectory)' == '' AND '$(DuckovFolder)' != '' ">$(DuckovFolder)Duckov_Data/Managed/</ManagedDirectory>
+      <ModsDirectory Condition=" '$(ModsDirectory)' == '' AND '$(DuckovFolder)' != '' ">$(DuckovFolder)Duckov_Data/Mods/</ModsDirectory>
 
       <!-- 初始化本地化处理标志
            ExcludeSdkLib 只影响 SDK 代码和引用，不影响 mod 特定的本地化处理

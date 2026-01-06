@@ -7,13 +7,13 @@
     <Nullable>enable</Nullable>
     <LangVersion>12</LangVersion>
     <DuckovFolder Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' != '' ">$(SteamFolder)steamapps/common/Escape from Duckov/</DuckovFolder>
-    <ModsDirectory>$(DuckovFolder)Duckov_Data/Mods/</ModsDirectory>
-    <ManagedDirectory>$(DuckovFolder)Duckov_Data/Managed/</ManagedDirectory>
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
-  <!-- Fail early if SteamFolder is not provided -->
+  <!-- Fail early if SteamFolder is not provided (skip in CI or when paths are explicitly set) -->
   <Target Name="FailIfSteamFolderMissing" BeforeTargets="PrepareForBuild;Restore" Condition="'$(CI)' != 'true'">
-    <Error Text="SteamFolder property must be set. Provide it via Local.props or -p:SteamFolder=/path/to/steam/"
-           Condition="'$(SteamFolder)' == ''" />
+    <Error
+      Text="SteamFolder property must be set. Provide it via Local.props or -p:SteamFolder=/path/to/steam/
+Alternatively, for CI environments, set ManagedDirectory and ModsDirectory directly via environment variables."
+      Condition="'$(SteamFolder)' == '' AND '$(DuckovFolder)' == '' AND '$(ManagedDirectory)' == '' AND '$(ModsDirectory)' == ''" />
   </Target>
 </Project>

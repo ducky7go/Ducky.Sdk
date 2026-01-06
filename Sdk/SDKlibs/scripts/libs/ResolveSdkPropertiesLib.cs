@@ -24,6 +24,10 @@ public class ResolveSdkPropertiesLib
         public string ModsDirectory { get; set; } = "";
         public string ManagedDirectory { get; set; } = "";
 
+        // CI Support - Track if paths were explicitly set
+        public bool HasExplicitManagedDirectory { get; set; }
+        public bool HasExplicitModsDirectory { get; set; }
+
         // Project Type Configuration
         public bool IsModLib { get; set; } = false;
         public bool DeployMod { get; set; } = true;
@@ -59,7 +63,10 @@ public class ResolveSdkPropertiesLib
             context.LogInfo($"Should Process Localization: {properties.ShouldProcessLocalization}");
             context.LogInfo($"Effective Localization Assets Dir: {properties.EffectiveLocalizationAssetsDir}");
             context.LogInfo($"Duckov Folder: {properties.DuckovFolder}");
-            context.LogInfo($"Mods Directory: {properties.ModsDirectory}");
+            context.LogInfo(
+                $"Managed Directory: {properties.ManagedDirectory} {(properties.HasExplicitManagedDirectory ? "(explicitly set)" : "(derived)")}");
+            context.LogInfo(
+                $"Mods Directory: {properties.ModsDirectory} {(properties.HasExplicitModsDirectory ? "(explicitly set)" : "(derived)")}");
             context.LogInfo($"Resolved At: {properties.ResolvedAt:u}");
 
             if (properties.ValidationErrors.Any())
@@ -169,16 +176,32 @@ public class ResolveSdkPropertiesLib
         // Duckov folder
         properties.DuckovFolder = context.DuckovFolder ?? "";
 
-        // Mods directory
-        if (!string.IsNullOrEmpty(properties.DuckovFolder))
+        // Managed directory - preserve explicitly set value
+        if (!string.IsNullOrEmpty(context.ManagedDirectory_Explicit))
         {
-            properties.ModsDirectory = Path.Combine(properties.DuckovFolder, "Duckov_Data", "Mods");
+            properties.ManagedDirectory = context.ManagedDirectory_Explicit;
+            properties.HasExplicitManagedDirectory = true;
+            context.LogInfo("Using explicitly set ManagedDirectory");
         }
-
-        // Managed directory
-        if (!string.IsNullOrEmpty(properties.DuckovFolder))
+        else if (!string.IsNullOrEmpty(properties.DuckovFolder))
         {
             properties.ManagedDirectory = Path.Combine(properties.DuckovFolder, "Duckov_Data", "Managed");
+            properties.HasExplicitManagedDirectory = false;
+            context.LogInfo("Derived ManagedDirectory from DuckovFolder");
+        }
+
+        // Mods directory - preserve explicitly set value
+        if (!string.IsNullOrEmpty(context.ModsDirectory_Explicit))
+        {
+            properties.ModsDirectory = context.ModsDirectory_Explicit;
+            properties.HasExplicitModsDirectory = true;
+            context.LogInfo("Using explicitly set ModsDirectory");
+        }
+        else if (!string.IsNullOrEmpty(properties.DuckovFolder))
+        {
+            properties.ModsDirectory = Path.Combine(properties.DuckovFolder, "Duckov_Data", "Mods");
+            properties.HasExplicitModsDirectory = false;
+            context.LogInfo("Derived ModsDirectory from DuckovFolder");
         }
 
         context.LogInfo($"Duckov Folder: {properties.DuckovFolder}");
@@ -217,12 +240,18 @@ public class ResolveSdkPropertiesLib
         var isValid = true;
         var errors = new List<string>();
 
-        // Validate Duckov folder if deployment is enabled
+        // Validate Duckov folder - relaxed when paths are explicitly set
         if (properties.DeployMod && !properties.IsModLib)
         {
-            if (string.IsNullOrEmpty(properties.DuckovFolder))
+            // If paths are explicitly set, DuckovFolder is optional
+            if (properties.HasExplicitManagedDirectory && properties.HasExplicitModsDirectory)
             {
-                errors.Add("DuckovFolder is required for mod deployment but not specified");
+                context.LogInfo("ManagedDirectory and ModsDirectory explicitly set - DuckovFolder not required");
+            }
+            else if (string.IsNullOrEmpty(properties.DuckovFolder))
+            {
+                errors.Add(
+                    "DuckovFolder is required for mod deployment but not specified (or set ManagedDirectory/ModsDirectory explicitly)");
                 isValid = false;
             }
             else if (!Directory.Exists(properties.DuckovFolder))

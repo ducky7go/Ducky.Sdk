@@ -8,15 +8,19 @@
     <LangVersion>preview</LangVersion>
     <ImplicitUsings>true</ImplicitUsings>
     <ModName>Ducky.SingleProject</ModName>
-    <DeployMod>false</DeployMod>
+    <ModsDirectory>./Publish</ModsDirectory>
+    <DeployMod>true</DeployMod>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ducky.Sdk" Version="0.0.100174-dev">
+    <PackageReference Include="Ducky.Sdk" Version="0.0.100184-dev">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
-
+  <ItemGroup>
+    <Folder Include="Publish\" />
+  </ItemGroup>
+  ssss
 </Project>

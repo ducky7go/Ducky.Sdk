@@ -1,9 +1,4 @@
-﻿using Ducky.Sdk.Localizations;
-using Ducky.Sdk.Logging;
-using Ducky.Sdk.ModBehaviours;
-using Ducky.Sdk.Options;
-
-namespace Ducky.SingleProject;
+﻿namespace Ducky.SingleProject;
 
 public class ModBehaviour : ModBehaviourBase
 {

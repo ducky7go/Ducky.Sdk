@@ -1,8 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
-using Ducky.Sdk.ModBehaviours;
-using UnityEngine;
-
-namespace Ducky.MessageHubUI;
+﻿namespace Ducky.MessageHubUI;
 
 public class ModBehaviour : ModBehaviourBase
 {

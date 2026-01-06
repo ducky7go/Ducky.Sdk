@@ -1,5 +1,3 @@
-using Ducky.Sdk.Attributes;
-
 namespace Ducky.TryHarmony;
 
 [LanguageSupport("all")]

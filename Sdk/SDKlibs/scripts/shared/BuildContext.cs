@@ -49,6 +49,35 @@ public class BuildContext
     public string? SteamFolder { get; init; }
 
     /// <summary>
+    /// ManagedDirectory: Path to game's managed assemblies folder.
+    /// Can be explicitly set for CI environments, otherwise derived from DuckovFolder.
+    /// AFFECTS: Game dependency detection, assembly reference resolution
+    /// USAGE: Pass via environment variable or MSBuild property
+    /// DEFAULT: Derived from DuckovFolder + "Duckov_Data/Managed"
+    /// </summary>
+    public string? ManagedDirectory_Explicit { get; init; }
+
+    /// <summary>
+    /// ModsDirectory: Path to game's Mods folder.
+    /// Can be explicitly set for CI environments, otherwise derived from DuckovFolder.
+    /// AFFECTS: Final mod deployment location
+    /// USAGE: Pass via environment variable or MSBuild property
+    /// DEFAULT: Derived from DuckovFolder + "Duckov_Data/Mods"
+    /// </summary>
+    public string? ModsDirectory_Explicit { get; init; }
+
+    /// <summary>
+    /// IsCIEnvironment: Indicates if running in CI environment.
+    /// AFFECTS: Validation behavior (relaxes SteamFolder requirement)
+    /// DEFAULT: Detected from CI environment variable
+    /// </summary>
+    public bool IsCIEnvironment { get; init; } =
+        Environment.GetEnvironmentVariable("CI") == "true" ||
+        Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true" ||
+        Environment.GetEnvironmentVariable("AZURE_PIPELINES") == "true" ||
+        Environment.GetEnvironmentVariable("GITLAB_CI") == "true";
+
+    /// <summary>
     /// AssetsDir: Primary directory for mod assets (info.ini, preview.png, etc.).
     /// AFFECTS: Asset generation, mod metadata file locations, preview image generation
     /// DEFAULT: "assets" if not specified
@@ -137,17 +166,21 @@ public class BuildContext
 
     /// <summary>
     /// ModsDirectory: Computed path to game's Mods folder.
+    /// Uses explicit value if provided, otherwise derives from DuckovFolder.
     /// AFFECTS: Final mod deployment location
-    /// DERIVED: DuckovFolder + "Duckov_Data/Mods"
     /// </summary>
-    public string ModsDirectory => DuckovFolder != null ? Path.Combine(DuckovFolder, "Duckov_Data", "Mods") : "";
+    public string ModsDirectory => ModsDirectory_Explicit ??
+                                   (DuckovFolder != null ? Path.Combine(DuckovFolder, "Duckov_Data", "Mods") : "");
 
     /// <summary>
     /// ManagedDirectory: Computed path to game's managed assemblies folder.
+    /// Uses explicit value if provided, otherwise derives from DuckovFolder.
     /// AFFECTS: Game dependency detection, assembly reference resolution
-    /// DERIVED: DuckovFolder + "Duckov_Data/Managed"
     /// </summary>
-    public string ManagedDirectory => DuckovFolder != null ? Path.Combine(DuckovFolder, "Duckov_Data", "Managed") : "";
+    public string ManagedDirectory => ManagedDirectory_Explicit ??
+                                      (DuckovFolder != null
+                                          ? Path.Combine(DuckovFolder, "Duckov_Data", "Managed")
+                                          : "");
 
     // Project Type Configuration
 
@@ -222,6 +255,8 @@ public class BuildContext
             ModName = context.GetValueOrDefault("modname"),
             DuckovFolder = context.GetValueOrDefault("duckovfolder"),
             SteamFolder = context.GetValueOrDefault("steamfolder"),
+            ManagedDirectory_Explicit = context.GetValueOrDefault("manageddirectory"),
+            ModsDirectory_Explicit = context.GetValueOrDefault("modsdirectory"),
             AssetsDir = context.GetValueOrDefault("assetsdir", "assets"),
             LocalizationAssetsDir = context.GetValueOrDefault("localizationassetsdir"),
             EnableILRepack = bool.Parse(context.GetValueOrDefault("enableilrepack", "true")),
@@ -237,6 +272,8 @@ public class BuildContext
                     $"{context.GetValueOrDefault("modname", "mod")}.dll")),
         };
     }
+
+    private const int SkipExitCode = 0;
 
     private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
