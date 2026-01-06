@@ -39,7 +39,7 @@ jobs:
 
           if [ -n "$changed_files" ]; then
             echo "Files to format: $changed_files"
-            dotnet tool run jb cleanupcode --verbosity=INFO --exclude='**Tests/**.*' --exclude='**.idea/**.*' $changed_files || true
+            dotnet tool run jb cleanupcode --verbosity=INFO --exclude='**Tests/**.*' --exclude='**.idea/**.*' --exclude='**/Ducky.Sdk.Orchestration.targets' $changed_files || true
             git add . || true
           else
             echo "No files to format"
