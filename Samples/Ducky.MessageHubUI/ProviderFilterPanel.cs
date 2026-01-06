@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using Ducky.Sdk.Logging;
 using TMPro;
-using UnityEngine;
-using UnityEngine.UI;
 
 namespace Ducky.MessageHubUI;
 

@@ -60,6 +60,29 @@ A comprehensive .NET SDK for developing mods for "Escape from Duckov" game.
 </Project>
 ```
 
+### CI/CD Environment Configuration
+
+In continuous integration environments (GitHub Actions, Azure Pipelines, etc.), you can build mods without Steam installed by specifying key paths via environment variables:
+
+```yaml
+# GitHub Actions example
+env:
+  ManagedDirectory: /opt/game-assemblies/Managed/
+  ModsDirectory: /tmp/mod-output/
+```
+
+Or pass via MSBuild parameters:
+
+```bash
+dotnet build -p:ManagedDirectory=/path/to/managed/ -p:ModsDirectory=/path/to/mods/
+```
+
+**CI Build Benefits:**
+- No Steam installation required
+- No game files needed
+- Flexible output path configuration
+- Automatic `SteamFolder` validation bypass (detects `CI` environment variable)
+
 ### Your First Mod
 
 Create a `ModBehaviour.cs` file:
@@ -394,6 +417,8 @@ Ducky.Sdk/
 | `ModName` | (required) | Mod identifier and output DLL name |
 | `SteamFolder` | - | Path to Steam installation |
 | `DuckovFolder` | Computed | Game directory (auto-computed from SteamFolder) |
+| `ManagedDirectory` | Computed | Game managed assemblies directory (can be explicitly set for CI environments) |
+| `ModsDirectory` | Computed | Mod deployment target directory (can be explicitly set for CI environments) |
 | `DeployMod` | `true` | Enable automatic deployment to game |
 | `EnableILRepack` | `true` | Merge assemblies into single DLL |
 | `IncludeHarmony` | `false` | Include Harmony for runtime patching |
@@ -444,7 +469,7 @@ public const string ReadMe = "ReadMe Content";
 
 ### "SteamDir property must be set"
 
-Create `Local.props` in your project root with your Steam installation path:
+**Local Development:** Create `Local.props` in your project root with your Steam installation path:
 
 ```xml
 <Project>
@@ -452,6 +477,20 @@ Create `Local.props` in your project root with your Steam installation path:
     <SteamFolder>/path/to/steam/</SteamFolder>
   </PropertyGroup>
 </Project>
+```
+
+**CI Environments:** Set `ManagedDirectory` and `ModsDirectory` environment variables:
+
+```yaml
+env:
+  ManagedDirectory: /path/to/managed/
+  ModsDirectory: /path/to/mods/
+```
+
+Or via MSBuild parameters:
+
+```bash
+dotnet build -p:ManagedDirectory=/path/to/managed/ -p:ModsDirectory=/path/to/mods/
 ```
 
 ### Stale NuGet Cache

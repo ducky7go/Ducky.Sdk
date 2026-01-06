@@ -61,6 +61,29 @@
 </Project>
 ```
 
+### CI/CD 环境配置
+
+在持续集成环境（如 GitHub Actions、Azure Pipelines）中，无需安装 Steam 即可构建 Mod。通过环境变量直接指定关键路径：
+
+```yaml
+# GitHub Actions 示例
+env:
+  ManagedDirectory: /opt/game-assemblies/Managed/
+  ModsDirectory: /tmp/mod-output/
+```
+
+或通过 MSBuild 参数传递：
+
+```bash
+dotnet build -p:ManagedDirectory=/path/to/managed/ -p:ModsDirectory=/path/to/mods/
+```
+
+**CI 构建优势：**
+- 无需 Steam 安装
+- 无需游戏文件
+- 灵活的输出路径配置
+- 自动跳过 `SteamFolder` 验证（检测 `CI` 环境变量）
+
 ### 你的第一个 Mod
 
 创建 `ModBehaviour.cs` 文件：
@@ -500,6 +523,8 @@ Ducky.Sdk/
 | `ModName` | (必需) | Mod 标识符和输出 DLL 名称 |
 | `SteamFolder` | - | Steam 安装路径 |
 | `DuckovFolder` | 计算得出 | 游戏目录（从 SteamFolder 自动计算）|
+| `ManagedDirectory` | 计算得出 | 游戏托管程序集目录（可显式设置用于 CI 环境）|
+| `ModsDirectory` | 计算得出 | Mod 部署目标目录（可显式设置用于 CI 环境）|
 | `DeployMod` | `true` | 启用自动部署到游戏 |
 | `EnableILRepack` | `true` | 将程序集合并到单个 DLL |
 | `IncludeHarmony` | `false` | 包含 Harmony 用于运行时补丁 |
@@ -574,7 +599,7 @@ public const string ReadMe = "说明内容";
 
 ### "SteamDir property must be set"
 
-在项目根目录创建 `Local.props`，填写 Steam 安装路径：
+**本地开发：** 在项目根目录创建 `Local.props`，填写 Steam 安装路径：
 
 ```xml
 <Project>
@@ -582,6 +607,20 @@ public const string ReadMe = "说明内容";
     <SteamFolder>/path/to/steam/</SteamFolder>
   </PropertyGroup>
 </Project>
+```
+
+**CI 环境：** 设置 `ManagedDirectory` 和 `ModsDirectory` 环境变量：
+
+```yaml
+env:
+  ManagedDirectory: /path/to/managed/
+  ModsDirectory: /path/to/mods/
+```
+
+或通过 MSBuild 参数：
+
+```bash
+dotnet build -p:ManagedDirectory=/path/to/managed/ -p:ModsDirectory=/path/to/mods/
 ```
 
 ### NuGet 缓存过期

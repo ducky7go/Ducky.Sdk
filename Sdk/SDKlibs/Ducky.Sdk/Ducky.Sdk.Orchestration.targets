@@ -58,7 +58,7 @@
 
         <!-- Generate BuildContext JSON using dedicated script -->
         <Exec
-            Command="dotnet script &quot;$(_ContextJsonScript)&quot; 1 &quot;$(MSBuildProjectDirectory)&quot; 2 &quot;$(ModName)&quot; 3 &quot;$(Configuration)&quot; 4 &quot;$(TargetFramework)&quot; 5 &quot;$(DuckovFolder)&quot; 6 &quot;$(SteamFolder)&quot; 7 &quot;$(AssetsDir)&quot; 8 &quot;$(LocalizationAssetsDir)&quot; 9 &quot;$(EnableILRepack)&quot; 10 &quot;$(EnableGlobalUsing)&quot; 11 &quot;$(IncludeHarmony)&quot; 12 &quot;$(DeployMod)&quot; 13 &quot;$(ExcludeSdkLib)&quot; 14 &quot;$(IsModLib)&quot; 15 &quot;$(_AbsoluteIntermediateOutputPath)&quot; 16 &quot;$(_AbsoluteBaseIntermediateOutputPath)&quot; 17 &quot;$(_AbsoluteOutputPath)&quot;"
+            Command="dotnet script &quot;$(_ContextJsonScript)&quot; 1 &quot;$(MSBuildProjectDirectory)&quot; 2 &quot;$(ModName)&quot; 3 &quot;$(Configuration)&quot; 4 &quot;$(TargetFramework)&quot; 5 &quot;$(DuckovFolder)&quot; 6 &quot;$(SteamFolder)&quot; 7 &quot;$(AssetsDir)&quot; 8 &quot;$(LocalizationAssetsDir)&quot; 9 &quot;$(EnableILRepack)&quot; 10 &quot;$(EnableGlobalUsing)&quot; 11 &quot;$(IncludeHarmony)&quot; 12 &quot;$(DeployMod)&quot; 13 &quot;$(ExcludeSdkLib)&quot; 14 &quot;$(IsModLib)&quot; 15 &quot;$(_AbsoluteIntermediateOutputPath)&quot; 16 &quot;$(_AbsoluteBaseIntermediateOutputPath)&quot; 17 &quot;$(_AbsoluteOutputPath)&quot; 18 &quot;$(ManagedDirectory)&quot; 19 &quot;$(ModsDirectory)&quot;"
             ContinueOnError="false"
             WorkingDirectory="$(MSBuildProjectDirectory)"
             Condition="Exists('$(_ContextJsonScript)')">

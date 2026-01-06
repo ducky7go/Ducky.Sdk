@@ -1,7 +1,4 @@
-﻿using Ducky.Sdk.Logging;
-using Ducky.Sdk.ModBehaviours;
-
-namespace Ducky.EntranceMod2;
+﻿namespace Ducky.EntranceMod2;
 
 public class ModBehaviour : ModBehaviourBase
 {

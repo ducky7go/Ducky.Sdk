@@ -1,9 +1,4 @@
 ﻿using System.CommandLine.Parsing;
-using Cysharp.Threading.Tasks;
-using Ducky.Sdk.Contracts;
-using Ducky.Sdk.Contracts.CommandLine;
-using Ducky.Sdk.Logging;
-using Ducky.Sdk.ModBehaviours;
 using Ducky.Sdk.Utils;
 
 namespace Ducky.MessageHubClient;

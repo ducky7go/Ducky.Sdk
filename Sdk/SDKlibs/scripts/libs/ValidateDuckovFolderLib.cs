@@ -22,6 +22,9 @@ public class ValidateDuckovFolderLib
             context.LogInfo("=== Duckov Folder Validation Results ===");
             context.LogInfo($"Duckov Folder: {context.DuckovFolder}");
             context.LogInfo($"Steam Folder: {context.SteamFolder}");
+            context.LogInfo($"Managed Directory: {context.ManagedDirectory}");
+            context.LogInfo($"Mods Directory: {context.ModsDirectory}");
+            context.LogInfo($"CI Environment: {context.IsCIEnvironment}");
 
             // Skip validation for library projects - they don't need game installation
             if (context.IsModLib)
@@ -33,7 +36,13 @@ public class ValidateDuckovFolderLib
                 return SkipExitCode;
             }
 
-            var result = ValidateDuckovFolder(context.DuckovFolder ?? "", context.SteamFolder ?? "");
+            var result = ValidateDuckovFolder(
+                context.DuckovFolder ?? "",
+                context.SteamFolder ?? "",
+                context.ManagedDirectory_Explicit,
+                context.ModsDirectory_Explicit,
+                context.IsCIEnvironment
+            );
 
             context.LogInfo($"Valid: {result.Valid}");
             context.LogInfo($"Validation Time: {result.ValidationTime:u}");
@@ -74,7 +83,8 @@ public class ValidateDuckovFolderLib
         }
     }
 
-    private static ValidationResponse ValidateDuckovFolder(string duckovFolder, string steamFolder)
+    private static ValidationResponse ValidateDuckovFolder(string duckovFolder, string steamFolder,
+        string explicitManagedDirectory, string explicitModsDirectory, bool isCIEnvironment)
     {
         var response = new ValidationResponse
         {
@@ -82,10 +92,17 @@ public class ValidateDuckovFolderLib
             ValidationTime = DateTime.UtcNow
         };
 
+        // If both paths are explicitly set, DuckovFolder is not required
+        if (!string.IsNullOrEmpty(explicitManagedDirectory) && !string.IsNullOrEmpty(explicitModsDirectory))
+        {
+            response.Warnings.Add("DuckovFolder not required when paths are explicitly set");
+            return response;
+        }
+
         if (string.IsNullOrEmpty(duckovFolder))
         {
             response.Valid = false;
-            response.Errors.Add("DuckovFolder is not set");
+            response.Errors.Add("DuckovFolder is not set. Set DuckovFolder, SteamFolder, or provide explicit ManagedDirectory/ModsDirectory for CI.");
             return response;
         }
 

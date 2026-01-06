@@ -96,6 +96,8 @@ try
     var intermediateOutputPath = GetSafeString(argsDict, "15", Path.Combine(projectDir, "obj", configuration, targetFramework));
     var baseIntermediateOutputPath = GetSafeString(argsDict, "16", Path.Combine(projectDir, "obj"));
     var outputPath = GetSafeString(argsDict, "17", Path.Combine(projectDir, "bin", configuration, targetFramework));
+    var managedDirectory = GetSafeString(argsDict, "18", "");
+    var modsDirectory = GetSafeString(argsDict, "19", "");
 
     // Parse boolean parameters safely
     var enableILRepack = ParseSafeBool(argsDict, "9", false);
@@ -123,6 +125,8 @@ try
         ModName = modName,
         DuckovFolder = duckovFolder,
         SteamFolder = steamFolder,
+        ManagedDirectory_Explicit = string.IsNullOrEmpty(managedDirectory) ? null : managedDirectory,
+        ModsDirectory_Explicit = string.IsNullOrEmpty(modsDirectory) ? null : modsDirectory,
         AssetsDir = assetsDir,
         LocalizationAssetsDir = localizationAssetsDir,
         EnableILRepack = enableILRepack,
