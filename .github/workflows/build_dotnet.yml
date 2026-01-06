@@ -40,7 +40,7 @@ jobs:
           dotnet test Sdk/Docky.Sdk.slnx --configuration Release --logger trx --results-directory ./TestResults
       - name: Build Samples
         run: |
-          dotnet build Samples/Docky.Sdk.Sample.slnx --configuration Release
+          bash scripts/rebuild_samples.sh
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
