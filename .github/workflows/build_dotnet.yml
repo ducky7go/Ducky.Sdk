@@ -32,6 +32,8 @@ jobs:
             ${{ runner.os }}-nuget
       - name: Fetch build dependencies
         run: bash scripts/fetch_build_dependency.sh
+      - name: Install dotnet-ilrepack
+        run: dotnet tool install --global dotnet-ilrepack --version 2.0.44
       - name: Restore dependencies
         run: |
           dotnet restore Sdk/Docky.Sdk.slnx
