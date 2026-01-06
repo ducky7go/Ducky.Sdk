@@ -24,8 +24,8 @@
       <GitRootPath Condition=" '$(GitRootPath)' == '' ">$(MSBuildProjectDirectory)</GitRootPath>
 
       <!-- CI environment: apply automatic defaults based on Git root if not explicitly set -->
-      <ManagedDirectory Condition=" '$(CI)' == 'true' AND '$(ManagedDirectory)' == '' AND '$(DuckovFolder)' == '' ">$(GitRootPath)/Managed</ManagedDirectory>
-      <ModsDirectory Condition=" '$(CI)' == 'true' AND '$(ModsDirectory)' == '' AND '$(DuckovFolder)' == '' ">$(GitRootPath)/artifacts/Mods</ModsDirectory>
+      <ManagedDirectory Condition=" '$(CI)' == 'true' AND '$(ManagedDirectory)' == '' AND '$(DuckovFolder)' == '' ">$(GitRootPath)/Managed/</ManagedDirectory>
+      <ModsDirectory Condition=" '$(CI)' == 'true' AND '$(ModsDirectory)' == '' AND '$(DuckovFolder)' == '' ">$(GitRootPath)/artifacts/Mods/</ModsDirectory>
 
       <!-- DuckovFolder: if already specified externally, use it; otherwise require SteamFolder -->
       <DuckovFolder Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' != '' ">$(SteamFolder)steamapps/common/Escape from Duckov/</DuckovFolder>
