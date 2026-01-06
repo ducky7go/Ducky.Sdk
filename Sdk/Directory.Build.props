@@ -11,8 +11,9 @@
   </PropertyGroup>
   <!-- Fail early if SteamFolder is not provided (skip in CI or when paths are explicitly set) -->
   <Target Name="FailIfSteamFolderMissing" BeforeTargets="PrepareForBuild;Restore" Condition="'$(CI)' != 'true'">
-    <Error Text="SteamFolder property must be set. Provide it via Local.props or -p:SteamFolder=/path/to/steam/
+    <Error
+      Text="SteamFolder property must be set. Provide it via Local.props or -p:SteamFolder=/path/to/steam/
 Alternatively, for CI environments, set ManagedDirectory and ModsDirectory directly via environment variables."
-           Condition="'$(SteamFolder)' == '' AND '$(DuckovFolder)' == '' AND '$(ManagedDirectory)' == '' AND '$(ModsDirectory)' == ''" />
+      Condition="'$(SteamFolder)' == '' AND '$(DuckovFolder)' == '' AND '$(ManagedDirectory)' == '' AND '$(ModsDirectory)' == ''" />
   </Target>
 </Project>

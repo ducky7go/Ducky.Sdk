@@ -63,8 +63,10 @@ public class ResolveSdkPropertiesLib
             context.LogInfo($"Should Process Localization: {properties.ShouldProcessLocalization}");
             context.LogInfo($"Effective Localization Assets Dir: {properties.EffectiveLocalizationAssetsDir}");
             context.LogInfo($"Duckov Folder: {properties.DuckovFolder}");
-            context.LogInfo($"Managed Directory: {properties.ManagedDirectory} {(properties.HasExplicitManagedDirectory ? "(explicitly set)" : "(derived)")}");
-            context.LogInfo($"Mods Directory: {properties.ModsDirectory} {(properties.HasExplicitModsDirectory ? "(explicitly set)" : "(derived)")}");
+            context.LogInfo(
+                $"Managed Directory: {properties.ManagedDirectory} {(properties.HasExplicitManagedDirectory ? "(explicitly set)" : "(derived)")}");
+            context.LogInfo(
+                $"Mods Directory: {properties.ModsDirectory} {(properties.HasExplicitModsDirectory ? "(explicitly set)" : "(derived)")}");
             context.LogInfo($"Resolved At: {properties.ResolvedAt:u}");
 
             if (properties.ValidationErrors.Any())
@@ -248,7 +250,8 @@ public class ResolveSdkPropertiesLib
             }
             else if (string.IsNullOrEmpty(properties.DuckovFolder))
             {
-                errors.Add("DuckovFolder is required for mod deployment but not specified (or set ManagedDirectory/ModsDirectory explicitly)");
+                errors.Add(
+                    "DuckovFolder is required for mod deployment but not specified (or set ManagedDirectory/ModsDirectory explicitly)");
                 isValid = false;
             }
             else if (!Directory.Exists(properties.DuckovFolder))

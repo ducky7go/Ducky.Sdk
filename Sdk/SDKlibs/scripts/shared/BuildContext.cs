@@ -169,14 +169,18 @@ public class BuildContext
     /// Uses explicit value if provided, otherwise derives from DuckovFolder.
     /// AFFECTS: Final mod deployment location
     /// </summary>
-    public string ModsDirectory => ModsDirectory_Explicit ?? (DuckovFolder != null ? Path.Combine(DuckovFolder, "Duckov_Data", "Mods") : "");
+    public string ModsDirectory => ModsDirectory_Explicit ??
+                                   (DuckovFolder != null ? Path.Combine(DuckovFolder, "Duckov_Data", "Mods") : "");
 
     /// <summary>
     /// ManagedDirectory: Computed path to game's managed assemblies folder.
     /// Uses explicit value if provided, otherwise derives from DuckovFolder.
     /// AFFECTS: Game dependency detection, assembly reference resolution
     /// </summary>
-    public string ManagedDirectory => ManagedDirectory_Explicit ?? (DuckovFolder != null ? Path.Combine(DuckovFolder, "Duckov_Data", "Managed") : "");
+    public string ManagedDirectory => ManagedDirectory_Explicit ??
+                                      (DuckovFolder != null
+                                          ? Path.Combine(DuckovFolder, "Duckov_Data", "Managed")
+                                          : "");
 
     // Project Type Configuration
 

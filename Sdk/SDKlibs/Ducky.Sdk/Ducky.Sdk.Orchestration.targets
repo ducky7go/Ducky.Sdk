@@ -46,8 +46,14 @@
         <PropertyGroup>
             <_AbsoluteIntermediateOutputPath Condition="!$([System.IO.Path]::IsPathRooted($(IntermediateOutputPath)))">$([System.IO.Path]::GetFullPath($(MSBuildProjectDirectory)\$(IntermediateOutputPath)))</_AbsoluteIntermediateOutputPath>
             <_AbsoluteIntermediateOutputPath Condition="$([System.IO.Path]::IsPathRooted($(IntermediateOutputPath)))">$(IntermediateOutputPath)</_AbsoluteIntermediateOutputPath>
-            <_AbsoluteBaseIntermediateOutputPath Condition="!$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">$([System.IO.Path]::GetFullPath($(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)))</_AbsoluteBaseIntermediateOutputPath>
-            <_AbsoluteBaseIntermediateOutputPath Condition="$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">$(BaseIntermediateOutputPath)</_AbsoluteBaseIntermediateOutputPath>
+            <_AbsoluteBaseIntermediateOutputPath
+                Condition="!$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">
+                $([System.IO.Path]::GetFullPath($(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)))
+            </_AbsoluteBaseIntermediateOutputPath>
+            <_AbsoluteBaseIntermediateOutputPath
+                Condition="$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))">
+                $(BaseIntermediateOutputPath)
+            </_AbsoluteBaseIntermediateOutputPath>
             <_AbsoluteOutputPath Condition="!$([System.IO.Path]::IsPathRooted($(OutputPath)))">$([System.IO.Path]::GetFullPath($(MSBuildProjectDirectory)\$(OutputPath)))</_AbsoluteOutputPath>
             <_AbsoluteOutputPath Condition="$([System.IO.Path]::IsPathRooted($(OutputPath)))">$(OutputPath)</_AbsoluteOutputPath>
         </PropertyGroup>

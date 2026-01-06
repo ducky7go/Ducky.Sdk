@@ -102,7 +102,8 @@ public class ValidateDuckovFolderLib
         if (string.IsNullOrEmpty(duckovFolder))
         {
             response.Valid = false;
-            response.Errors.Add("DuckovFolder is not set. Set DuckovFolder, SteamFolder, or provide explicit ManagedDirectory/ModsDirectory for CI.");
+            response.Errors.Add(
+                "DuckovFolder is not set. Set DuckovFolder, SteamFolder, or provide explicit ManagedDirectory/ModsDirectory for CI.");
             return response;
         }
 
