@@ -83,6 +83,14 @@ indent_style = space
 indent_size = 4
 tab_width = 4
 
+# Exclude Ducky.Sdk.Orchestration.targets from formatting to preserve single-line properties
+[**/Ducky.Sdk.Orchestration.targets]
+indent_style = space
+indent_size = 2
+resharper_wrap_before_attributes = false
+resharper_wrap_attributes_style = dont_touch
+resharper_max_line_length = 0
+
 [*.feature]
 tab_width = 4
 
