@@ -15,6 +15,30 @@
   <!-- Initialize SDK properties before build -->
   <Target Name="InitializeDuckySdkProperties" BeforeTargets="BeforeBuild;BeforeResolveReferences">
     <PropertyGroup>
+      <!-- Git root detection: find .git directory by traversing upward from project directory -->
+      <GitRootPath Condition=" '$(GitRootPath)' == '' AND Exists('$(MSBuildProjectDirectory)/.git') ">
+        $([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)'))
+      </GitRootPath>
+      <GitRootPath Condition=" '$(GitRootPath)' == '' AND Exists('$(MSBuildProjectDirectory)/../.git') ">
+        $([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/..'))
+      </GitRootPath>
+      <GitRootPath Condition=" '$(GitRootPath)' == '' AND Exists('$(MSBuildProjectDirectory)/../../.git') ">
+        $([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../..'))
+      </GitRootPath>
+      <GitRootPath Condition=" '$(GitRootPath)' == '' AND Exists('$(MSBuildProjectDirectory)/../../../.git') ">
+        $([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../..'))
+      </GitRootPath>
+      <!-- Fallback to project directory if .git not found -->
+      <GitRootPath Condition=" '$(GitRootPath)' == '' ">$(MSBuildProjectDirectory)</GitRootPath>
+
+      <!-- CI environment: apply automatic defaults based on Git root if not explicitly set -->
+      <ManagedDirectory Condition=" '$(CI)' == 'true' AND '$(ManagedDirectory)' == '' AND '$(DuckovFolder)' == '' ">
+        $(GitRootPath)/Managed
+      </ManagedDirectory>
+      <ModsDirectory Condition=" '$(CI)' == 'true' AND '$(ModsDirectory)' == '' AND '$(DuckovFolder)' == '' ">
+        $(GitRootPath)/artifacts/Mods
+      </ModsDirectory>
+
       <!-- DuckovFolder: if already specified externally, use it; otherwise require SteamFolder -->
       <DuckovFolder Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' != '' ">$(SteamFolder)steamapps/common/Escape from Duckov/</DuckovFolder>
       <!-- Allow explicit override of ManagedDirectory and ModsDirectory for CI environments -->
@@ -52,9 +76,12 @@
       <_ShouldProcessLocalization Condition="'$(IsModLib)' == 'true'">true</_ShouldProcessLocalization>
     </PropertyGroup>
 
+    <Message Text="[Ducky.Sdk] GitRootPath: $(GitRootPath)" Importance="high" />
+    <Message Text="[Ducky.Sdk] CI environment detected: $(CI)" Importance="high" Condition=" '$(CI)' != '' " />
     <Message Text="[Ducky.Sdk] SteamFolder: $(SteamFolder)" Importance="high" />
     <Message Text="[Ducky.Sdk] DuckovFolder: $(DuckovFolder)" Importance="high" />
     <Message Text="[Ducky.Sdk] ManagedDirectory: $(ManagedDirectory)" Importance="high" />
+    <Message Text="[Ducky.Sdk] ModsDirectory: $(ModsDirectory)" Importance="high" />
     <Message Text="[Ducky.Sdk] EnableILRepack: $(EnableILRepack)" Importance="high" />
     <Message Text="[Ducky.Sdk] IncludeHarmony: $(IncludeHarmony)" Importance="high" />
     <Message Text="[Ducky.Sdk] LocalizationAssetsDir: $(LocalizationAssetsDir)" Importance="high" />

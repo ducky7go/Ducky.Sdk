@@ -3,3 +3,7 @@ obj/ducky-build/
 Sdk/SDKlibs/Ducky.Sdk/*.nuspec
 .newbe
 Publish
+
+# CI-generated directories
+Managed/
+artifacts/
