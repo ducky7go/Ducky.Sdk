@@ -7,3 +7,6 @@ Publish
 # CI-generated directories
 Managed/
 artifacts/
+
+# MSBuild binary logs
+*.binlog
