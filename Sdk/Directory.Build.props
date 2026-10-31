@@ -1,7 +1,7 @@
 <Project>
   <Import Project="Local.props" Condition="Exists('Local.props')" />
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>true</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>

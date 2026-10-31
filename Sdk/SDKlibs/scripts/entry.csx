@@ -1,9 +1,9 @@
 #!/usr/bin/env dotnet-script
 #nullable enable
 
-#r "nuget: SixLabors.ImageSharp, 3.1.6"
-#r "nuget: SixLabors.ImageSharp.Drawing, 2.1.4"
-#r "nuget: Newtonsoft.Json, 13.0.3"
+#r "nuget: SixLabors.ImageSharp, 4.1.3"
+#r "nuget: SixLabors.ImageSharp.Drawing, 3.1.3"
+#r "nuget: Newtonsoft.Json, 13.0.4"
 #load "shared/BuildContext.cs"
 #load "shared/BuildResult.cs"
 #load "libs/PrintResultLib.cs"

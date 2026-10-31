@@ -16,14 +16,14 @@ jobs:
   ut:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           # Look to see if there is a cache hit for the corresponding requirements file
@@ -33,7 +33,7 @@ jobs:
       - name: Fetch build dependencies
         run: bash scripts/fetch_build_dependency.sh
       - name: Install dotnet-ilrepack
-        run: dotnet tool install --global dotnet-ilrepack --version 2.0.44
+        run: dotnet tool install --global dotnet-ilrepack --version 2.0.48
       - name: Restore dependencies
         run: |
           dotnet restore Sdk/Docky.Sdk.slnx
