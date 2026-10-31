@@ -5,7 +5,7 @@
 A comprehensive .NET SDK for developing mods for "Escape from Duckov" game.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/download)
 [![NuGet](https://img.shields.io/nuget/v/Ducky.Sdk.svg)](https://www.nuget.org/packages/Ducky.Sdk/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Ducky.Sdk.svg)](https://www.nuget.org/packages/Ducky.Sdk/)
 [![GitHub Stars](https://img.shields.io/github/stars/ducky7go/Ducky.Sdk?style=social)](https://github.com/ducky7go/Ducky.Sdk/stargazers)
@@ -27,7 +27,7 @@ A comprehensive .NET SDK for developing mods for "Escape from Duckov" game.
 
 ### Prerequisites
 
-- .NET SDK 9.0 or later
+- .NET SDK 10.0 or later
 - "Escape from Duckov" game installed
 - Steam installation directory (for automated deployment)
 

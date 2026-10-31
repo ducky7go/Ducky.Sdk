@@ -33,7 +33,7 @@ Ducky.Sdk is the NuGet package `Ducky.Sdk` (MIT, author Newbe36524, repo `ducky7
 - `Sdk/Tests/Ducky.Sdk.Lib.Tests/` - NUnit + Shouldly tests (`CodeGenTests.cs`, `ModOptionsTests.cs`).
 - `Samples/` - sample mods (`Docky.Sdk.Sample.slnx`): `Ducky.SingleProject`, `Ducky.EntranceMod` + `Ducky.EntranceMod2` + `Ducky.EntranceMod.Common` (multi-project, `IsModLib`), `Ducky.TryHarmony`, `Ducky.MessageHubHost/Client/UI`. They are SDK integration tests, not templates (the `Ducky.Samples` repo holds further samples that consume the published package).
 - `scripts/` - `packToLocal.sh`, `rebuild_samples.sh`, `fetch_build_dependency.sh`.
-- `duckylocal/` - local NuGet feed (git-ignored except `placeholder.txt`); `nuget.props` - holds `LocalNuGetVersion`; `GitVersion.yml`; `.config/dotnet-tools.json` (dotnet-script 1.6.0, JetBrains ReSharper `jb` global tool 2025.1.4).
+- `duckylocal/` - local NuGet feed (git-ignored except `placeholder.txt`); `nuget.props` - holds `LocalNuGetVersion`; `GitVersion.yml`; `.config/dotnet-tools.json` (dotnet-script 2.0.1, JetBrains ReSharper `jb` global tool 2026.2.4).
 
 ## Build / test / run
 

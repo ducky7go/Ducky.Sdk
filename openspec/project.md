@@ -11,7 +11,7 @@ Ducky.Sdk is a comprehensive .NET SDK for developing mods for "Escape from Ducko
 - Strongly-typed mod development patterns
 
 ## Tech Stack
-- .NET SDK 9.0 (Target Framework: .NET Standard 2.1)
+- .NET SDK 10.0 (Target Framework: .NET Standard 2.1)
 - C# (primary development language)
 - Roslyn incremental source generators (IIncrementalGenerator)
 - MSBuild (.props and .targets files)
