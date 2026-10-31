@@ -141,40 +141,46 @@ public class GeneratePreviewLib
         }
 
         // Background color from first 3 bytes
-        var bgColor = new SixLabors.ImageSharp.PixelFormats.Rgba32(hash[0], hash[1], hash[2]);
+        var bgColor = Color.FromPixel(new SixLabors.ImageSharp.PixelFormats.Rgba32(hash[0], hash[1], hash[2]));
 
         // Foreground color (complementary)
         var fgColor =
-            new SixLabors.ImageSharp.PixelFormats.Rgba32((byte)(255 - hash[0]), (byte)(255 - hash[1]),
-                (byte)(255 - hash[2]));
+            Color.FromPixel(new SixLabors.ImageSharp.PixelFormats.Rgba32((byte)(255 - hash[0]), (byte)(255 - hash[1]),
+                (byte)(255 - hash[2])));
+
+        var fgBrush = new SolidBrush(fgColor);
 
         image.Mutate(ctx =>
         {
             // Fill background
             ctx.BackgroundColor(bgColor);
 
-            // Generate symmetric pattern (mirrored horizontally)
-            // Use hash bytes to determine which cells to fill
-            for (int y = 0; y < gridSize; y++)
+            // ImageSharp.Drawing 3.x: fills go through the DrawingCanvas
+            ctx.Paint(canvas =>
             {
-                for (int x = 0; x < (gridSize + 1) / 2; x++) // Only half, mirror the rest
+                // Generate symmetric pattern (mirrored horizontally)
+                // Use hash bytes to determine which cells to fill
+                for (int y = 0; y < gridSize; y++)
                 {
-                    int byteIndex = (y * 3 + x) % hash.Length;
-                    bool fill = (hash[byteIndex] % 2) == 0;
-
-                    if (fill)
+                    for (int x = 0; x < (gridSize + 1) / 2; x++) // Only half, mirror the rest
                     {
-                        // Fill left side
-                        ctx.Fill(fgColor, new RectangleF(x * cellSize, y * cellSize, cellSize, cellSize));
-                        // Mirror to right side
-                        if (x != gridSize / 2) // Don't double-draw center column
+                        int byteIndex = (y * 3 + x) % hash.Length;
+                        bool fill = (hash[byteIndex] % 2) == 0;
+
+                        if (fill)
                         {
-                            ctx.Fill(fgColor,
-                                new RectangleF((gridSize - 1 - x) * cellSize, y * cellSize, cellSize, cellSize));
+                            // Fill left side
+                            canvas.Fill(fgBrush, new Rectangle(x * cellSize, y * cellSize, cellSize, cellSize));
+                            // Mirror to right side
+                            if (x != gridSize / 2) // Don't double-draw center column
+                            {
+                                canvas.Fill(fgBrush,
+                                    new Rectangle((gridSize - 1 - x) * cellSize, y * cellSize, cellSize, cellSize));
+                            }
                         }
                     }
                 }
-            }
+            });
         });
 
         // Save as PNG

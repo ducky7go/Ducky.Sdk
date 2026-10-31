@@ -29,9 +29,9 @@
     <!-- Configuration Properties -->
     <PropertyGroup>
         <!-- Entry script path -->
-        <_EntryScript>$(MSBuildThisFileDirectory)../scripts/entry.csx</_EntryScript>
+        <_EntryScript>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../scripts/entry.csx'))</_EntryScript>
         <_BuildContextJsonFile>$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)ducky-build-context.json</_BuildContextJsonFile>
-        <_ContextJsonScript>$(MSBuildThisFileDirectory)../scripts/ContextJsonBuild.csx</_ContextJsonScript>
+        <_ContextJsonScript>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../scripts/ContextJsonBuild.csx'))</_ContextJsonScript>
 
         <!-- Script libraries execution order -->
         <ScriptLibraries>InitializeBuildLoggingLib;ValidateProjectPathLib;ResolveSdkPropertiesLib;ExtractLocalizationKeysLib;UpdateLocalizationCsvLib;CopyLocalizationAssetsLib;EnsureInfoIniLib;GeneratePreviewLib;ValidateDuckovFolderLib;CollectFromModLib;DeployModLib;ILRepackAssembliesLib;CopyDependenciesLib</ScriptLibraries>
@@ -164,7 +164,7 @@
 
         <!-- Execute UpdateBuildContextAfterBuildLib - needs compiled assemblies -->
         <Exec
-            Command="dotnet script &quot;$(MSBuildThisFileDirectory)../scripts/UpdateBuildContextAfterBuildLib.csx&quot; &quot;$(MSBuildProjectDirectory)&quot;"
+            Command="dotnet script &quot;$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../scripts/UpdateBuildContextAfterBuildLib.csx'))&quot; &quot;$(MSBuildProjectDirectory)&quot;"
             ContinueOnError="false"
             WorkingDirectory="$(MSBuildProjectDirectory)"
             Condition="Exists('$(MSBuildThisFileDirectory)../scripts/UpdateBuildContextAfterBuildLib.csx')" />
