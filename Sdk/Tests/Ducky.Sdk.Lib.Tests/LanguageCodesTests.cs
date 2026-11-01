@@ -86,4 +86,16 @@ public class LanguageCodesTests
             "..", "..", "Ducky.Sdk.Analyser", "DuckyLocalizationGenerator.cs"));
         return File.ReadAllText(generatorPath);
     }
+
+    [Test]
+    public void Package_ShipsTheSharedLocalizationSourcesWithLib()
+    {
+        // Lib is shipped as source inside the package; the shared files it links must ship too, or mods do not compile.
+        var nuspec = File.ReadAllText(Path.GetFullPath(Path.Combine(ThisDirectory(), "..", "..", "SDKlibs", "Ducky.Sdk", "Ducky.Sdk.nuspec")));
+
+        nuspec.ShouldContain("../../Shared/Localization/*.cs");
+        nuspec.ShouldContain("contentFiles/cs/netstandard2.1/Sdk/Shared/Localization/");
+    }
+
+    private static string ThisDirectory([CallerFilePath] string file = "") => Path.GetDirectoryName(file)!;
 }

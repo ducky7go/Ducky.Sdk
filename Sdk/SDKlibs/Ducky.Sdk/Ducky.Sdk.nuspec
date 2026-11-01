@@ -59,6 +59,8 @@
 
         <!-- 👇 Package all .cs files in the project, and place them in the contentFiles folder -->
         <file src="../Ducky.Sdk.Lib/**/*.cs" exclude="**/obj/**/*.cs" target="contentFiles/cs/netstandard2.1/Sdk/" />
+        <!-- Shared localization sources, linked into Lib (Sdk/Shared/Localization). Without them the packaged Lib does not compile. -->
+        <file src="../../Shared/Localization/*.cs" target="contentFiles/cs/netstandard2.1/Sdk/Shared/Localization/" />
         <!-- 👇 Build runner (published by packToLocal.sh): runs every mod build step, no external tools -->
         <file src="../../Ducky.Sdk.Build/publish/net10.0/**" exclude="**/*.pdb" target="tools/net10.0" />
         <!-- 👇 Hide content files from Visual Studio solution explorer  -->
