@@ -15,6 +15,12 @@ public static class Program
 
     internal static int Run(string[] args)
     {
+        // Translation commands (locales set | sync | validate) run before the build-phase parser, which is unchanged.
+        if (args.Length > 0 && args[0] == "locales")
+        {
+            return LocaleTool.Run(args[1..], Console.Out, Console.Error);
+        }
+
         if (!BuildRunnerArguments.TryParse(args, out var parsed, out var error))
         {
             Console.Error.WriteLine($"[BuildRunner][ERROR] {error}");

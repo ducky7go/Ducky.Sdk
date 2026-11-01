@@ -93,16 +93,10 @@ public class ValidateLocalizationLib
                 return SkipExitCode;
             }
 
-            var lkeysPath = Path.Combine(assetsDir, "lkeys.json");
-            var staticKeys = ReadStaticKeys(lkeysPath, out var patterns);
-
-            var result = Validate(localesDir, staticKeys, patterns);
-            var errors = Report(result, mode, extraMode, context);
-            WriteMissingReport(assetsDir, result.Missing, mode);
-
+            var summary = RunValidation(assetsDir, localesDir, mode, extraMode, Console.Out, Console.Error);
             context.LogInfo(
-                $"Localization validation: {result.Findings.Count} finding(s), {result.Missing.Count} missing translation(s)");
-            return errors > 0 ? 1 : 0;
+                $"Localization validation: {summary.Findings} finding(s), {summary.Missing} missing translation(s)");
+            return summary.Errors > 0 ? 1 : 0;
         }
         catch (Exception ex)
         {
@@ -253,8 +247,22 @@ public class ValidateLocalizationLib
         File.WriteAllText(path, content, new UTF8Encoding(false));
     }
 
+    /// <summary>
+    /// The whole check for one Locales folder, shared by the build step and <c>locales validate</c>: validates against
+    /// lkeys.json (or en.csv), prints warning: and error: lines, and writes missing.csv into <paramref name="assetsDir"/>.
+    /// </summary>
+    internal static (int Errors, int Findings, int Missing) RunValidation(
+        string assetsDir, string localesDir, Severity mode, Severity extraMode, TextWriter output, TextWriter error)
+    {
+        var staticKeys = ReadStaticKeys(Path.Combine(assetsDir, "lkeys.json"), out var patterns);
+        var result = Validate(localesDir, staticKeys, patterns);
+        var errors = Report(result, mode, extraMode, output, error);
+        WriteMissingReport(assetsDir, result.Missing, mode);
+        return (errors, result.Findings.Count, result.Missing.Count);
+    }
+
     /// <summary>Prints the findings as warning: and error: lines and returns the number of errors.</summary>
-    private static int Report(ValidationResult result, Severity mode, Severity extraMode, BuildContext context)
+    private static int Report(ValidationResult result, Severity mode, Severity extraMode, TextWriter output, TextWriter error)
     {
         var errors = 0;
         foreach (var finding in result.Findings)
@@ -270,11 +278,11 @@ public class ValidateLocalizationLib
             if (severity == Severity.Error)
             {
                 errors++;
-                Console.Error.WriteLine($"error: {line}");
+                error.WriteLine($"error: {line}");
             }
             else
             {
-                Console.WriteLine($"warning: {line}");
+                output.WriteLine($"warning: {line}");
             }
         }
 
@@ -306,7 +314,7 @@ public class ValidateLocalizationLib
     }
 
     /// <summary>Static keys and patterns from lkeys.json. Returns null for keys when the file does not exist.</summary>
-    private static List<string> ReadStaticKeys(string lkeysPath, out List<Regex> patterns)
+    internal static List<string> ReadStaticKeys(string lkeysPath, out List<Regex> patterns)
     {
         patterns = new List<Regex>();
         if (!File.Exists(lkeysPath))
