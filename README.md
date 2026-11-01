@@ -323,6 +323,10 @@ protected override void ModEnabled()
 
 `ItemSetting_Gun` 上提供 `TryGetBulletCount(out int)` 与 `SetBulletCount(int)`，读写游戏内部的 `bulletCount` 成员（私有实例属性）。找不到该成员时只记录一次日志，`SetBulletCount` 不做任何事并返回原对象，可以链式调用。
 
+### 游戏机制参考
+
+[docs/game-mechanics.md](docs/game-mechanics.md) 记录游戏的实际行为（Buff 抗性、敌人出生时机、`Health.Hurt` 伤害顺序、爆炸、天气与时钟、翻滚与耐力、开箱），并附每条结论的证据等级，同时说明基于它们实现的辅助类（`BuffImmunity`、`StatBuff`、`PlayerCombat`、`HurtRules`、`LethalDamageGuard`、`EnemyReady` 等）。基于 Harmony 的辅助类需要把 `IncludeHarmony` 设为 true。开发期热重载见 [docs/hot-reload.md](docs/hot-reload.md)。
+
 ## 高级功能
 
 ### MessageHub 跨 Mod 通信

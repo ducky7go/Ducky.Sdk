@@ -295,6 +295,14 @@ Both are warnings, enabled by default; they do not fail the build. Generated cod
 
 `ItemSetting_Gun` has `TryGetBulletCount(out int)` and `SetBulletCount(int)`, which read and write the game's internal `bulletCount` member (a private instance property). When the member is not found, a single log line is written; `SetBulletCount` then does nothing and returns the same gun, so calls can be chained.
 
+### Game mechanics reference
+
+[docs/game-mechanics.md](docs/game-mechanics.md) records what the game does (buff resistance, enemy spawn timing, the
+`Health.Hurt` damage order, explosions, weather and clock, rolling and stamina, loot boxes) with the evidence for each
+statement, and describes the helpers that build on it (`BuffImmunity`, `StatBuff`, `PlayerCombat`, `HurtRules`,
+`LethalDamageGuard`, `EnemyReady`, and others). The Harmony-based helpers need `IncludeHarmony` set to true. The development
+hot reload is described in [docs/hot-reload.md](docs/hot-reload.md).
+
 ## Advanced Features
 
 ### Harmony Runtime Patching
