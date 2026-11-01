@@ -29,23 +29,40 @@ internal sealed class LocalizationService
     private readonly HashSet<string> _overrideKeys = new();
 
     private readonly string _localesPath;
+    private readonly Action<string, string> _setOverrideText;
+    private readonly Action<string> _removeOverrideText;
     private SystemLanguage _currentLanguage = SystemLanguage.English;
     private string _currentLanguageCode = "en";
 
     private LocalizationService()
+        : this(ResolveLocalesPath(), LocalizationManager.SetOverrideText, key => LocalizationManager.RemoveOverrideText(key))
+    {
+        SelectLanguage(LocalizationManager.CurrentLanguage);
+    }
+
+    /// <summary>
+    /// Seam for tests: the locales folder and the game's override-text calls are injected, so the loading and lookup
+    /// logic runs without the game. Does not select a language; the production constructor does that.
+    /// </summary>
+    internal LocalizationService(string localesPath, Action<string, string> setOverrideText, Action<string> removeOverrideText)
+    {
+        _localesPath = localesPath;
+        _setOverrideText = setOverrideText;
+        _removeOverrideText = removeOverrideText;
+    }
+
+    private static string ResolveLocalesPath()
     {
         try
         {
             var assemblyLocation = Assembly.GetExecutingAssembly().Location;
             var assemblyDirectory = Path.GetDirectoryName(assemblyLocation) ?? Application.dataPath;
-            _localesPath = Path.Combine(assemblyDirectory, "Locales");
+            return Path.Combine(assemblyDirectory, "Locales");
         }
         catch (Exception)
         {
-            _localesPath = Path.Combine(Application.dataPath, "Locales");
+            return Path.Combine(Application.dataPath, "Locales");
         }
-
-        SelectLanguage(LocalizationManager.CurrentLanguage);
     }
 
     /// <summary>
@@ -183,7 +200,7 @@ internal sealed class LocalizationService
             foreach (var key in currentDict.Keys)
             {
                 var value = Get(_currentLanguage, key);
-                LocalizationManager.SetOverrideText(key, value);
+                _setOverrideText(key, value);
                 _overrideKeys.Add(key);
             }
         }
@@ -202,7 +219,7 @@ internal sealed class LocalizationService
     {
         foreach (var key in _overrideKeys)
         {
-            LocalizationManager.RemoveOverrideText(key);
+            _removeOverrideText(key);
         }
 
         _overrideKeys.Clear();
@@ -236,7 +253,7 @@ internal sealed class LocalizationService
         return fallback ?? $"[{key}]";
     }
 
-    private static string GetLanguageCode(SystemLanguage language)
+    internal static string GetLanguageCode(SystemLanguage language)
     {
         return language switch
         {
