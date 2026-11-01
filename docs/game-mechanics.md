@@ -1,7 +1,7 @@
 # Game mechanics reference
 
 This page records how Escape from Duckov behaves, as far as it has been checked. It comes from the research notes of the
-Newbe.Dod project (sections 1 to 8). Each statement carries one of three evidence levels:
+Newbe.Dod project (sections 1 to 8; sections 9 to 19 are the second batch, from research sections 7 to 15). Each statement carries one of three evidence levels:
 
 - **Verified**: observed in the real game with the debug tooling, on the game version that was tested.
 - **Static read**: read from the decompiled game code only. It was not run in the game, so it can be wrong.
@@ -194,6 +194,188 @@ Guns and bullets:
 - **Unverified**: which boxes need inspection (`needInspect`). Both boxes tested had an inspection time of 0.
 - **Not investigated**: how cash is stored (`EconomyManager` or an inventory item).
 - **Verified**: items can be created with `ItemAssetsCollection.InstantiateSync(typeId)` (used by the research tool).
+
+## 9. Healing and eating
+
+- **Static read**: drugs call `CharacterMainControl.AddHealth(float)`, which calls `health.AddHealth(value * (1 + HealGain))`,
+  and `Health.AddHealth` clamps to `MaxHealth`. A negative value goes through `Health.Hurt` as damage with no source.
+- **Static read**: food and drink call `AddEnergy(float)` and `AddWater(float)`, each `value * (1 + FoodGain)`, clamped to
+  `MaxEnergy`/`MaxWater` and to zero.
+- **Verified**: `CharacterMainControl.UseItem` first checks `UsageUtilities.IsUsable`. A medical item is not usable at full
+  health (`usable=false`).
+- **Verified**: event chain of a large first-aid kit (about 3 seconds): `hold` (the gun is put away), `actionStart CA_UseItem`,
+  `useItem` (`OnMainCharacterStartUseItem`), then about 3 seconds later `addHealth`, `itemUsed`
+  (`UsageUtilities.OnItemUsedStaticEvent`, with the item) and `hold` (the gun comes back). Healing is applied once when the use
+  action ends, not over time. Eating follows the same pattern (a can takes about 2 seconds).
+- **Verified**: `HealGain = -0.5` halves the healing (a first-aid kit with `addHealth value=20` gave 10 health). `FoodGain = -0.9`
+  leaves about 10% of the food energy (`addEnergy value=40` gave about 4).
+- **Verified**: a rule in the `AddHealth` prefix can rewrite the amount. A first-aid kit with `value=6` was halved to 3.
+- **Verified**: overflow above maximum health (maximum 77 in the test). A first-aid kit gives only the missing amount, so it never
+  overflows. A bandage always gives 5, so it overflows only above 72 health. Aspirin always gives 10, so at 70 health it overflows
+  by 3 (`70 + 10 - 77`).
+- **Static read**: `AddHealth` is also called by sources that are not items (for example the game's own "just survived" effect).
+  Telling item healing from other healing by the time window between `OnMainCharacterStartUseItem` and `itemUsed` is
+  **unverified**.
+- **Helpers**: `RestoreRules.Register(kind, rule, priority)` rewrites the amount of a health, energy or water restoration
+  (Harmony). `CharacterRestore.Heal`, `HealToFull`, `AddEnergy` and `AddWater` route a restoration through the game's methods and
+  mark it as a mod restoration. `RestoreContext.Overflow` gives the overflow for each rule. `ItemUseEvents.OnStartUse` and
+  `OnUsed` subscribe to the two item-use events.
+
+## 10. AI control and hiding
+
+- **Verified**: a Harmony prefix on `CharacterMainControl.SetMoveInput(Vector3)` that replaces the input with zero stops
+  non-player characters. In a 5-second test, 2 of 3 enemies moved (15.1 units total); with the prefix on, none moved.
+- **Verified**: calling `SetMoveInput` or `SetRunInput` from outside every frame does not work. The player's input script writes
+  the input again each frame. The input must be replaced in a prefix.
+- **Verified**: stopping movement does not stop shooting, turning or reloading. Enemies still shoot.
+- **Unverified**: whether forced movement (for example the AI's roll, which uses `SetForceMoveVelocity`) and knockback continue
+  while a move rule is active. Only `SetMoveInput` was tested.
+- **Verified**: `CharacterMainControl.Hide()` hides a non-player character: the model and its health bar disappear and the
+  `Hidden` flag is set. `Hide()` and `Show()` have no effect on the player team, including the player's pet.
+- **Static read**: the player's aim assist skips hidden characters, so hidden enemies are not auto-aimed.
+- **Verified**: hiding does not make AI blind or stop it from acting. Hidden enemies still act and shoot.
+- **Static read**: the AI's check of whether the player hears a sound ignores hidden characters.
+- **Unverified**: a rule that hides enemies until they fire, and when such a rule should show them again.
+- **Helpers**: `CharacterControlRules.RegisterMove` and `RegisterRun` (Harmony) replace move and run input. Their limits are
+  listed in the XML comments: forced velocity, knockback, aim and shooting are not covered. `CharacterVisibility.CanHide` and
+  `CharacterVisibility.Hide` hide a non-player character with reference counting; a direct call to the game's `Hide()` or
+  `Show()` bypasses the count.
+
+## 11. Economy
+
+- **Verified**: there are two kinds of money. The bank deposit is `EconomyManager.Money`, a `long` with a private setter. It changes
+  with `EconomyManager.Add(long)`, which accepts negative values. Each change raises the static event
+  `EconomyManager.OnMoneyChanged(old, new)`.
+- **Verified**: cash on hand is `EconomyManager.Cash`, the number of items of type **451** (`CashItemID = 451`) in the inventory.
+  It is read-only. `ItemUtilities.ConsumeItems(451, n)` removes cash (a test removed 5 from 74842, leaving 74837).
+- **Verified**: `EconomyManager.Pay(cost, ...)` **deducts the bank deposit first** and takes cash only for the rest. A test paid 3
+  from a deposit of 325848: the deposit became 325845 and the cash did not change. Do not use `Pay` to take cash.
+- **Verified**: `EconomyManager.Add(100)` raised the deposit from 325845 to 325945.
+- **Static read**: `ItemUtilities.ConsumeItems(int, long)` is `internal` in the game, so the SDK reaches it by reflection, once.
+- **Helpers**: `Economy.Money`, `Economy.Cash`, `Economy.AddMoney`, `Economy.TryConsumeCash` (it never calls `Pay`, and it is
+  all or nothing) and `Economy.OnMoneyChanged`.
+
+## 12. Grenades and mines
+
+- **Static read**: each grenade item has an `ItemSetting_Skill` whose `Skill` is a `Skill_Grenade`. That holds `grenadePfb` (a
+  `Grenade` prefab) and the parameters `delayTime`, `isLandmine`, `landmineTriggerRange`, `canHurtSelf` and `damageInfo`.
+- **Verified**: a grenade is made by `Object.Instantiate(grenadePfb)`, then configured, `Grenade.Launch(start, velocity, owner,
+  canHurtSelf)` is called and `SetWeaponIdInfo(itemType)` follows. A zero velocity drops it in place.
+- **Verified**: `Launch`'s owner decides the grenade's team (`selfTeam`), and the grenade ignores collisions with its owner for a
+  short time after landing.
+- **Verified** values (game version tested): hand grenade (type 67) radius 5.5, delay 1.2 seconds, damage 75, `normal` effect,
+  exploding where it lands. Flash grenade (type 66) radius 8, delay 1.8 seconds, damage 1, `flash` effect; on explosion it adds the
+  `Stun` buff to a character in range.
+- **Verified**: a landmine with an enemy owner, placed 4 metres ahead, exploded when the player walked through its trigger range,
+  at the mine's position. Damage 75 times difficulty 0.8 gave 60, and armour reduced the real loss to 15.77.
+- **Static read**: a landmine triggers only for a character on a team different from its owner's (`filterByTeam`). A grenade with
+  no owner has `selfTeam` set to the player team, so the player does not trigger it. The no-owner case was not tested separately.
+  **Consequence**: a mine the player must trigger needs an owner on an enemy team.
+- **Static read**: the flash grenade has no line-of-sight or facing check. It is an explosion effect plus the stun buff, so a player
+  who turns away is still affected. Whether the stun affects shooting is **unverified**.
+- **Helpers**: `Grenades.Spawn(itemType, position, owner, options)` and `GrenadeOptions`. The owner check for a landmine the
+  player must trigger is described in the XML comments.
+
+## 13. Bullet blockers
+
+- **Verified**: a `BulletBlocker` on a collider on the `BlockBullet` layer stops bullets. Without a wall, a shot reaches the
+  enemy (`gunHit`). With a wall between shooter and target, there is no `gunHit`, and the projectile ends at the wall with
+  `traveled=0`. A shotgun fired through the wall at the player ended with all 5 pellets at `traveled=0`, and the player took no
+  damage.
+- **Verified**: the wall's team decides who it stops. A bullet is blocked when `Team.IsEnemy(bullet team, wall team)` is true. A
+  wall on the player team (`team = player`) let the player's shots through, and the enemy's shots against it were not separately
+  tested. With an enemy team, the player's bullets and those of other hostile teams are stopped.
+- **Verified**: the wall has no health. A bullet that hits it disappears with no damage notification.
+- **Unverified**: `bulletBack` (reflecting bullets). Making the wall destructible was not investigated.
+- **Unverified**: whether the wall blocks character movement. Only bullets were tested.
+- The wall is an ordinary scene object. It is removed when the scene changes, and a mod must destroy it itself on hot reload.
+- **Helper**: `BulletBlockers.Spawn(position, rotation, width, team, height, thickness)`. The XML comments state the limits above.
+
+## 14. Noticing
+
+- **Verified**: `AICharacterController.SetNoticedToTarget(DamageReceiver)` is a continuous signal, not a one-time event. For one
+  enemy, a postfix counted 287 calls in about 14 seconds (about every 0.05 seconds), each with the player's `DamageReceiver` as
+  target. "First discovery" must be recorded by the caller.
+- **Verified**: `noticed` on an AI is a pulse. After a sound, it was set to true and 0.24 seconds later back to false. A behaviour
+  task clears it when it reads it, so a mod must check it every frame if it uses it.
+- **Static read**: a sound and a hurt both set `noticed` directly without going through `SetNoticedToTarget`. A hurt by a buff or
+  effect (poison, bleeding, burn) does not set it, because the game checks `isFromBuffOrEffect`. Discovery by sound or by being hurt
+  therefore does not raise the `SetNoticedToTarget` callback.
+- **Helper**: `EnemyNoticed.OnFirstNoticed(handler)` (Harmony) runs the handler once per enemy instance and clears its record on every
+  level change.
+
+## 15. Burn, stun, overweight and rolling
+
+- **Verified**: burn (`Burn` buff) deals 1 point of real damage (`type = realDamage`, no source) every 0.5 seconds. It lasts up to 10
+  seconds and stacks up to 3 times. The game ticks it itself; a mod only adds the buff.
+- **Verified**: stun (`Stun` buff) reduces `Moveability` from 1.02 to 0.25 (two modifiers). Walk, run, turn and aim-turn speeds are
+  multiplied by `Moveability`. The character can still move and use its hands but cannot run. Stun is a slowdown to about a quarter,
+  not a freeze.
+- **Verified**: overweight. When total weight is more than `MaxWeight` (79 in the test, with 84.8 carried), the game adds the
+  `Weight_Overweight` buff, which sets `WalkSpeed` and `RunSpeed` to 0. `CanMove()` then returns false. Raising `MaxWeight` restored
+  `WalkSpeed` to 4.
+- **Static read**: the footstep sound is multiplied by 1.5 when weight is above 75% of `MaxWeight`, and not while aiming down sights.
+- **Verified**: rolling starts only when `DashSpeed >= 0.1`. The base `DashSpeed` is 10. Setting it to 0 stopped `Dash()` from
+  starting (no `actionStart`). The roll costs 10 stamina, has a cooldown of 0.5 seconds and lasts about 0.48 seconds. Its end has no
+  event; a mod must watch `Dashing` each frame.
+- **Static read**: while rolling, `CanMove` and `CanRun` are false. `CanUseHand` and `CanControlAim` depend on `DashCanControl`
+  (base 0).
+- **Unverified**: that a character can fire while rolling with `DashCanControl` above 0.
+- **Verified**: a character that is rolling is not hit by bullets or explosions (the damage pipeline and explosion targeting in the
+  sections above).
+- **Unverified**: whether forced roll movement (`SetForceMoveVelocity`) is covered by the move-input rules. It is not.
+- **Helpers**: `StatKeys.DashSpeed`, `StatKeys.DashCanControl`, `StatKeys.Moveability`, `StatKeys.WalkSoundRange` and the other
+  constants in `StatKeys`, for use with `StatBuff.Modify`.
+
+## 16. Loot and pickup
+
+- **Verified**: dropping the item in slot 0 raised `OnMainCharacterInventoryChangedEvent` with index 0 and created an
+  `InteractablePickup` on the ground.
+- **Verified**: picking it up raised, in one frame, `interactStart`, the inventory event with index 0,
+  `InteractablePickup.OnPickupSuccess(pickup, character)` and `actionStart CA_Interact`.
+- **Verified**: the first opening of a box raises `OnStartLoot` with `Looted` false. Stopping raised `OnStopLoot` about 2.3 seconds
+  later. Opening the same box again raised `OnStartLoot` at once with `Looted` true.
+- **Verified**: `Inventory.hasBeenInspectedInLootBox` becomes true only after `OnStopLoot`. It cannot tell whether a box is opened
+  for the first time when the loot starts. Use `InteractableLootbox.Looted`, read at `OnStartLoot`.
+- **Static read**: corpse loot boxes are ordinary `InteractableLootbox` objects. The pet's inventory is `PetProxy.PetInventory`,
+  and the SDK identifies a pet box by comparing the box's `Inventory` with it. The research note describes the pet as an
+  `InteractableLootbox` subclass; the decompiled `PetProxy` is a `MonoBehaviour`, so the comparison is used instead.
+- **Unverified**: whether an inventory slot that is empty is `null` in `Inventory.Content`, and whether `Item.MaxStackCount` can be
+  changed per item instance to double stack limits.
+- **Helpers**: `LootEvents.OnLootStart(handler, includePets)` (pets are excluded by default), `OnLootStop`, `OnPickup`,
+  `OnPlayerInventoryChanged` (main character only) and `LootEvents.IsPet`.
+
+## 17. Sounds
+
+- **Verified**: a player's `WalkSoundRange` base is 8 and `RunSoundRange` base is 16. An enemy's walking makes an `unknowNoise`
+  sound with radius 8 about every 0.33 seconds. `HearingAbility` base is 1.
+- **Static read**: an AI compares the sound distance with the sound radius multiplied by its own `HearingAbility`, so the
+  effective radius differs for each listener.
+- **Static read**: an AI ignores a sound from its own team for `unknowNoise` and `combatSound`. A sound meant to attract enemies must
+  therefore carry a team other than the enemy team it targets. Grenade drops make a `grenadeDropSound` of radius 20.
+- **Helper**: `AiSounds.Make(position, radius, type, source)`. A negative, infinite or NaN radius is rejected; zero is accepted.
+
+## 18. Explosions: targeting
+
+- **Verified**: who is hurt depends on the source and on `canHurtSelf`. With no source and `canHurtSelf` true, the player is hurt. With
+  the player as source and `canHurtSelf` false, the player is not hurt. With the player as source and `canHurtSelf` true, the player
+  is hurt. With no source and `canHurtSelf` false, the player **is hurt**, because the team used for exclusion stays `all`.
+- **Static read**: the game excludes the source's team only when a source is present and `canHurtSelf` is false, using
+  `Team.IsEnemy`. `Team.IsEnemy` is false for `middle` and true for `all`; other teams are enemies of each other.
+- **Verified**: explosion damage is normal damage, reduced by armour and difficulty. A 10-point explosion took 2.48 from the tested player.
+  Real damage (`damageType = realDamage`) ignores both.
+- **Static read**: the explosion manager sets `isExplosion` on the damage it creates.
+- **Verified**: `ExplosionFxTypes.normal` and `flash` make an effect; `fire`, `ice` and `custom` do not, so the caller must show its own.
+- **Unverified**: that an explosion targeting only enemies (source = player, `canHurtSelf` false) hurts enemies; the test had no enemy in range.
+- **Static read**: one explosion affects at most eight colliders, and a character behind a wall is not hurt.
+- **Helper**: `Explosions.Create(center, radius, damage, source, canHurtSelf, effect, isTrueDamage)`. It validates the radius and the
+  damage, and passes a camera shake of zero.
+
+## 19. Player attributes
+
+The table of all 71 player attributes is not included yet. The exact names must be read from the game (the Newbe.DebugMod
+`research/stats` output or the stat database). The research notes name only 57 of them, and this page does not guess the rest.
+The attribute keys named in `StatKeys` are the ones the research validated.
 
 ## Helper usage in this SDK
 

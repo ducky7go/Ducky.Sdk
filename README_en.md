@@ -311,7 +311,7 @@ Both are warnings, enabled by default; they do not fail the build. Generated cod
 
 [docs/game-mechanics.md](docs/game-mechanics.md) records what the game does (buff resistance, enemy spawn timing, the
 `Health.Hurt` damage order, explosions, weather and clock, rolling and stamina, loot boxes) with the evidence for each
-statement, and describes the helpers that build on it (`BuffImmunity`, `StatBuff`, `PlayerCombat`, `HurtRules`,
+statement (including the second batch: healing and eating, AI control and hiding, economy, grenades and mines, bullet blockers, noticing, burn, stun, overweight, rolling, loot, sounds and explosion targeting), and describes the helpers that build on it (`BuffImmunity`, `StatBuff`, `PlayerCombat`, `HurtRules`, `RestoreRules`, `CharacterRestore`, `Economy`, `Grenades`, `BulletBlockers`, `EnemyNoticed`, `LootEvents`, `AiSounds`, `CharacterControlRules`, `CharacterVisibility`, `Explosions`,
 `LethalDamageGuard`, `EnemyReady`, and others). The Harmony-based helpers need `IncludeHarmony` set to true. The development
 hot reload is described in [docs/hot-reload.md](docs/hot-reload.md).
 
