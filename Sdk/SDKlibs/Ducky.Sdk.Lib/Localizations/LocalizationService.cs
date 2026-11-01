@@ -2,40 +2,44 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
-using System.Text;
 using Ducky.Sdk.Logging;
+using Ducky.Sdk.Utils;
 using SodaCraft.Localizations;
 using UnityEngine;
 
 namespace Ducky.Sdk.Localizations;
 
 /// <summary>
-/// Central localization service that:
-/// - Loads CSV files from a Locales folder on demand (supports Locales/en.csv, Locales/en/*.csv, Locales/lang/*.csv)
-/// - Exposes Get(key, fallback), SetLanguage with lazy loading
-/// - Only loads language files when needed, reducing memory footprint
-/// - English is loaded lazily as fallback when accessing missing keys
-/// This mirrors the folder/file-based approach used by WorldEffectLocalizationManager.
+/// Central localization service.
+/// - Holds an ordered list of sources. The first is the mod's own <c>Locales</c> folder; more can be registered.
+/// - A lookup walks the language fallback chain (for example <c>zh-hant, zh, en</c>). For each language it checks the
+///   sources in order, and returns the first non-empty text.
+/// - Publishes the effective text of every key to the game through one <see cref="Apply"/> step, which removes only
+///   the overrides this service set and sets only the ones that changed.
 /// </summary>
 internal sealed class LocalizationService
 {
+    private const string DefaultScope = "default";
+
     private static LocalizationService? _instance;
     public static LocalizationService Instance => _instance ??= new LocalizationService();
 
-    private readonly Dictionary<string, Dictionary<string, string>> _db =
-        new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _overrideKeys = new();
-
-    private readonly string _localesPath;
+    private readonly List<LocalizationSource> _sources = new();
+    private readonly Dictionary<string, IReadOnlyList<string>> _configuredChains = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, AppliedOverride> _applied = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _reportedCollisions = new(StringComparer.Ordinal);
     private readonly Action<string, string> _setOverrideText;
     private readonly Action<string> _removeOverrideText;
     private SystemLanguage _currentLanguage = SystemLanguage.English;
     private string _currentLanguageCode = "en";
 
     private LocalizationService()
-        : this(ResolveLocalesPath(), LocalizationManager.SetOverrideText, key => LocalizationManager.RemoveOverrideText(key))
+        : this(ResolveDefaultModId(), ResolveLocalesPath(),
+            LocalizationManager.SetOverrideText, key => LocalizationManager.RemoveOverrideText(key))
     {
         SelectLanguage(LocalizationManager.CurrentLanguage);
     }
@@ -45,10 +49,34 @@ internal sealed class LocalizationService
     /// logic runs without the game. Does not select a language; the production constructor does that.
     /// </summary>
     internal LocalizationService(string localesPath, Action<string, string> setOverrideText, Action<string> removeOverrideText)
+        : this(new ModId(DefaultScope), localesPath, setOverrideText, removeOverrideText)
     {
-        _localesPath = localesPath;
+    }
+
+    private LocalizationService(ModId defaultModId, string localesPath, Action<string, string> setOverrideText,
+        Action<string> removeOverrideText)
+    {
         _setOverrideText = setOverrideText;
         _removeOverrideText = removeOverrideText;
+        DefaultModId = defaultModId;
+        _sources.Add(new LocalizationSource(new DirectoryLocalizationProvider(defaultModId, localesPath),
+            new LocalizationSourceOptions()));
+    }
+
+    /// <summary>The ModId of the mod's own Locales folder (the first source).</summary>
+    public ModId DefaultModId { get; }
+
+    private static ModId ResolveDefaultModId()
+    {
+        try
+        {
+            return Helper.GetModId();
+        }
+        catch (Exception)
+        {
+            var name = Assembly.GetExecutingAssembly().GetName().Name;
+            return new ModId(string.IsNullOrWhiteSpace(name) ? DefaultScope : name);
+        }
     }
 
     private static string ResolveLocalesPath()
@@ -65,145 +93,20 @@ internal sealed class LocalizationService
         }
     }
 
-    /// <summary>
-    /// Load localization files for a specific language on demand.
-    /// </summary>
-    private void LoadLanguage(string langCode)
-    {
-        if (_db.ContainsKey(langCode))
-        {
-            Log.Debug($"[LocalizationService] Language '{langCode}' already loaded, skipping");
-            return;
-        }
-
-        if (string.IsNullOrEmpty(_localesPath) || !Directory.Exists(_localesPath))
-        {
-            Debug.LogWarning($"[LocalizationService] Locales directory not found: {_localesPath}");
-            return;
-        }
-
-        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        _db[langCode] = dict;
-
-        var csvFiles = Directory.GetFiles(_localesPath, "*.csv", SearchOption.AllDirectories);
-        var loadedCount = 0;
-
-        foreach (var file in csvFiles)
-        {
-            try
-            {
-                var relative = Path.GetRelativePath(_localesPath, file);
-                var parts = relative.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
-                    StringSplitOptions.RemoveEmptyEntries);
-                string fileLangCode;
-                if (parts.Length >= 2)
-                {
-                    // Locales/en/xxx.csv -> en
-                    fileLangCode = parts[0].ToLowerInvariant();
-                }
-                else
-                {
-                    // Locales/en.csv -> en
-                    fileLangCode = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
-                }
-
-                // Only load files for the requested language
-                if (!string.Equals(fileLangCode, langCode, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                var content = File.ReadAllText(file, Encoding.UTF8);
-                var map = CsvParser.ParseCsvToDictionary(content);
-                if (map.Count == 0) continue;
-
-                // Merge (later files override)
-                foreach (var kv in map)
-                {
-                    try
-                    {
-                        var value = kv.Value;
-                        // If value looks like a filename (has an extension) and does not contain directory separators,
-                        // try to load the referenced file in this order:
-                        // 1) {csvFolder}/{langCode}/{filename}
-                        // 2) {localesRoot}/{langCode}/{filename}
-                        // 3) {csvFolder}/{filename}
-                        if (!string.IsNullOrEmpty(value) &&
-                            value.Length <= 255 &&
-                            (value.Length == kv.Key.Length + 3 + 1 ||
-                             value.Length == kv.Key.Length + 4 + 1) && // reasonable length for a filename
-                            !value.Contains(Path.DirectorySeparatorChar) &&
-                            !value.Contains(Path.AltDirectorySeparatorChar) &&
-                            !string.IsNullOrEmpty(Path.GetExtension(value)))
-                        {
-                            var csvDir = Path.GetDirectoryName(file) ?? _localesPath;
-                            var candidateCsvSubLang = Path.Combine(csvDir, langCode, value);
-
-                            if (File.Exists(candidateCsvSubLang))
-                            {
-                                value = File.ReadAllText(candidateCsvSubLang, Encoding.UTF8);
-                            }
-                        }
-
-                        dict[kv.Key] = value;
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogError(
-                            $"[LocalizationService] Failed to load referenced file for key '{kv.Key}' in {file}: {ex.Message}");
-                        dict[kv.Key] = kv.Value;
-                    }
-                }
-
-                loadedCount += map.Count;
-                Log.Debug($"[LocalizationService] Loaded {map.Count} entries for '{langCode}' from {file}");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[LocalizationService] Failed to load {file}: {ex.Message}");
-            }
-        }
-
-        if (loadedCount == 0)
-        {
-            Debug.LogWarning($"[LocalizationService] No localization entries loaded for language: {langCode}");
-        }
-        else
-        {
-            Log.Info($"[LocalizationService] Successfully loaded {loadedCount} total entries for language: {langCode}");
-        }
-    }
-
     private void SelectLanguage(SystemLanguage language)
     {
         Log.Debug("[LocalizationService] Selecting language: " + language);
         _currentLanguage = language;
         _currentLanguageCode = GetLanguageCode(language);
 
-        // Load the requested language on demand
-        LoadLanguage(_currentLanguageCode);
-
-        // If the requested language has no entries, ensure English is loaded as fallback
-        if (!_db.TryGetValue(_currentLanguageCode, out var dict) || dict.Count == 0)
+        if (!_sources.Any(source => source.HasLanguage(_currentLanguageCode)))
         {
-            Debug.LogWarning(
+            Log.Warn(
                 $"[LocalizationService] Localization not found for language: {_currentLanguageCode}, falling back to English");
-            _currentLanguageCode = "en";
-            LoadLanguage("en");
         }
 
         Log.Debug($"[LocalizationService] Selected language: {_currentLanguageCode}");
-
-        // sync all keys to game localization manager
-        if (_db.TryGetValue(_currentLanguageCode, out var currentDict))
-        {
-            foreach (var key in currentDict.Keys)
-            {
-                var value = Get(_currentLanguage, key);
-                _setOverrideText(key, value);
-                _overrideKeys.Add(key);
-            }
-        }
+        Apply();
     }
 
     public void SetLanguage(SystemLanguage language)
@@ -212,48 +115,221 @@ internal sealed class LocalizationService
     }
 
     /// <summary>
-    /// Removes from the game the override texts this service set (hot reload disable). A key is removed only if this
-    /// service set it, so texts of other mods stay.
+    /// Removes from the game every override this service set (hot reload disable). Texts of other mods stay.
     /// </summary>
     internal void ReleaseOverrideTexts()
     {
-        foreach (var key in _overrideKeys)
+        foreach (var key in _applied.Keys.ToList())
         {
             _removeOverrideText(key);
         }
 
-        _overrideKeys.Clear();
+        _applied.Clear();
     }
 
-    public string Get(string key, string? fallback = null)
-        => Get(_currentLanguage, key, fallback);
+    /// <summary>Registers a source. Registering the same directory under the same ModId again returns the existing one.</summary>
+    public IDisposable Register(ILocalizationProvider provider, LocalizationSourceOptions? options)
+    {
+        if (provider is DirectoryLocalizationProvider directory)
+        {
+            var existing = _sources.FirstOrDefault(source =>
+                source.Provider is DirectoryLocalizationProvider other &&
+                source.ModId == provider.ModId &&
+                string.Equals(Path.GetFullPath(other.Directory), Path.GetFullPath(directory.Directory), StringComparison.Ordinal));
+            if (existing != null)
+            {
+                return new Registration(this, existing);
+            }
+        }
+
+        var source = new LocalizationSource(provider, options ?? new LocalizationSourceOptions());
+        _sources.Add(source);
+        Log.Info($"[LocalizationService] Registered source '{provider.ModId.Value}' with {source.Languages.Count()} language(s)");
+        Apply();
+        return new Registration(this, source);
+    }
+
+    /// <summary>Removes a source and every override it owned, then re-applies what the other sources still supply.</summary>
+    internal void Unregister(LocalizationSource source)
+    {
+        if (!_sources.Remove(source))
+        {
+            return;
+        }
+
+        Log.Info($"[LocalizationService] Unregistered source '{source.ModId.Value}'");
+        Apply();
+    }
+
+    /// <summary>Re-reads the folders of the matching sources (all when <paramref name="modId"/> is null).</summary>
+    public void Reindex(ModId? modId)
+    {
+        foreach (var source in _sources.Where(source => modId == null || source.ModId == modId.Value))
+        {
+            source.Reindex();
+        }
+
+        Apply();
+    }
+
+    /// <summary>Sets the fallback chain of a language. The chain is the language, the given codes, then <c>en</c>.</summary>
+    public void ConfigureFallback(string language, IReadOnlyList<string> chain)
+    {
+        var code = LanguageCodes.Normalize(language);
+        _configuredChains[code] = FallbackChain.Build(code, chain, Log.Warn);
+        Apply();
+    }
+
+    public string Get(string key, string? fallback = null) => Get(_currentLanguage, key, fallback);
 
     public string Get(SystemLanguage language, string key, string? fallback = null)
     {
-        var langCode = GetLanguageCode(language);
-        if (!string.IsNullOrEmpty(langCode) && _db.TryGetValue(langCode, out var dict)
-                                            && dict.TryGetValue(key, out var value) &&
-                                            !string.IsNullOrEmpty(value))
-        {
-            return value;
-        }
-
-        // Lazy load English as fallback if not already loaded
-        if (!_db.ContainsKey("en"))
-        {
-            LoadLanguage("en");
-        }
-
-        if (_db.TryGetValue("en", out var enDict) && enDict.TryGetValue(key, out var enValue) &&
-            !string.IsNullOrEmpty(enValue))
-        {
-            return enValue;
-        }
-
-        return fallback ?? $"[{key}]";
+        var chain = ChainFor(GetLanguageCode(language));
+        return TryResolve(chain, null, key, out var text) ? text : fallback ?? $"[{key}]";
     }
 
-    internal static string GetLanguageCode(SystemLanguage language)
+    /// <summary>Lookup restricted to the sources of one ModId (current language).</summary>
+    public string GetScoped(ModId modId, string key, string? fallback)
+    {
+        var chain = ChainFor(_currentLanguageCode);
+        return TryResolve(chain, modId, key, out var text) ? text : fallback ?? $"[{key}]";
+    }
+
+    public bool TryGet(ModId? scope, string key, out string text)
+        => TryResolve(ChainFor(_currentLanguageCode), scope, key, out text);
+
+    /// <summary>
+    /// Formats a key template with invariant culture. A bad template or argument list logs a warning and gives
+    /// <c>false</c> with the unformatted template as the key, so the caller can return its missing-text result.
+    /// </summary>
+    public bool TryFormatKey(string template, object?[] args, out string key)
+    {
+        try
+        {
+            key = string.Format(CultureInfo.InvariantCulture, template, args);
+            return true;
+        }
+        catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is IndexOutOfRangeException)
+        {
+            Log.Warn($"[LocalizationService] invalid key template '{template}' for {args.Length} argument(s): {ex.Message}");
+            key = template;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Walks the chain: for each language, the sources in order (scoped to <paramref name="scope"/> when given).
+    /// The first non-empty text wins.
+    /// </summary>
+    private bool TryResolve(IReadOnlyList<string> chain, ModId? scope, string key, out string text)
+    {
+        foreach (var language in chain)
+        {
+            foreach (var source in SourcesFor(scope))
+            {
+                if (source.TryGetText(language, key, out text))
+                {
+                    return true;
+                }
+            }
+        }
+
+        text = string.Empty;
+        return false;
+    }
+
+    private IEnumerable<LocalizationSource> SourcesFor(ModId? scope)
+        => scope == null ? _sources : _sources.Where(source => source.ModId == scope.Value);
+
+    private IReadOnlyList<string> ChainFor(string code) => FallbackChain.For(code, _configuredChains);
+
+    /// <summary>
+    /// The one place that calls the game's override functions. It computes, for every key a publishing source supplies,
+    /// the owner and text along the current chain, then removes the overrides that are no longer desired and sets the
+    /// ones that are new or changed.
+    /// </summary>
+    private void Apply()
+    {
+        var chain = ChainFor(_currentLanguageCode);
+        var desired = BuildDesiredOverrides(chain);
+
+        foreach (var gameKey in _applied.Keys.Where(key => !desired.ContainsKey(key)).ToList())
+        {
+            _removeOverrideText(gameKey);
+            _applied.Remove(gameKey);
+        }
+
+        foreach (var (gameKey, entry) in desired)
+        {
+            if (!_applied.TryGetValue(gameKey, out var previous) || previous.Text != entry.Text)
+            {
+                _setOverrideText(gameKey, entry.Text);
+            }
+
+            _applied[gameKey] = entry;
+        }
+    }
+
+    private Dictionary<string, AppliedOverride> BuildDesiredOverrides(IReadOnlyList<string> chain)
+    {
+        var publishing = _sources.Where(source => source.Options.PublishToGame).ToList();
+
+        // Every game key with the sources that supply it, in registration order.
+        var candidates = new Dictionary<string, List<(LocalizationSource Source, string Key)>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var source in publishing)
+        {
+            var prefix = source.Options.KeyPrefix ?? string.Empty;
+            foreach (var key in source.KeysIn(chain).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                var gameKey = prefix + key;
+                if (!candidates.TryGetValue(gameKey, out var list))
+                {
+                    list = new List<(LocalizationSource, string)>();
+                    candidates[gameKey] = list;
+                }
+
+                list.Add((source, key));
+            }
+        }
+
+        var desired = new Dictionary<string, AppliedOverride>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (gameKey, list) in candidates)
+        {
+            foreach (var language in chain)
+            {
+                var hits = list
+                    .Where(candidate => candidate.Source.TryGetText(language, candidate.Key, out _))
+                    .Select(candidate => (candidate.Source, Text: candidate.Source.Load(language)[candidate.Key]))
+                    .ToList();
+                if (hits.Count == 0)
+                {
+                    continue;
+                }
+
+                var owner = hits[0];
+                foreach (var other in hits.Skip(1))
+                {
+                    ReportCollision(gameKey, owner.Source.ModId, other.Source.ModId);
+                }
+
+                desired[gameKey] = new AppliedOverride(owner.Source.ModId, owner.Text);
+                break;
+            }
+        }
+
+        return desired;
+    }
+
+    private void ReportCollision(string gameKey, ModId owner, ModId other)
+    {
+        var pair = $"{gameKey}|{owner.Value}|{other.Value}";
+        if (_reportedCollisions.Add(pair))
+        {
+            Log.Warn($"[LocalizationService] key '{gameKey}' is published by '{owner.Value}' and '{other.Value}'; '{owner.Value}' owns it");
+        }
+    }
+
+    public static string GetLanguageCode(SystemLanguage language)
     {
         return language switch
         {
@@ -271,4 +347,31 @@ internal sealed class LocalizationService
             _ => "en"
         };
     }
+
+    /// <summary>Handle returned by Register; disposing it unregisters the source once.</summary>
+    private sealed class Registration : IDisposable
+    {
+        private readonly LocalizationService _service;
+        private readonly LocalizationSource _source;
+        private bool _disposed;
+
+        public Registration(LocalizationService service, LocalizationSource source)
+        {
+            _service = service;
+            _source = source;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _service.Unregister(_source);
+        }
+    }
+
+    private readonly record struct AppliedOverride(ModId Owner, string Text);
 }

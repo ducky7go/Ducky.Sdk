@@ -2,6 +2,10 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
+using System.Linq;
+using System;
+using Ducky.Sdk.Localizations;
 
 namespace Ducky.Sdk.Analyser;
 
@@ -80,7 +84,7 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
                         {
                             if (langValue.Value is string langCode && !string.IsNullOrWhiteSpace(langCode))
                             {
-                                var normalizedLang = langCode.ToLowerInvariant();
+                                var normalizedLang = LanguageCodes.Normalize(langCode);
                                 if (normalizedLang == "all")
                                 {
                                     hasAllKeyword = true;
@@ -95,14 +99,8 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
                         // If "all" keyword was found, expand to all supported languages
                         if (hasAllKeyword)
                         {
-                            // Define all supported languages (same as in the attribute)
-                            var allLanguages = new[]
-                            {
-                                "de", "en", "es", "fr", "ja", "ko", "pt", "ru", "zh-hant", "zh"
-                            };
-
-                            // Start with all supported languages
-                            var result = allLanguages.ToList();
+                            // Start with all supported languages (shared with LanguageSupportAttribute)
+                            var result = LanguageCodes.AllLanguages.ToList();
 
                             // Add any additional explicit languages (removing duplicates)
                             foreach (var lang in supportedLanguages)
@@ -186,7 +184,7 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
             return null;
         }
 
-        return new LKDescriptor(ns, groups, supportedLanguages);
+        return new LKDescriptor(ns, groups, supportedLanguages, ReadKeyPatterns(symbol));
     }
 
     /// <summary>
@@ -207,6 +205,51 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
         sb.AppendLine("public partial class L");
         sb.AppendLine("{");
 
+        // Typed accessors for [KeyPattern] declarations, keyed by accessor class name.
+        var patternMembers = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var descriptor in lk.Patterns)
+        {
+            var info = KeyPatternSyntax.Parse(descriptor.Pattern);
+            if (!info.IsValid)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(InvalidKeyPatternDescriptor, Location.None, descriptor.Pattern, info.Error));
+                continue;
+            }
+
+            var groupName = AccessorGroupName(info, descriptor);
+            if (groupName == null)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(InvalidKeyPatternDescriptor, Location.None, descriptor.Pattern,
+                    "the pattern must start with a literal name, or set Group"));
+                continue;
+            }
+
+            if (info.Choice == null)
+            {
+                // No choice list: nothing to name an accessor after. The pattern still works with L.Dynamic.
+                continue;
+            }
+
+            if (!patternMembers.TryGetValue(groupName, out var members))
+            {
+                members = new List<string>();
+                patternMembers[groupName] = members;
+            }
+
+            var parameters = info.Parameters.Select(name => "string " + EscapeIdentifier(name)).ToList();
+            var arguments = info.Parameters.Select(EscapeIdentifier).ToList();
+            foreach (var option in info.Choice.Choices)
+            {
+                var template = info.FormatTemplate(option).Replace("\\", "\\\\").Replace("\"", "\\\"");
+                var call = arguments.Count == 0
+                    ? $"Dynamic(\"{template}\")"
+                    : $"Dynamic(\"{template}\", {string.Join(", ", arguments)})";
+                members.Add($"        /// <summary>Typed accessor for <c>{EscapeXml(descriptor.Pattern)}</c>, choice <c>{EscapeXml(option)}</c>.</summary>");
+                members.Add($"        public static string {PascalCase(option)}({string.Join(", ", parameters)}) => {call};");
+            }
+        }
+
+        var emittedPatternGroups = new HashSet<string>(StringComparer.Ordinal);
         foreach (var group in lk.Groups.OrderBy(g => g.Name))
         {
             sb.AppendLine($"    /// <summary>Localized strings for {EscapeXml(group.Name)}</summary>");
@@ -219,6 +262,30 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
                 sb.AppendLine($"        /// <summary>Localized text for key: {EscapeXml(entry.Value)}</summary>");
                 sb.AppendLine(
                     $"        public static string {EscapeIdentifier(entry.Name)} => Get(global::{lk.Namespace}.LK.{group.Name}.{entry.Name});");
+            }
+
+            if (patternMembers.TryGetValue(group.Name, out var extra))
+            {
+                foreach (var line in extra)
+                {
+                    sb.AppendLine(line);
+                }
+
+                emittedPatternGroups.Add(group.Name);
+            }
+
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
+
+        foreach (var pair in patternMembers.Where(pair => !emittedPatternGroups.Contains(pair.Key)).OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            sb.AppendLine($"    /// <summary>Typed accessors for the key patterns of {EscapeXml(pair.Key)}</summary>");
+            sb.AppendLine($"    public static class {EscapeIdentifier(pair.Key)}");
+            sb.AppendLine("    {");
+            foreach (var line in pair.Value)
+            {
+                sb.AppendLine(line);
             }
 
             sb.AppendLine("    }");
@@ -267,6 +334,22 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
             {
                 var comma = i < lk.SupportedLanguages.Count - 1 ? "," : "";
                 json.AppendLine($"    \"{EscapeJson(lk.SupportedLanguages[i])}\"{comma}");
+            }
+
+            json.AppendLine("  ],");
+        }
+
+        var validPatterns = lk.Patterns
+            .Where(descriptor => KeyPatternSyntax.Parse(descriptor.Pattern).IsValid)
+            .Select(descriptor => descriptor.Pattern)
+            .ToList();
+        if (validPatterns.Count > 0)
+        {
+            json.AppendLine("  \"patterns\": [");
+            for (int i = 0; i < validPatterns.Count; i++)
+            {
+                var comma = i < validPatterns.Count - 1 ? "," : "";
+                json.AppendLine($"    \"{EscapeJson(validPatterns[i])}\"{comma}");
             }
 
             json.AppendLine("  ],");
@@ -396,11 +479,100 @@ public sealed class DuckyLocalizationGenerator : IIncrementalGenerator
     private sealed record LKDescriptor(
         string Namespace,
         IReadOnlyList<GroupDescriptor> Groups,
-        IReadOnlyList<string>? SupportedLanguages)
+        IReadOnlyList<string>? SupportedLanguages,
+        IReadOnlyList<KeyPatternDescriptor> Patterns)
     {
         public string Namespace { get; } = Namespace;
         public IReadOnlyList<GroupDescriptor> Groups { get; } = Groups;
         public IReadOnlyList<string>? SupportedLanguages { get; } = SupportedLanguages;
+        public IReadOnlyList<KeyPatternDescriptor> Patterns { get; } = Patterns;
+    }
+
+    private sealed class KeyPatternDescriptor
+    {
+        public KeyPatternDescriptor(string pattern, string? group)
+        {
+            Pattern = pattern;
+            Group = group;
+        }
+
+        public string Pattern { get; }
+
+        public string? Group { get; }
+    }
+
+    /// <summary>Invalid [KeyPattern] declaration.</summary>
+    private static readonly DiagnosticDescriptor InvalidKeyPatternDescriptor = new(
+        id: "DUCKYL001",
+        title: "Invalid key pattern",
+        messageFormat: "Invalid [KeyPattern] \"{0}\": {1}",
+        category: "Ducky.Localization",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <summary>Reads the [KeyPattern] attributes declared on an LK class.</summary>
+    private static List<KeyPatternDescriptor> ReadKeyPatterns(INamedTypeSymbol symbol)
+    {
+        var patterns = new List<KeyPatternDescriptor>();
+        foreach (var attr in symbol.GetAttributes())
+        {
+            if (attr.AttributeClass?.Name != "KeyPatternAttribute" || attr.ConstructorArguments.Length == 0)
+            {
+                continue;
+            }
+
+            var pattern = attr.ConstructorArguments[0].Value as string ?? string.Empty;
+            string? group = null;
+            foreach (var named in attr.NamedArguments)
+            {
+                if (named.Key == "Group")
+                {
+                    group = named.Value.Value as string;
+                }
+            }
+
+            patterns.Add(new KeyPatternDescriptor(pattern, group));
+        }
+
+        return patterns;
+    }
+
+    /// <summary>The accessor class name: the Group if given, else the first literal segment, upper-cased.</summary>
+    private static string? AccessorGroupName(KeyPatternInfo info, KeyPatternDescriptor descriptor)
+    {
+        if (!string.IsNullOrWhiteSpace(descriptor.Group))
+        {
+            return PascalCase(descriptor.Group!);
+        }
+
+        var first = info.Tokens.FirstOrDefault();
+        if (first == null || first.Kind != KeyPatternTokenKind.Literal)
+        {
+            return null;
+        }
+
+        var dot = first.Text.IndexOf('.');
+        var segment = dot >= 0 ? first.Text.Substring(0, dot) : first.Text;
+        return segment.Length == 0 ? null : PascalCase(segment);
+    }
+
+    private static string PascalCase(string text)
+    {
+        var sb = new StringBuilder();
+        var upper = true;
+        foreach (var c in text)
+        {
+            if (!char.IsLetterOrDigit(c))
+            {
+                upper = true;
+                continue;
+            }
+
+            sb.Append(upper ? char.ToUpperInvariant(c) : c);
+            upper = false;
+        }
+
+        return sb.ToString();
     }
 
     private sealed record GroupDescriptor(string Name, IReadOnlyList<EntryDescriptor> Entries)

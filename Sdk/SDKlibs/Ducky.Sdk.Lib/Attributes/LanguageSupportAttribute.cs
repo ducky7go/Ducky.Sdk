@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Linq;
+using Ducky.Sdk.Localizations;
 
 namespace Ducky.Sdk.Attributes;
 
@@ -19,10 +20,7 @@ public class LanguageSupportAttribute : Attribute
     /// <summary>
     /// Gets the predefined list of all supported languages.
     /// </summary>
-    public static string[] AllLanguages => new[]
-    {
-        "de", "en", "es", "fr", "ja", "ko", "pt", "ru", "zh-hant", "zh"
-    };
+    public static string[] AllLanguages => LanguageCodes.AllLanguages;
 
     /// <summary>
     /// Creates a LanguageSupport attribute with specified language codes.
@@ -47,7 +45,7 @@ public class LanguageSupportAttribute : Attribute
             var additionalLanguages = languages
                 .Where(lang => !string.Equals(lang, "all", StringComparison.OrdinalIgnoreCase))
                 .Where(lang => !string.IsNullOrWhiteSpace(lang))
-                .Select(lang => lang.ToLowerInvariant());
+                .Select(LanguageCodes.Normalize);
 
             result.AddRange(additionalLanguages);
 
@@ -59,7 +57,7 @@ public class LanguageSupportAttribute : Attribute
         // Process explicit language codes (original behavior)
         Languages = languages
             .Where(lang => !string.IsNullOrWhiteSpace(lang))
-            .Select(lang => lang.ToLowerInvariant())
+            .Select(LanguageCodes.Normalize)
             .ToArray();
     }
 }

@@ -1,85 +1,33 @@
 // CsvParser.cs
 
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Ducky.Sdk.Localizations;
 
 /// <summary>
-/// CSV parsing helpers used by LocalizationManager.
-/// Supports simple two-column CSVs (key,value) and quoted fields with commas.
+/// Compatibility wrapper over the shared <see cref="CsvDocument"/> reader. Kept so existing callers and tests keep
+/// their entry points; all parsing rules live in <see cref="CsvDocument"/>.
 /// </summary>
 internal static class CsvParser
 {
     /// <summary>
-    /// Parse simple CSV content into key->value dictionary. Supports quoted fields.
-    /// Expects each meaningful line to contain at least two columns: key,value
+    /// Parses CSV content into a key-to-value dictionary (case-insensitive keys, later duplicates win).
     /// </summary>
     public static Dictionary<string, string> ParseCsvToDictionary(string csvContent)
-    {
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (string.IsNullOrEmpty(csvContent))
-        {
-            return result;
-        }
-
-        var lines = csvContent.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-        foreach (var raw in lines)
-        {
-            var line = raw.Trim();
-            if (string.IsNullOrWhiteSpace(line)) continue;
-
-            // Allow header rows; skip if first cell is 'key' (case-insensitive)
-            var fields = ParseCsvLine(line);
-            if (fields.Count < 2) continue;
-            var key = fields[0].Trim();
-            if (string.Equals(key, "key", StringComparison.OrdinalIgnoreCase)) continue;
-            var value = fields[1].Trim();
-            result[key] = value;
-        }
-
-        return result;
-    }
+        => CsvDocument.ToDictionary(csvContent);
 
     /// <summary>
-    /// CSV line parser handling quoted fields and commas inside quotes.
-    /// Handles escaped quotes ("") inside quoted fields.
+    /// Parses one CSV line into its fields. Quoted fields, commas inside quotes and <c>""</c> escapes are supported.
+    /// An empty line gives one empty field.
     /// </summary>
     public static List<string> ParseCsvLine(string line)
     {
-        var fields = new List<string>();
-        var sb = new StringBuilder();
-        var inQuotes = false;
-
-        for (int i = 0; i < line.Length; i++)
+        var rows = CsvDocument.Parse(line);
+        if (rows.Count == 0)
         {
-            var c = line[i];
-            if (c == '"')
-            {
-                // Handle escaped quotes ""
-                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
-                {
-                    sb.Append('"');
-                    i++;
-                }
-                else
-                {
-                    inQuotes = !inQuotes;
-                }
-            }
-            else if (c == ',' && !inQuotes)
-            {
-                fields.Add(sb.ToString());
-                sb.Clear();
-            }
-            else
-            {
-                sb.Append(c);
-            }
+            return new List<string> { string.Empty };
         }
 
-        fields.Add(sb.ToString());
-        return fields;
+        return rows[0];
     }
 }
