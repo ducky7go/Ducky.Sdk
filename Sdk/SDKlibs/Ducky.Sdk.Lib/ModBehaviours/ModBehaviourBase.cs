@@ -6,6 +6,7 @@ using Ducky.Sdk.Contracts;
 using Ducky.Sdk.Contracts.ModProtocols;
 using Ducky.Sdk.Localizations;
 using Ducky.Sdk.Logging;
+using Ducky.Sdk.Threading;
 using Ducky.Sdk.Utils;
 using SodaCraft.Localizations;
 using UnityEngine;
@@ -28,6 +29,13 @@ public abstract class ModBehaviourBase : ModBehaviour
     /// Default is true. Set to false to opt out of automatic host startup.
     /// </summary>
     protected virtual bool EnableMessageHubHost { get; set; } = true;
+
+    /// <summary>
+    /// Subscriptions that live as long as this behaviour is enabled. Add game event handlers and other disposables
+    /// here in <c>ModEnabled()</c>; they are disposed after <c>ModDisabled()</c>, also on hot reload and when
+    /// <c>ModDisabled()</c> throws. Items added while the behaviour is disabled are disposed immediately.
+    /// </summary>
+    protected ModSubscriptions Subscriptions { get; } = new();
 
     /// <summary>
     /// Gets whether this mod instance is currently acting as the MessageHub host.
@@ -64,6 +72,7 @@ public abstract class ModBehaviourBase : ModBehaviour
             {
                 state.IsEnabled = false;
                 // EnableCore may have failed after attaching shared resources; undo them.
+                Subscriptions.DisposeAll();
                 ReleaseSharedResources();
                 throw;
             }
@@ -91,6 +100,8 @@ public abstract class ModBehaviourBase : ModBehaviour
                 // Initialize MessageHub host if enabled
                 InitializeMessageHubHost();
 
+                Subscriptions.Activate();
+                MainThread.EnsureStarted();
                 ModEnabled();
             }
             catch (Exception e)
@@ -110,25 +121,52 @@ public abstract class ModBehaviourBase : ModBehaviour
     {
         Log.Debug("Disabling mod behaviour: {ModBehaviour}", GetType().Name);
         var state = GetStateForType();
+        RunDisableSequence(
+            modDisabled: ModDisabled,
+            logError: e => Log.Error(e, "Error disabling mod behaviour: {ModBehaviour}", GetType().Name),
+            markDisabled: () =>
+            {
+                lock (state.Lock)
+                {
+                    state.IsEnabled = false;
+                }
+
+                enabled = false;
+            },
+            disposeSubscriptions: Subscriptions.DisposeAll,
+            releaseHotReloadState: ReleaseHotReloadStateIfLast,
+            releaseSharedResources: ReleaseSharedResources);
+    }
+
+    /// <summary>
+    /// The order of teardown when a behaviour is disabled: <c>ModDisabled()</c> first, then the subscriptions are
+    /// disposed, then the hot reload and shared state are released. The subscriptions and the release steps run in
+    /// <c>finally</c>, so they also run when <c>ModDisabled()</c> throws; the original exception is then rethrown.
+    /// Separated from <see cref="OnDisable"/> so the ordering can be tested without Unity.
+    /// </summary>
+    internal static void RunDisableSequence(
+        Action modDisabled,
+        Action<Exception> logError,
+        Action markDisabled,
+        Action disposeSubscriptions,
+        Action releaseHotReloadState,
+        Action releaseSharedResources)
+    {
         try
         {
-            ModDisabled();
+            modDisabled();
         }
         catch (Exception e)
         {
-            Log.Error(e, "Error disabling mod behaviour: {ModBehaviour}", GetType().Name);
+            logError(e);
             throw;
         }
         finally
         {
-            lock (state.Lock)
-            {
-                state.IsEnabled = false;
-            }
-
-            enabled = false;
-            ReleaseHotReloadStateIfLast();
-            ReleaseSharedResources();
+            markDisabled();
+            disposeSubscriptions();
+            releaseHotReloadState();
+            releaseSharedResources();
         }
     }
 
@@ -165,7 +203,8 @@ public abstract class ModBehaviourBase : ModBehaviour
     internal static bool IsDevelopmentAssemblyName(string? assemblyName) => HotReloadNames.IsCoreAssemblyName(assemblyName);
 
     /// <summary>
-    /// Undo what enabling attached to process-wide state, so a disabled mod stops reacting to game events.
+    /// Undo what enabling attached to process-wide state, so a disabled mod stops reacting to game events, and close
+    /// the main-thread scheduler (its pump object and pending work).
     /// Skipped while another <see cref="ModBehaviourBase"/> subclass in this mod is still enabled.
     /// The MessageHub host is intentionally left running: it is shared by all mods and outlives any one of them.
     /// Never throws, so it cannot mask the exception that triggered the teardown.
@@ -184,6 +223,15 @@ public abstract class ModBehaviourBase : ModBehaviour
         catch (Exception e)
         {
             Debug.LogError($"[ModBehaviourBase] Failed to release shared resources: {e}");
+        }
+
+        try
+        {
+            MainThread.Close();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ModBehaviourBase] Failed to close the main-thread scheduler: {e}");
         }
     }
 
