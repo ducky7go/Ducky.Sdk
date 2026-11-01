@@ -125,54 +125,25 @@ public class GeneratePreviewLib
 
     private static void GeneratePreviewImage(BuildContext context, string previewPath)
     {
-        const int size = 128;
-        const int gridSize = 5; // 5x5 grid
-        const int cellSize = size / gridSize;
+        const int size = 256;
 
         var modName = string.IsNullOrEmpty(context.ModName) ? Path.GetFileName(context.ProjectDir) : context.ModName;
 
-        // Generate identicon based on SHA256 hash of mod name
-        var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(modName));
-
-        // Background color from first 3 bytes, foreground is its complement
-        var bg = new[] { hash[0], hash[1], hash[2] };
-        var fg = new[] { (byte)(255 - hash[0]), (byte)(255 - hash[1]), (byte)(255 - hash[2]) };
-
-        // Plain RGB pixel buffer (no image library needed for flat-colour cells)
-        var rgb = new byte[size * size * 3];
-        for (var i = 0; i < size * size; i++)
+        // One of the ten bundled backgrounds, chosen by a stable hash of the project name
+        var index = BackgroundSelector.IndexFor(modName);
+        var resourceName = BackgroundSelector.ResourceNameFor(index);
+        using var stream = typeof(GeneratePreviewLib).Assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Preview background resource not found: {resourceName}");
+        var background = PngDecoder.DecodeRgb(stream);
+        if (background.Width != size || background.Height != size)
         {
-            rgb[i * 3] = bg[0];
-            rgb[i * 3 + 1] = bg[1];
-            rgb[i * 3 + 2] = bg[2];
+            throw new InvalidOperationException(
+                $"Preview background {resourceName} is {background.Width}x{background.Height}, expected {size}x{size}.");
         }
 
-        void FillCell(int cx, int cy)
-        {
-            for (var y = cy * cellSize; y < (cy + 1) * cellSize; y++)
-            for (var x = cx * cellSize; x < (cx + 1) * cellSize; x++)
-            {
-                var i = (y * size + x) * 3;
-                rgb[i] = fg[0];
-                rgb[i + 1] = fg[1];
-                rgb[i + 2] = fg[2];
-            }
-        }
-
-        // Symmetric pattern (mirrored horizontally): hash bytes decide which cells to fill
-        for (var y = 0; y < gridSize; y++)
-        {
-            for (var x = 0; x < (gridSize + 1) / 2; x++) // Only half, mirror the rest
-            {
-                if (hash[(y * 3 + x) % hash.Length] % 2 != 0) continue;
-
-                FillCell(x, y);
-                if (x != gridSize / 2) // Don't double-draw center column
-                {
-                    FillCell(gridSize - 1 - x, y);
-                }
-            }
-        }
+        // Draw the abbreviation over the background, then encode
+        var rgb = background.Pixels;
+        GlyphFont.DrawCentered(rgb, size, size, ProjectAbbreviation.From(modName));
 
         File.WriteAllBytes(previewPath, EncodePng(rgb, size, size));
     }

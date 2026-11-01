@@ -1,15 +1,17 @@
 using System.IO.Compression;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace Ducky.Sdk.Lib.Tests.Runner;
 
 /// <summary>
-/// Task 5.3: GeneratePreviewLib writes a 128x128 identicon preview.png. The PNG is checked by reading the
-/// signature and IHDR chunk directly, without decoding the image.
+/// GeneratePreviewLib writes a 256x256 preview.png: a hash-selected embedded background with the project
+/// abbreviation drawn over it. The PNG is checked by reading the signature and IHDR chunk directly, and the
+/// pixels by decoding the IDAT stream.
 /// </summary>
 public class GeneratePreviewLibTests
 {
+    private const int Size = 256;
+
     private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     private string _root = null!;
@@ -57,15 +59,15 @@ public class GeneratePreviewLibTests
     }
 
     [Test]
-    public void Execute_CreatesAssetsFolderAndWrites128PixelPngWithValidHeader()
+    public void Execute_CreatesAssetsFolderAndWrites256PixelPngWithValidHeader()
     {
         var (exit, _, _) = LibTestSupport.Capture(() => GeneratePreviewLib.Execute(Context()));
 
         exit.ShouldBe(0);
         var png = File.ReadAllBytes(Path.Combine(_assetsDir, "preview.png"));
         var header = ReadPngHeader(png);
-        header.Width.ShouldBe(128);
-        header.Height.ShouldBe(128);
+        header.Width.ShouldBe(Size);
+        header.Height.ShouldBe(Size);
         header.BitDepth.ShouldBe((byte)8);
         // Legal PNG colour types: 0 grey, 2 RGB, 3 palette, 4 grey+alpha, 6 RGBA.
         new byte[] { 0, 2, 3, 4, 6 }.ShouldContain(header.ColorType);
@@ -105,8 +107,69 @@ public class GeneratePreviewLibTests
             .ShouldNotBe(File.ReadAllBytes(Path.Combine(otherAssets, "preview.png")));
     }
 
-    /// <summary>Decodes the PNG produced by the preview step into a tightly packed 128x128 RGB buffer.</summary>
-    private static byte[] DecodeRgb(byte[] png)
+    [Test]
+    public void Execute_SameBackgroundButDifferentAbbreviationsProduceDifferentPreviews()
+    {
+        // Find two names that select the same background but have different abbreviations.
+        // "A0mod.Tool" gives "AT", "B1mod.Tool" gives "BT", and so on: the first letter varies, the background index does too.
+        var names = Enumerable.Range(0, 500).Select(i => $"{(char)('A' + i % 26)}{i}mod.Tool").ToList();
+        var pair = (from a in names
+                    from b in names
+                    where string.CompareOrdinal(a, b) < 0
+                          && BackgroundSelector.IndexFor(a) == BackgroundSelector.IndexFor(b)
+                          && ProjectAbbreviation.From(a) != ProjectAbbreviation.From(b)
+                    select (a, b)).First();
+
+        var otherAssets = Path.Combine(_root, "Other Mod", "assets");
+        LibTestSupport.Capture(() => GeneratePreviewLib.Execute(Context(modName: pair.a)));
+        LibTestSupport.Capture(() => GeneratePreviewLib.Execute(Context(modName: pair.b, assets: otherAssets)));
+
+        File.ReadAllBytes(Path.Combine(_assetsDir, "preview.png"))
+            .ShouldNotBe(File.ReadAllBytes(Path.Combine(otherAssets, "preview.png")));
+    }
+
+    [Test]
+    public void Execute_ArtworkDiffersFromSelectedBackgroundOnlyInsideCentredText()
+    {
+        const string modName = "Ducky.EntranceMod";
+        var index = BackgroundSelector.IndexFor(modName);
+        var background = LoadBackground(index);
+
+        var (exit, _, _) = LibTestSupport.Capture(() => GeneratePreviewLib.Execute(Context(modName: modName)));
+        exit.ShouldBe(0);
+        var rgb = DecodeRgb(File.ReadAllBytes(Path.Combine(_assetsDir, "preview.png")), Size);
+
+        var textRect = GlyphFont.MeasureCentered(Size, Size, ProjectAbbreviation.From(modName));
+        var changedInside = 0;
+        for (var y = 0; y < Size; y++)
+        for (var x = 0; x < Size; x++)
+        {
+            var inside = x >= textRect.X && x < textRect.X + textRect.Width && y >= textRect.Y && y < textRect.Y + textRect.Height;
+            var actual = Pixel(rgb, x, y, Size);
+            var expected = Pixel(background.Pixels, x, y, Size);
+            if (inside)
+            {
+                if (actual != expected) changedInside++;
+            }
+            else
+            {
+                actual.ShouldBe(expected, $"pixel ({x},{y}) outside the text must match the background");
+            }
+        }
+
+        changedInside.ShouldBeGreaterThan(0);
+    }
+
+    private static RgbImage LoadBackground(int index)
+    {
+        var resource = BackgroundSelector.ResourceNameFor(index);
+        using var stream = typeof(GeneratePreviewLib).Assembly.GetManifestResourceStream(resource);
+        stream.ShouldNotBeNull($"missing embedded resource {resource}");
+        return PngDecoder.DecodeRgb(stream);
+    }
+
+    /// <summary>Decodes the PNG produced by the preview step into a tightly packed RGB buffer of size x size.</summary>
+    private static byte[] DecodeRgb(byte[] png, int size)
     {
         var idat = new MemoryStream();
         var offset = 8;
@@ -126,94 +189,23 @@ public class GeneratePreviewLibTests
         using var raw = new MemoryStream();
         using (var z = new ZLibStream(idat, CompressionMode.Decompress)) z.CopyTo(raw);
         var scanlines = raw.ToArray();
-        scanlines.Length.ShouldBe(128 * (1 + 128 * 3));
+        var stride = size * 3;
+        scanlines.Length.ShouldBe(size * (1 + stride));
 
-        var rgb = new byte[128 * 128 * 3];
-        for (var y = 0; y < 128; y++)
+        var rgb = new byte[size * stride];
+        for (var y = 0; y < size; y++)
         {
-            scanlines[y * (1 + 128 * 3)].ShouldBe((byte)0, "filter type must be None");
-            Array.Copy(scanlines, y * (1 + 128 * 3) + 1, rgb, y * 128 * 3, 128 * 3);
+            scanlines[y * (1 + stride)].ShouldBe((byte)0, "filter type must be None");
+            Array.Copy(scanlines, y * (1 + stride) + 1, rgb, y * stride, stride);
         }
 
         return rgb;
     }
 
-    private static (byte R, byte G, byte B) Pixel(byte[] rgb, int x, int y)
+    private static (byte R, byte G, byte B) Pixel(byte[] rgb, int x, int y, int size)
     {
-        var i = (y * 128 + x) * 3;
+        var i = (y * size + x) * 3;
         return (rgb[i], rgb[i + 1], rgb[i + 2]);
-    }
-
-    private byte[] GenerateRgb(string modName)
-    {
-        var assets = Path.Combine(_root, modName, "assets");
-        LibTestSupport.Capture(() => GeneratePreviewLib.Execute(Context(modName: modName, assets: assets)));
-        return DecodeRgb(File.ReadAllBytes(Path.Combine(assets, "preview.png")));
-    }
-
-    [TestCase("Ducky.EntranceMod")]
-    [TestCase("Ducky.TryHarmony")]
-    [TestCase("a")]
-    public void Execute_RendersIdenticonMatchingHashDerivedGrid(string modName)
-    {
-        const int cell = 128 / 5; // 25px; the 5x5 grid covers 125px, the last 3px are background margin
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(modName));
-        var bg = (R: hash[0], G: hash[1], B: hash[2]);
-        var fg = (R: (byte)(255 - hash[0]), G: (byte)(255 - hash[1]), B: (byte)(255 - hash[2]));
-
-        var rgb = GenerateRgb(modName);
-
-        var filledCells = 0;
-        for (var gy = 0; gy < 5; gy++)
-        {
-            for (var gx = 0; gx < 5; gx++)
-            {
-                // Mirrored layout: columns 3 and 4 copy columns 1 and 0.
-                var sourceX = gx < 3 ? gx : 4 - gx;
-                var expected = hash[(gy * 3 + sourceX) % hash.Length] % 2 == 0 ? fg : bg;
-                if (expected == fg) filledCells++;
-
-                // Every pixel of the cell must carry the expected colour, not just its corner.
-                for (var y = gy * cell; y < (gy + 1) * cell; y++)
-                for (var x = gx * cell; x < (gx + 1) * cell; x++)
-                    Pixel(rgb, x, y).ShouldBe(expected, $"cell ({gx},{gy}) pixel ({x},{y})");
-            }
-        }
-
-        // Margin right of / below the grid is plain background.
-        for (var i = 0; i < 128; i++)
-        {
-            for (var m = 125; m < 128; m++)
-            {
-                Pixel(rgb, m, i).ShouldBe(bg);
-                Pixel(rgb, i, m).ShouldBe(bg);
-            }
-        }
-
-        // Guard against a degenerate all-background / all-foreground picture only when the hash itself isn't.
-        var expectedFilled = Enumerable.Range(0, 5).Sum(gy =>
-            Enumerable.Range(0, 5).Count(gx => hash[(gy * 3 + (gx < 3 ? gx : 4 - gx)) % hash.Length] % 2 == 0));
-        filledCells.ShouldBe(expectedFilled);
-    }
-
-    [Test]
-    public void Execute_ProducesOnlyTwoComplementaryColoursAndHorizontalSymmetry()
-    {
-        var rgb = GenerateRgb("Ducky.EntranceMod");
-
-        var colours = new HashSet<(byte, byte, byte)>();
-        for (var y = 0; y < 128; y++)
-        for (var x = 0; x < 128; x++)
-            colours.Add(Pixel(rgb, x, y));
-
-        colours.Count.ShouldBe(2);
-        var (a, b) = (colours.First(), colours.Last());
-        ((byte)(255 - a.Item1), (byte)(255 - a.Item2), (byte)(255 - a.Item3)).ShouldBe(b);
-
-        // Grid area (125px wide) is mirrored left-to-right.
-        for (var y = 0; y < 125; y++)
-        for (var x = 0; x < 125; x++)
-            Pixel(rgb, x, y).ShouldBe(Pixel(rgb, 124 - x, y), $"pixel ({x},{y}) must mirror ({124 - x},{y})");
     }
 
     [Test]
@@ -222,7 +214,7 @@ public class GeneratePreviewLibTests
         var pixels = new byte[128 * 128 * 3];
         new Random(42).NextBytes(pixels);
 
-        DecodeRgb(GeneratePreviewLib.EncodePng(pixels, 128, 128)).ShouldBe(pixels);
+        DecodeRgb(GeneratePreviewLib.EncodePng(pixels, 128, 128), 128).ShouldBe(pixels);
     }
 
     [Test]
