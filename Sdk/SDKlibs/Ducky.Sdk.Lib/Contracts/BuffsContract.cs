@@ -18,28 +18,44 @@ public class BuffsContract : MonoBehaviour
     private const int StartingBuffId = 1500000;
     private const string BuffRegionOptionKey = "BuffIdRegion";
 
-    static BuffsContract()
+    private static BuffsContract? _instance;
+
+    /// <summary>
+    /// Lazily finds or creates the holder object. Must be first accessed on the Unity main thread.
+    /// This is deliberately not done in a static constructor: a failure there (for example a first
+    /// access off the main thread) would permanently poison the type with TypeInitializationException.
+    /// A destroyed holder (Unity null) is recreated on the next access.
+    /// </summary>
+    public static BuffsContract Instance
     {
-        var modId = Helper.GetModId();
-        Log.Info($"Initializing BuffsContract for mod {modId}.");
-        var objName = $"{modId}_BuffsContractHolder";
-        var existing = GameObject.Find(objName);
-        if (existing != null)
+        get
         {
-            Instance = existing.GetComponent<BuffsContract>();
-            if (Instance != null)
+            if (_instance != null)
             {
-                Log.Info($"BuffsContract instance for mod {modId} already exists.");
-                return;
+                return _instance;
             }
+
+            var modId = Helper.GetModId();
+            Log.Info($"Initializing BuffsContract for mod {modId}.");
+            var objName = $"{modId}_BuffsContractHolder";
+            var existing = GameObject.Find(objName);
+            if (existing != null)
+            {
+                var found = existing.GetComponent<BuffsContract>();
+                if (found != null)
+                {
+                    Log.Info($"BuffsContract instance for mod {modId} already exists.");
+                    _instance = found;
+                    return found;
+                }
+            }
+
+            var go = new GameObject(objName);
+            DontDestroyOnLoad(go);
+            _instance = go.AddComponent<BuffsContract>();
+            return _instance;
         }
-
-        var go = new GameObject(objName);
-        Instance = go.AddComponent<BuffsContract>();
-        DontDestroyOnLoad(go);
     }
-
-    public static BuffsContract Instance { get; }
 
     private static readonly ConcurrentDictionary<Type, Buff> Buffs = new();
     private static int _maxBuffId = 1000456;
