@@ -18,4 +18,30 @@ public class ScenePhasesTests
 
     [Test]
     public void Of_Null_IsOther() => ScenePhases.Of(null).ShouldBe(ScenePhase.Other);
+
+    [Test]
+    public void IsMainMenu_TrueOnlyForTheMainMenuScene()
+    {
+        ScenePhases.IsMainMenu(ScenePhases.MainMenuSceneName).ShouldBeTrue();
+        ScenePhases.IsMainMenu("MainMenu").ShouldBeTrue();
+    }
+
+    [TestCase("")]
+    [TestCase("mainmenu")]
+    [TestCase("MainMenu2")]
+    [TestCase("Base_Main")]
+    [TestCase("Level_01")]
+    [TestCase(" MainMenu")]
+    public void IsMainMenu_FalseForOtherNames(string name) => ScenePhases.IsMainMenu(name).ShouldBeFalse();
+
+    [Test]
+    public void IsMainMenu_FalseForNull() => ScenePhases.IsMainMenu(null).ShouldBeFalse();
+
+    [Test]
+    public void BaseAndLevelPhases_AreUnchangedByTheMainMenuCheck()
+    {
+        ScenePhases.Of(ScenePhases.MainMenuSceneName).ShouldBe(ScenePhase.Other);
+        ScenePhases.Of("Base_Main").ShouldBe(ScenePhase.Base);
+        ScenePhases.Of("Level_01").ShouldBe(ScenePhase.Raid);
+    }
 }

@@ -19,6 +19,15 @@ public enum ScenePhase
 public static class ScenePhases
 {
     /// <summary>
+    /// The game's main menu scene name, carried over unchanged from Newbe.Dod. Newbe.Dod's own comment says it is still
+    /// to be confirmed by an in-game trace, so treat it as unverified until that trace exists.
+    /// </summary>
+    public const string MainMenuSceneName = "MainMenu";
+
+    /// <summary>True for the main menu scene only. Matching is ordinal and case-sensitive.</summary>
+    public static bool IsMainMenu(string? sceneName) => sceneName == MainMenuSceneName;
+
+    /// <summary>
     /// The phase a scene name stands for. Matching is ordinal and case-sensitive: <c>base_x</c> is <see cref="ScenePhase.Other"/>.
     /// </summary>
     public static ScenePhase Of(string? sceneName)
