@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Task 1.1 probe Core: same shape as Ducky.HotReload.Core, but the mod derives from ModBehaviourBase and the SDK Lib
+       sources are compiled into the Core (as the SDK does for mods), so every Lib static exists once per Core load. -->
+  <PropertyGroup>
+    <CoreStamp></CoreStamp>
+    <Marker>A</Marker>
+    <AssemblyName>Ducky.HotReload.Core$(CoreStamp)</AssemblyName>
+    <RootNamespace>Ducky.HotReload.Core</RootNamespace>
+    <LibDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../../Sdk/SDKlibs/Ducky.Sdk.Lib/'))</LibDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Ducky.HotReload\Ducky.HotReload.csproj"><Private>false</Private></ProjectReference>
+    <Compile Include="$(LibDir)**/*.cs" Exclude="$(LibDir)bin/**;$(LibDir)obj/**" Link="Lib/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Reference Include="$(ManagedDir)TeamSoda.*" Private="false" />
+    <Reference Include="$(ManagedDir)Unity*" Private="false" />
+    <Reference Include="$(ManagedDir)FOW*" Private="false" />
+    <Reference Include="$(ManagedDir)SodaLocalization*" Private="false" />
+    <Reference Include="$(ManagedDir)ItemStatsSystem.dll" Private="false" />
+    <Reference Include="$(ManagedDir)Newtonsoft.Json.dll" Private="false" />
+    <Reference Include="$(ManagedDir)EasySave3.dll" Private="false" />
+    <Reference Include="$(ManagedDir)Eflatun.SceneReference.dll" Private="false" />
+    <Reference Include="$(ManagedDir)com.rlabrecque.steamworks.net.dll" Private="false" />
+    <Reference Include="$(ManagedDir)DOTween*.dll" Private="false" />
+    <Reference Include="$(ManagedDir)UniTask*.dll" Private="false" />
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Marker</_Parameter1><_Parameter2>$(Marker)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>

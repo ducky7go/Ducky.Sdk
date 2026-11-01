@@ -4,4 +4,7 @@
     <AssemblyName>Ducky.HotReload</AssemblyName>
     <RootNamespace>Ducky.HotReload</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="SodaLocalization"><HintPath>$(ManagedDir)SodaLocalization.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
 </Project>

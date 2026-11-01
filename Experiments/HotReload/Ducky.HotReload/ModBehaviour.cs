@@ -97,6 +97,12 @@ namespace Ducky.HotReload
                 yield return null;
                 yield return null;
                 Report("after-unload");
+                if (File.Exists(Path.Combine(_dir, "probe-remove.enabled")))
+                {
+                    Debug.Log("[HotReload] probe removal: " + GameStateProbe.RemoveAll());
+                    yield return null;
+                    Report("after-removal");
+                }
             }
 
             var file = FindLatestCoreFile();
@@ -147,7 +153,7 @@ namespace Ducky.HotReload
         {
             var coreAssemblies = AppDomain.CurrentDomain.GetAssemblies().Count(a => a.GetName().Name.StartsWith(CorePrefix, StringComparison.Ordinal));
             var coreRunners = FindObjectsOfType<MonoBehaviour>().Count(m => m != null && m.GetType().Name == "CoreRunner");
-            Debug.Log($"[HotReload] REPORT load={_loadCount} stage={stage} marker={Probe.ActiveMarker} pingHits={Probe.PingHits()} tickHandlers={Probe.TickHandlerCount} coreRunners={coreRunners} coreAssembliesInDomain={coreAssemblies}");
+            Debug.Log($"[HotReload] REPORT load={_loadCount} stage={stage} marker={Probe.ActiveMarker} pingHits={Probe.PingHits()} tickHandlers={Probe.TickHandlerCount} coreRunners={coreRunners} coreAssembliesInDomain={coreAssemblies} {GameStateProbe.Describe()}");
         }
 
         private string? FindLatestCoreFile() =>
