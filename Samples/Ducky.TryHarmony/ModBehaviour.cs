@@ -10,13 +10,15 @@ namespace Ducky.TryHarmony;
 public class ModBehaviour : ModBehaviourBase
 {
     public SteamAPICall_t _handle;
-    private HarmonyLib.Harmony _harmony = null!;
+    private HarmonyLib.Harmony? _harmony;
     private int _buffId;
 
     protected override void ModEnabled()
     {
-        var executingAssembly = System.Reflection.Assembly.GetExecutingAssembly();
-        var logFolder = Path.Combine(Path.GetDirectoryName(executingAssembly.Location));
+        // A hot reload Core is loaded from bytes and has no Location: log to the game's data folder then.
+        var location = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        var logFolder = (string.IsNullOrEmpty(location) ? null : Path.GetDirectoryName(location))
+                        ?? Application.persistentDataPath;
         Serilog.Log.Logger = new Serilog.LoggerConfiguration()
             .MinimumLevel.Debug()
             .WriteTo.File(Path.Combine(logFolder, "Ducky.TryHarmony.log"), rollingInterval: RollingInterval.Day)
@@ -56,7 +58,9 @@ public class ModBehaviour : ModBehaviourBase
 
     protected override void ModDisabled()
     {
-        _harmony.UnpatchAll();
+        // ModEnabled may have failed before the patch existed (a hot reload Core that could not start).
+        _harmony?.UnpatchAll(_harmony.Id);
+        _harmony = null;
         var modName = Helper.GetModName();
         SceneLoader.onAfterSceneInitialize -= SceneLoader_onAfterSceneInitialize;
         Log.Info("{ModName} Mod Disabled", modName);
