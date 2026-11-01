@@ -21,6 +21,11 @@
         <_DuckyDotnetHost Condition="'$(DOTNET_HOST_PATH)' != ''">$(DOTNET_HOST_PATH)</_DuckyDotnetHost>
         <_DuckyDotnetHost Condition="'$(_DuckyDotnetHost)' == ''">dotnet</_DuckyDotnetHost>
         <_DuckyRunnerCommand>&quot;$(_DuckyDotnetHost)&quot; &quot;$(_DuckyBuildRunnerDll)&quot; &quot;$(_DuckyBuildContextJsonFile)&quot;</_DuckyRunnerCommand>
+        <!-- Development hot reload: the shim is compiled from the SDK template, the Core is stamped (see DuckyHotReloadPrepare) -->
+        <_DuckyHotReloadShimDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)ducky-hotreload/'))</_DuckyHotReloadShimDir>
+        <_DuckyHotReloadTemplate>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)HotReload/Shim.cs.template'))</_DuckyHotReloadTemplate>
+        <_DuckyHotReloadHarmony Condition="Exists('$(MSBuildThisFileDirectory)../tools/0Harmony.dll')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../tools/0Harmony.dll'))</_DuckyHotReloadHarmony>
+        <_DuckyHotReloadHarmony Condition="'$(_DuckyHotReloadHarmony)' == '' AND Exists('$(MSBuildThisFileDirectory)0Harmony.dll')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)0Harmony.dll'))</_DuckyHotReloadHarmony>
     </PropertyGroup>
 
     <!-- Fail with a restore hint when the runner is not in the package -->
@@ -30,7 +35,57 @@
     </Target>
 
     <!-- Generate the BuildContext: MakeDir, absolute paths, and the property file read by the runner's pre phase -->
-    <Target Name="GenerateBuildContext" BeforeTargets="BeforeBuild" DependsOnTargets="_DuckyCheckBuildRunner">
+    <!--
+        Development hot reload only (DuckyHotReloadActive, see Ducky.Sdk.props). Gives this build a unique Core stamp
+        (UTC, yyyyMMddHHmmssfff) and renames the compiled assembly to <ModName>.Core.<stamp>, so the Core of every build
+        has a name the game has not loaded before. AssemblyName and the IntermediateAssembly item must both change,
+        because CoreCompile and the copy to the output folder read different ones.
+    -->
+    <Target Name="DuckyHotReloadPrepare" BeforeTargets="BeforeBuild"
+            DependsOnTargets="InitializeDuckySdkProperties"
+            Condition="'$(DuckyHotReloadActive)' == 'true' AND '$(ModName)' != ''">
+        <PropertyGroup>
+            <DuckyHotReloadStamp>$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmmssfff'))</DuckyHotReloadStamp>
+            <AssemblyName>$(ModName).Core.$(DuckyHotReloadStamp)</AssemblyName>
+        </PropertyGroup>
+        <ItemGroup>
+            <IntermediateAssembly Remove="@(IntermediateAssembly)" />
+            <IntermediateAssembly Include="$(IntermediateOutputPath)$(AssemblyName).dll" />
+        </ItemGroup>
+        <Message Text="[Ducky.Sdk] Hot reload Core assembly: $(AssemblyName)" Importance="high" />
+    </Target>
+
+    <!--
+        Development hot reload only: compiles the shim source that the pre phase wrote from the SDK template
+        (HotReloadShimSourceStep) into <ModName>.dll in obj/. The post phase copies it into the mod folder.
+        It references what the mod references, so the shim sees the same game types as the Core.
+    -->
+    <Target Name="DuckyHotReloadShimCompile" AfterTargets="ExecutePreBuildScripts"
+            Condition="'$(DuckyHotReloadActive)' == 'true' AND '$(DeployMod)' == 'true' AND '$(ModName)' != ''">
+        <PropertyGroup>
+            <_DuckyHotReloadShimSource>$(_DuckyHotReloadShimDir)$(ModName).Shim.g.cs</_DuckyHotReloadShimSource>
+            <_DuckyHotReloadShimDll>$(_DuckyHotReloadShimDir)$(ModName).dll</_DuckyHotReloadShimDll>
+        </PropertyGroup>
+        <ItemGroup>
+            <_DuckyHotReloadShimSourceItem Include="$(_DuckyHotReloadShimSource)" />
+        </ItemGroup>
+        <Error Condition="!Exists('$(_DuckyHotReloadShimSource)')"
+               Text="Hot reload shim source not found: $(_DuckyHotReloadShimSource). The pre phase should have written it (HotReloadShimSourceStep)." />
+        <Csc Sources="@(_DuckyHotReloadShimSourceItem)"
+             OutputAssembly="$(_DuckyHotReloadShimDll)"
+             TargetType="library"
+             References="@(ReferencePath)"
+             NoConfig="true"
+             Nullable="Enable"
+             Deterministic="true"
+             DebugType="portable"
+             ToolExe="$(CscToolExe)"
+             ToolPath="$(CscToolPath)"
+             LangVersion="latest" />
+        <Message Text="[Ducky.Sdk] Hot reload shim compiled: $(_DuckyHotReloadShimDll)" Importance="high" />
+    </Target>
+
+    <Target Name="GenerateBuildContext" BeforeTargets="BeforeBuild" DependsOnTargets="_DuckyCheckBuildRunner;DuckyHotReloadPrepare">
         <Message Text="=== Generate BuildContext ===" Importance="normal" />
         <Message Text="Generating BuildContext JSON for: $(MSBuildProjectDirectory)" Importance="normal" />
 
@@ -69,6 +124,11 @@
             <_DuckyBuildProperty Include="17=$([MSBuild]::Escape($(_AbsoluteOutputPath)))" />
             <_DuckyBuildProperty Include="18=$([MSBuild]::Escape($(ManagedDirectory)))" />
             <_DuckyBuildProperty Include="19=$([MSBuild]::Escape($(ModsDirectory)))" />
+            <!-- 20-23: development hot reload. Written for every build; the runner reads them only when 20 is true. -->
+            <_DuckyBuildProperty Include="20=$([MSBuild]::Escape($(DuckyHotReloadActive)))" />
+            <_DuckyBuildProperty Include="21=$([MSBuild]::Escape($(DuckyHotReloadStamp)))" />
+            <_DuckyBuildProperty Include="22=$([MSBuild]::Escape($(_DuckyHotReloadHarmony)))" />
+            <_DuckyBuildProperty Include="23=$([MSBuild]::Escape($(_DuckyHotReloadTemplate)))" />
         </ItemGroup>
         <WriteLinesToFile File="$(_DuckyBuildPropertiesFile)" Lines="@(_DuckyBuildProperty)" Overwrite="true" />
 
