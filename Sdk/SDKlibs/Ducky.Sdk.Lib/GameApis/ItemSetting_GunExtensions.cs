@@ -8,6 +8,8 @@ using System.Collections.ObjectModel;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.Events;
+using Ducky.Sdk.GameEvents;
+using Ducky.Sdk.Logging;
 
 namespace Ducky.Sdk.GameApis;
 
@@ -127,6 +129,45 @@ public static class ItemSetting_GunExtensions
         }
 
         return target;
+    }
+
+    /// <summary>
+    /// Runs <paramref name="handler"/> each time this gun hurts an enemy (the game's <c>onHurtEnemyEvent</c>). A handler
+    /// that throws is logged and does not reach the game. Dispose the returned handle to unsubscribe; disposing it again
+    /// does nothing.
+    /// </summary>
+    /// <remarks>
+    /// <c>DamageInfo.crit</c> is -1 when this event fires, because the game rolls crits later, inside <c>Health.Hurt</c>.
+    /// The subscription belongs to this gun object: when the held gun changes, subscribe to the new gun again.
+    /// </remarks>
+    public static IDisposable OnHurtEnemy(this ItemSetting_Gun target, Action<DamageReceiver, DamageInfo> handler)
+    {
+        if (target == null)
+        {
+            throw new ArgumentNullException(nameof(target));
+        }
+
+        if (handler == null)
+        {
+            throw new ArgumentNullException(nameof(handler));
+        }
+
+        UnityAction<DamageReceiver, DamageInfo> listener = (receiver, info) =>
+        {
+            try
+            {
+                handler(receiver, info);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "[ItemSetting_Gun] An onHurtEnemy handler failed; the game is not affected");
+            }
+        };
+
+        return EventSubscription.Create(
+            listener,
+            add: l => target.onHurtEnemyEvent.AddListener(l),
+            remove: l => target.onHurtEnemyEvent.RemoveListener(l));
     }
 
     // Resolved on first use, never in a static constructor, so a failed lookup cannot poison this type.
