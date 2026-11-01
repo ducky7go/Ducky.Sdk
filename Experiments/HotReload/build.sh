@@ -8,7 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 MARKER="${1:?usage: build.sh <marker> [--stamp]}"
 STAMP=""
-[[ "${2:-}" == "--stamp" ]] && STAMP=".$(date +%s%N | cut -c1-13)"
+[[ "${2:-}" == "--stamp" ]] && STAMP=".$(date +%s%N | cut -c1-13)" || true
 
 dotnet build Ducky.HotReload.Core/Ducky.HotReload.Core.csproj -c Release -v q -nologo \
   -p:Marker="$MARKER" -p:CoreStamp="$STAMP" >/dev/null

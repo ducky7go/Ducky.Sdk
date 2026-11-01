@@ -3,7 +3,7 @@
 # Reuses the single steps of Newbe.Dod's remote-test.sh (deploy/enable/preset-save/launch/stop/restore-save).
 # Refuses to run while ANY Duckov process exists on the remote machine: that game may be somebody's debugging session.
 #
-#   ./run-remote.sh            full scenario (A, then reloads B C with unique names, D E with the same name)
+#   ./run-remote.sh            full scenario (A; reloads B C unique names; D E same name, E must NOT take effect; F G H unique again)
 #
 # Scenario checks (one grep per line of Player.log, see Probe/Report in Ducky.HotReload/ModBehaviour.cs):
 #   after every unload: marker=none pingHits=0 tickHandlers=0 coreRunners=0   (Core cleaned up completely)
@@ -66,22 +66,31 @@ wait_for 'REPORT load=1 stage=after-load' 150 || { log "FAIL shim never reported
 check "load 1: marker A, one patch, one handler, one runner" 'REPORT load=1 stage=after-load marker=A pingHits=1 tickHandlers=1 coreRunners=1'
 
 n=1
-reload() { # reload <marker> [--stamp]
-  local marker=$1; n=$((n + 1))
-  ./build.sh "$marker" ${2:-}
+reload() { # reload <marker> <--stamp|--same> [expect-stale-marker]
+  local marker=$1 mode=$2 stale=${3:-}; n=$((n + 1))
+  ./build.sh "$marker" "$([ "$mode" = --stamp ] && echo --stamp)"
   win copy-to out/core-update/*.dll "$MODDIR/" >/dev/null
-  log "copied Core marker=$marker, waiting for reload $n"
+  log "copied Core marker=$marker ($mode), waiting for reload $n"
   if wait_for "REPORT load=$n stage=after-load" 60; then
     check "reload $n unloaded cleanly" "REPORT load=$((n - 1)) stage=after-unload marker=none pingHits=0 tickHandlers=0 coreRunners=0"
-    check "reload $n: marker $marker live, one patch, one handler, one runner" "REPORT load=$n stage=after-load marker=$marker pingHits=1 tickHandlers=1 coreRunners=1"
+    if [ -n "$stale" ]; then
+      # Known Mono behaviour (found by this experiment): a second load of a same-named assembly yields a new Assembly object
+      # but type lookup still returns the FIRST same-named assembly, so the OLD code runs.
+      check "reload $n same name: old code (marker $stale) still runs, not $marker" "REPORT load=$n stage=after-load marker=$stale pingHits=1 tickHandlers=1 coreRunners=1"
+    else
+      check "reload $n: marker $marker live, one patch, one handler, one runner" "REPORT load=$n stage=after-load marker=$marker pingHits=1 tickHandlers=1 coreRunners=1"
+    fi
   else
     log "FAIL reload $n never completed"; fail=1
   fi
 }
 reload B --stamp
 reload C --stamp
-reload D          # plain name Ducky.HotReload.Core.dll, first time
-reload E          # same plain name again: does the new code run?
+reload D --same            # plain name Ducky.HotReload.Core.dll, first time: works
+reload E --same D          # same plain name again: expected to keep running D
+reload F --stamp           # unique names keep working after a same-name load
+reload G --stamp
+reload H --stamp
 
 grep -E '\[HotReload' "$ART/Player.log" > "$ART/hotreload-lines.log" || true
 log "same-name finding:"; grep -E "sameAssemblyObjectAsEarlierLoad" "$ART/Player.log" | sed 's/^/    /' || true
