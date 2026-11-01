@@ -48,8 +48,10 @@ jobs:
         id: get_version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            # For tag builds, use the tag name (formal release)
+            # For tag builds, use the tag name (formal release). Drafts from
+            # hagi-release-drafter are tagged vX.Y.Z; NuGet needs the bare X.Y.Z.
             VERSION="${GITHUB_REF#refs/tags/}"
+            VERSION="${VERSION#v}"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "is_dev=false" >> $GITHUB_OUTPUT
             echo "Using tag version: $VERSION"
