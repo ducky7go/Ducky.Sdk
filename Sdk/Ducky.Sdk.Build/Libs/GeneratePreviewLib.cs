@@ -155,32 +155,28 @@ public class GeneratePreviewLib
             // Fill background
             ctx.BackgroundColor(bgColor);
 
-            // ImageSharp.Drawing 3.x: fills go through the DrawingCanvas
-            ctx.Paint(canvas =>
+            // Generate symmetric pattern (mirrored horizontally)
+            // Use hash bytes to determine which cells to fill
+            for (int y = 0; y < gridSize; y++)
             {
-                // Generate symmetric pattern (mirrored horizontally)
-                // Use hash bytes to determine which cells to fill
-                for (int y = 0; y < gridSize; y++)
+                for (int x = 0; x < (gridSize + 1) / 2; x++) // Only half, mirror the rest
                 {
-                    for (int x = 0; x < (gridSize + 1) / 2; x++) // Only half, mirror the rest
-                    {
-                        int byteIndex = (y * 3 + x) % hash.Length;
-                        bool fill = (hash[byteIndex] % 2) == 0;
+                    int byteIndex = (y * 3 + x) % hash.Length;
+                    bool fill = (hash[byteIndex] % 2) == 0;
 
-                        if (fill)
+                    if (fill)
+                    {
+                        // Fill left side
+                        ctx.Fill(fgBrush, new Rectangle(x * cellSize, y * cellSize, cellSize, cellSize));
+                        // Mirror to right side
+                        if (x != gridSize / 2) // Don't double-draw center column
                         {
-                            // Fill left side
-                            canvas.Fill(fgBrush, new Rectangle(x * cellSize, y * cellSize, cellSize, cellSize));
-                            // Mirror to right side
-                            if (x != gridSize / 2) // Don't double-draw center column
-                            {
-                                canvas.Fill(fgBrush,
-                                    new Rectangle((gridSize - 1 - x) * cellSize, y * cellSize, cellSize, cellSize));
-                            }
+                            ctx.Fill(fgBrush,
+                                new Rectangle((gridSize - 1 - x) * cellSize, y * cellSize, cellSize, cellSize));
                         }
                     }
                 }
-            });
+            }
         });
 
         // Save as PNG
