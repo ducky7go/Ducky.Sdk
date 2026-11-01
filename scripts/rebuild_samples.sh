@@ -97,7 +97,8 @@ fi
 
 # Step 4: Rebuild the solution
 log "Step 4: Rebuilding sample solution"
-dotnet build "$SAMPLE_SOLUTION" --configuration Debug || err "Failed to build sample solution"
+# -m:1 builds projects serially: parallel nodes each run `dotnet script`, which races on its shared script cache (SIGBUS / "Root element is missing.")
+dotnet build "$SAMPLE_SOLUTION" --configuration Debug -m:1 || err "Failed to build sample solution"
 
 # Read the actual version that was used from nuget.props
 if [[ -f "${ROOT_DIR}/nuget.props" ]]; then
