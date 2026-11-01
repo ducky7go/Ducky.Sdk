@@ -1,0 +1,15 @@
+[HotReload.Core] modId=Ducky.HotReload.Core
+[HotReload.Core] ModEnabled marker=A buffId=1520000
+[HotReload] REPORT load=1 stage=after-load marker=none pingHits=0 tickHandlers=0 coreRunners=0 coreAssembliesInDomain=1 probeBuffs=1 probeRegistrars=1 hostComponents=1 buffHolders=0 loc=probe-A
+[HotReload.Core] ModDisabled marker=A (no cleanup: probe)
+[HotReload] REPORT load=1 stage=after-unload marker=none pingHits=0 tickHandlers=0 coreRunners=0 coreAssembliesInDomain=1 probeBuffs=1 probeRegistrars=1 hostComponents=1 buffHolders=0 loc=probe-A
+[HotReload.Core] modId=local.Ducky.HotReload
+[HotReload.Core] ModEnabled marker=B buffId=1530000
+[HotReload] REPORT load=2 stage=after-load marker=none pingHits=0 tickHandlers=0 coreRunners=0 coreAssembliesInDomain=2 probeBuffs=2 probeRegistrars=2 hostComponents=1 buffHolders=1 loc=probe-B
+[HotReload.Core] ModDisabled marker=B (no cleanup: probe)
+[HotReload] REPORT load=2 stage=after-unload marker=none pingHits=0 tickHandlers=0 coreRunners=0 coreAssembliesInDomain=2 probeBuffs=2 probeRegistrars=2 hostComponents=1 buffHolders=1 loc=probe-B
+[HotReload] probe removal: removed locRemoved=True buffs=2 hosts=1 holders=1
+[HotReload] REPORT load=2 stage=after-removal marker=none pingHits=0 tickHandlers=0 coreRunners=0 coreAssembliesInDomain=2 probeBuffs=0 probeRegistrars=0 hostComponents=0 buffHolders=0 loc=none
+[HotReload.Core] modId=local.Ducky.HotReload
+[HotReload.Core] ModEnabled marker=C buffId=1530000
+[HotReload] REPORT load=3 stage=after-load marker=none pingHits=0 tickHandlers=0 coreRunners=0 coreAssembliesInDomain=3 probeBuffs=1 probeRegistrars=1 hostComponents=1 buffHolders=1 loc=probe-C
