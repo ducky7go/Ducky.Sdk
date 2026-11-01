@@ -91,24 +91,29 @@ subscription, a child GameObject, a Buff, a localized text, a Canvas and the Mes
 Command: `./run-remote.sh sample`. Steps: build the sample, stage its `Publish` folder (shim, `0Harmony.dll`, marker,
 Core), deploy, enable, launch, then 8 unique-name reloads (each one a fresh build), then a same-name Core.
 
-Final run: **PASS** (exit code 0). Log lines: `results/sample-final-run-lines.log`.
+Final run: **PASS** (exit code 0, 8 reloads, one same-name refusal). Log lines: `results/sample-final-run-lines.log`.
 
 | Load | Core | After-unload of the previous Core | After-load of this Core |
 | --- | --- | --- | --- |
-| 1 | `…Core.20261101043658218` | (initial) | `childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample <this Core>` |
-| 2–9 | one new Core each | `childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleLocalization=none` | same as load 1, with this Core's name |
+| 1 | `Ducky.HotReloadSample.Core.20261101044857026` (first build) | (initial) | `childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample <this Core>` |
+| 2–9 | one new Core each | `childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleHolders=0 sampleLocalization=none` | same as load 1, with this Core's name |
+
+`sampleHolders` counts this mod's buff holder only (`<modId>_BuffsContractHolder`); other mods keep their own holders,
+which the count ignores.
 
 - After every unload all counts are zero; after every load each count is exactly one (8 reloads; 9 loads in all).
-- Same name: `…Core.20261101043821743` (the Core that was just loaded, written again) was refused with
+- Same name: the Core that was just loaded was written again under the same name, and it was refused with
   "already loaded in this session … the old code keeps running" and never reloaded.
 - Harmony stayed one file: the deployed `0Harmony.dll` was not rewritten between builds (unit test and the sample build).
 - The Core's entry type has the same full name as the shim's entry type (`Ducky.HotReloadSample.ModBehaviour`). The
   REPORT counts come from the Core (its `HotReloadReport`), so the Core's type was the one created (task 4.5).
 
-Earlier attempts (kept out of the results): run 1 had a regex that did not match the CRLF log lines (the reports
-themselves were right; the checks were fixed, and the same lines were verified with a script); run 2 was interrupted
-when the game session ended at 21:31 (no crash in the Windows event log; the session was not started by this run,
-and the run's own `stop` found no recorded game), so its reload numbering could not match. Run 3 is the one kept.
+Earlier attempts (not kept as results): run 1 had a regex that did not match the CRLF log lines (the reports
+themselves were right; the regex was fixed); run 2 was interrupted when the game session ended at 21:31 (no crash in
+the Windows event log; the session was not started by this run, and the run's own `stop` found no recorded game), so
+its reload numbering could not match; run 4 counted every buff holder in the game, which includes the holders of other
+mods, so its holder check failed although the Core's holder was created and destroyed once per reload (the counts were
+flat across reloads). Run 5 is the one kept.
 
 Remote state after the runs: the game was not running, the test mod folder was removed, the shared
 `ModsLocalConfig.json` was restored (only the two original Newbe entries), and save slot 6 was restored.
@@ -132,8 +137,24 @@ Remote state after the runs: the game was not running, the test mod folder was r
 | Buff registrations | closed: removed (`buffs=0` after unload, `1` after load) | — |
 | Buff types | limitation, documented | Mono cannot unload a type; only its registrations are removed. |
 | UI | closed: the sample's Canvas (`sampleUi`) | — |
-| Localized texts | closed: the SDK's keys and the sample's key are removed; the text changes per load | — |
+| Localized texts set with `LocalizationManager.SetOverrideText` by the mod | closed: the sample's key is removed in `ModDisabled`; the text changes on every load | — |
 | MessageHub host | closed: stopped by the owner, one host after each load, none of the old Core after each unload | — |
+| Buff holder (`BuffsContract` holder object) | closed: one holder of this mod after each load, none after each unload | — |
+| SDK-managed localized keys (`LK`/CSV keys set by `LocalizationService`) removed on a hot reload disable | **open** | The sample sets its text directly, so the SDK's key release path (`LocalizationService.ReleaseOverrideTexts`) is unit-untested and not exercised in the game. |
 | Logger after reload (`Log.Current`) | **open** | The game's `LogProvider` returns `NoOpLogger` for these mods (`[ModBehaviourBase] Failed to get a valid logger`), so a Core's log lines cannot be seen in `Player.log`. |
 | MessageHub clients after a host restart | **open**, documented as a limitation | The sample has no client. The code says a client must register again. |
 | Release disable keeps the host, and re-enable does not start a second one (task 5.3) | **open** | The test harness has no way to disable and re-enable a mod in a release build. The decision rule is unit tested. |
+
+## Accepted limitations (decided by the user, tasks 3.3, 4.2, 5.3, 5.5, 5.6)
+
+The user chose to accept these as documented limitations and tick the tasks. The rows above that say **open** remain
+open; these five are closed by acceptance, not by a test.
+
+| Task | Accepted limitation | What was checked instead |
+| --- | --- | --- |
+| 3.3 Harmony not merged into a Core | No committed test. The check is manual. | One-off metadata check of the built sample Core: 354 types, 0 `HarmonyLib` types, `0Harmony` referenced as a separate assembly; the merge-disabled build gives the same shim/Core/Harmony set. Deployed `0Harmony.dll` is unchanged across builds (unit test and sample build). |
+| 4.2 Reload state machine, retry on a locked or partial file | The retry path inside the Unity coroutine (`Reload`) is not exercised by a unit test or the game run. | The decisions (newest Core, stable window, same-name rejection, no overlap) are unit tested in `HotReloadScheduleTests`; destroy → two frames → load → `Setup` and the report sequence are verified by the game run. |
+| 5.3 Release path: host keeps running, re-enable starts no second host | Not exercised in the game (no disable/re-enable trigger in the harness). | `ShouldReleaseHotReloadState(false, …)` is unit tested: release builds never stop the host or release buffs/localization. |
+| 5.5 Logger, enable state, localized string after reload | The logger cannot be observed: the game returns `NoOpLogger` for these mods. | The new Core's localized string changes per load and its `ModEnabled` runs (the sample's checks). |
+| 5.6 `ModDisabled` checklist assertions | The buff-type item has no assertion: Mono cannot unload types. | Buff registrations are asserted (`buffs=0` / `1`); the checklist in `docs/hot-reload.md` states the type limitation. |
+

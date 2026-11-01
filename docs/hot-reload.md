@@ -27,6 +27,10 @@ projects:
 
 The build prints `[Ducky.Sdk] Hot reload: development build (shim + Core)` when the mode is on.
 
+The sample mods in `Samples/` that are deployed (`Ducky.TryHarmony`, `Ducky.SingleProject`,
+`Ducky.MessageHubClient`, `Ducky.MessageHubHost`, `Ducky.MessageHubUI`, `Ducky.EntranceMod`, `Ducky.HotReloadSample`) set it
+for non-Release builds, so their Debug builds are hot reloadable by default. The SDK default is still off.
+
 ## What a hot reload build writes
 
 For a mod named `Ducky.HotReloadSample` the mod folder holds (this is the real output listing of a dev build):
@@ -95,6 +99,13 @@ A mod that does not clean up in `ModDisabled` shows duplicated or stale behaviou
 
 ## Limits
 
+- **Logging from a reloaded Core is not observed.** In the game the SDK's logger for these mods is a no-op
+  (`Failed to get a valid logger`), so log lines of a Core cannot be checked in `Player.log`. Use `Debug.Log`, which the
+  game does write, when you need evidence of a reload.
+- **Retry on a locked or partial Core file** is implemented in the shim but not covered by an automated test. The
+  reload decisions around it are tested.
+- **Release disable and re-enable** of the MessageHub host is covered by a unit test of the decision rule, not by a game
+  run.
 - **Memory grows with each reload.** Mono keeps the old Core assembly loaded until the game restarts. The shim logs the
   Core assembly count in every `REPORT` line.
 - **Same-name Cores are unsupported** and refused (see above). Unique stamps are mandatory, and the build provides them.
@@ -116,7 +127,7 @@ mistake. Build the release with `Configuration=Release` (without `DuckyHotReload
 ## Verification
 
 The mechanism was verified in the real game (Escape from Duckov, remote Windows machine) with
-`Experiments/HotReload/run-remote.sh sample`: the sample mod (a Harmony patch, an event subscription, a child object, a
-Buff, a localized text and the MessageHub host) was loaded once and reloaded eight times with unique names, with a
-same-name Core that was refused. Every unload left zero of each item and every load left exactly one. The results and
-the log path are in `Experiments/HotReload/README.md`.
+`Experiments/HotReload/run-remote.sh sample`. The sample mod (a Harmony patch, an event subscription, a child object, a
+Buff, a localized text, a Canvas and the MessageHub host) was loaded once and reloaded eight times with unique names, and
+a Core whose name was already loaded was refused. Every unload left zero of each item and every load left exactly one.
+The results and the log lines are in `Experiments/HotReload/README.md` and `Experiments/HotReload/results/`.
