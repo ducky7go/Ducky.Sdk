@@ -62,6 +62,26 @@ public class ExtractLocalizationKeysLibTests
     }
 
     [Test]
+    public void Execute_CarriesKeyPatternsIntoLkeysJson()
+    {
+        // Task 3.4: the patterns array of the metadata reaches assets/lkeys.json unchanged.
+        var patterned = File.ReadAllText(LibTestSupport.Golden("TryHarmony", "lkeys.with-patterns.json"));
+        WriteMetadata(patterned);
+        var context = Context();
+
+        var (exit, _, _) = LibTestSupport.Capture(() => ExtractLocalizationKeysLib.Execute(context));
+
+        exit.ShouldBe(0);
+        File.ReadAllText(Path.Combine(_assetsDir, "lkeys.json")).ShouldBe(patterned);
+    }
+
+    [Test]
+    public void Execute_BaselineGoldenHasNoPatternsProperty()
+    {
+        GoldenLkeys.ShouldNotContain("\"patterns\"");
+    }
+
+    [Test]
     public void Execute_ReportsZeroKeysAndWritesNothingWhenProjectHasNoLkeysMetadata()
     {
         var context = Context();
