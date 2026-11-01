@@ -364,27 +364,46 @@ public static class BuildUtils
     /// <summary>
     /// Executes a command and returns output
     /// </summary>
+    /// <summary>
+    /// Each element of <paramref name="args"/> is passed as exactly one argument; do not add quotes yourself,
+    /// the runtime quotes arguments that contain spaces.
+    /// </summary>
     public static (int exitCode, string output) ExecuteCommand(string command, string workingDirectory,
         params string[] args)
     {
-        var process = new System.Diagnostics.Process
+        var startInfo = new System.Diagnostics.ProcessStartInfo
         {
-            StartInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = command,
-                Arguments = string.Join(" ", args.Select(arg => $"\"{arg}\"")),
-                WorkingDirectory = workingDirectory,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
+            FileName = command,
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
         };
+        foreach (var arg in args)
+        {
+            startInfo.ArgumentList.Add(arg);
+        }
 
-        process.Start();
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
+        using var process = new System.Diagnostics.Process { StartInfo = startInfo };
+
+        try
+        {
+            process.Start();
+        }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            return (127,
+                $"Failed to start '{command}': {ex.Message}. Make sure it is installed and on PATH " +
+                "(for ilrepack: dotnet tool install --global dotnet-ilrepack).");
+        }
+
+        // Read both streams concurrently so a full stderr pipe cannot block the child while we wait on stdout.
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
         process.WaitForExit();
+        var output = stdoutTask.GetAwaiter().GetResult();
+        var error = stderrTask.GetAwaiter().GetResult();
 
         if (!string.IsNullOrEmpty(error))
         {

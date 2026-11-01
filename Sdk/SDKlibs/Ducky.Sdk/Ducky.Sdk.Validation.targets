@@ -16,9 +16,11 @@
                Text="Project path contains command-line special characters (such as #, &amp;, ;, |, &lt;, &gt;, `): '$(_ProjectPath)'. These characters may cause build failures. Please move the project to a path without special characters." />
     </Target>
 
-    <!-- Validation: At least one of DuckovFolder or SteamFolder must be set -->
-    <Target Name="ValidateDuckovFolder" BeforeTargets="BeforeBuild">
-        <Error Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' == '' "
-               Text="Either DuckovFolder or SteamFolder must be specified. Please set one of them in your project or Local.props file." />
+    <!-- Validation: the game folder or its Managed/Mods directories must be resolvable.
+         DependsOnTargets makes the SDK derive ManagedDirectory/ModsDirectory first (including CI defaults),
+         so only a truly unconfigured project fails here. -->
+    <Target Name="ValidateDuckovFolder" BeforeTargets="BeforeBuild" DependsOnTargets="InitializeDuckySdkProperties">
+        <Error Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' == '' AND '$(ManagedDirectory)' == '' AND '$(ModsDirectory)' == '' "
+               Text="Either DuckovFolder or SteamFolder must be specified (or ManagedDirectory/ModsDirectory, or CI=true). Please set one of them in your project or Local.props file." />
     </Target>
 </Project>

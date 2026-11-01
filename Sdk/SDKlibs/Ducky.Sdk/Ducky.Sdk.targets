@@ -10,6 +10,11 @@
     - More performant (caching and conditional execution)
     -->
 
+    <!-- Fail fast on an unusable project path or an unconfigured game folder, before any dotnet-script process starts.
+         Imported first so its BeforeBuild targets run before the orchestration ones. -->
+    <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Validation.targets"
+            Condition="Exists('$(MSBuildThisFileDirectory)Ducky.Sdk.Validation.targets')" />
+
     <!-- Import the new pure orchestration targets -->
     <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Orchestration.targets"
             Condition="Exists('$(MSBuildThisFileDirectory)Ducky.Sdk.Orchestration.targets')" />

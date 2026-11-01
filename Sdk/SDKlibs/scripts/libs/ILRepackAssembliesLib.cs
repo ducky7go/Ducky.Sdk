@@ -103,10 +103,11 @@ public class ILRepackAssembliesLib
 
             // Build ILRepack command
             var ilrepackArgs = BuildILRepackArgs(mainAssembly, dependencies, tempOutput, context);
-            context.LogInfo($"ILRepack command: ilrepack {ilrepackArgs}");
+            context.LogInfo(
+                $"ILRepack command: ilrepack {string.Join(" ", ilrepackArgs.Select(a => a.Contains(' ') ? $"\"{a}\"" : a))}");
 
-            // Execute ILRepack
-            var (exitCode, output) = BuildUtils.ExecuteCommand("ilrepack", context.ProjectDir, ilrepackArgs.Split(' '));
+            // Execute ILRepack (each list element is one argument, so paths with spaces stay intact)
+            var (exitCode, output) = BuildUtils.ExecuteCommand("ilrepack", context.ProjectDir, ilrepackArgs.ToArray());
 
             if (exitCode == 0 && File.Exists(tempOutput))
             {
@@ -228,22 +229,25 @@ public class ILRepackAssembliesLib
         return Path.Combine(modsDirectory, context.ModName);
     }
 
-    private static string BuildILRepackArgs(string mainAssembly, List<string> dependencies, string outputPath,
+    /// <summary>
+    /// Builds the ILRepack argument list. Every element is exactly one process argument and must NOT contain
+    /// embedded quotes: <see cref="BuildUtils.ExecuteCommand"/> quotes values with spaces itself.
+    /// </summary>
+    internal static List<string> BuildILRepackArgs(string mainAssembly, List<string> dependencies, string outputPath,
         BuildContext context)
     {
         var args = new List<string>();
 
-//  Command="ilrepack /out:&quot;$(_TempPackedDll)&quot; &quot;$(TargetPath)&quot; $(_DllsToPackList) /internalize /wildcards /log $(_LibPathArgs)"
         // Basic options
-        args.Add($"/out:\"{outputPath}\"");
+        args.Add($"/out:{outputPath}");
 
         // Add main assembly
-        args.Add($"\"{mainAssembly}\"");
+        args.Add(mainAssembly);
 
         // Add dependencies
         foreach (var dep in dependencies)
         {
-            args.Add($"\"{Path.GetFullPath(dep)}\"");
+            args.Add(Path.GetFullPath(dep));
         }
 
         args.Add("/target:library");
@@ -253,10 +257,17 @@ public class ILRepackAssembliesLib
         args.Add("/parallel");
 
         // reference resolution
-        args.Add($"/lib:\"{Path.GetDirectoryName(mainAssembly)}\"");
-        args.Add($"/lib:\"{context.ManagedDirectory}\"");
+        var mainDir = Path.GetDirectoryName(mainAssembly);
+        if (!string.IsNullOrEmpty(mainDir))
+        {
+            args.Add($"/lib:{mainDir}");
+        }
 
+        if (!string.IsNullOrEmpty(context.ManagedDirectory))
+        {
+            args.Add($"/lib:{context.ManagedDirectory}");
+        }
 
-        return string.Join(" ", args);
+        return args;
     }
 }
