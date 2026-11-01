@@ -15,6 +15,9 @@
   <Folder Name="/SingleProjectMod/">
     <Project Path="Ducky.SingleProject\Ducky.SingleProject.csproj" />
   </Folder>
+  <Folder Name="/HotReload/">
+    <Project Path="Ducky.HotReloadSample\Ducky.HotReloadSample.csproj" />
+  </Folder>
   <Folder Name="/TryHarmony/">
     <Project Path="Ducky.TryHarmony/Ducky.TryHarmony.csproj" />
   </Folder>
