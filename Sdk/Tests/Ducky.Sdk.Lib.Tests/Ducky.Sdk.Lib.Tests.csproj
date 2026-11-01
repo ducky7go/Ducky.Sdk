@@ -18,6 +18,15 @@
     <PackageReference Include="NUnit.Analyzers" />
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="Shouldly" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+  <!-- The localization source generator, loaded directly so tests can run it in-process (it is also referenced as an analyzer). -->
+  <ItemGroup>
+    <Reference Include="Ducky.Sdk.Analyser">
+      <HintPath>..\..\Ducky.Sdk.Analyser\bin\$(Configuration)\netstandard2.0\Ducky.Sdk.Analyser.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
