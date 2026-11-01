@@ -105,16 +105,12 @@ public class GeneratePreviewLibTests
             .ShouldNotBe(File.ReadAllBytes(Path.Combine(otherAssets, "preview.png")));
     }
 
-    [Test]
-    public void Execute_WritesDecodablePngWithBackgroundFromModNameHash()
+    /// <summary>Decodes the PNG produced by the preview step into a tightly packed 128x128 RGB buffer.</summary>
+    private static byte[] DecodeRgb(byte[] png)
     {
-        LibTestSupport.Capture(() => GeneratePreviewLib.Execute(Context()));
-        var png = File.ReadAllBytes(Path.Combine(_assetsDir, "preview.png"));
-
-        // Walk the chunks: collect IDAT payloads and make sure the file ends with the canonical IEND chunk.
         var idat = new MemoryStream();
         var offset = 8;
-        string lastType = "";
+        var lastType = "";
         while (offset < png.Length)
         {
             var length = ReadBigEndian(png, offset);
@@ -122,20 +118,143 @@ public class GeneratePreviewLibTests
             if (lastType == "IDAT") idat.Write(png, offset + 8, length);
             offset += 12 + length;
         }
+
         lastType.ShouldBe("IEND");
         png.TakeLast(4).ToArray().ShouldBe(new byte[] { 0xAE, 0x42, 0x60, 0x82 }); // CRC32 of "IEND"
 
         idat.Position = 0;
         using var raw = new MemoryStream();
         using (var z = new ZLibStream(idat, CompressionMode.Decompress)) z.CopyTo(raw);
-        var pixels = raw.ToArray();
-        pixels.Length.ShouldBe(128 * (1 + 128 * 3));
+        var scanlines = raw.ToArray();
+        scanlines.Length.ShouldBe(128 * (1 + 128 * 3));
 
-        // The 5x5 grid covers 125px, so the bottom-right pixel is always the background colour.
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes("Ducky.EntranceMod"));
-        var last = pixels.Length - 3;
-        pixels[last].ShouldBe(hash[0]);
-        pixels[last + 1].ShouldBe(hash[1]);
-        pixels[last + 2].ShouldBe(hash[2]);
+        var rgb = new byte[128 * 128 * 3];
+        for (var y = 0; y < 128; y++)
+        {
+            scanlines[y * (1 + 128 * 3)].ShouldBe((byte)0, "filter type must be None");
+            Array.Copy(scanlines, y * (1 + 128 * 3) + 1, rgb, y * 128 * 3, 128 * 3);
+        }
+
+        return rgb;
+    }
+
+    private static (byte R, byte G, byte B) Pixel(byte[] rgb, int x, int y)
+    {
+        var i = (y * 128 + x) * 3;
+        return (rgb[i], rgb[i + 1], rgb[i + 2]);
+    }
+
+    private byte[] GenerateRgb(string modName)
+    {
+        var assets = Path.Combine(_root, modName, "assets");
+        LibTestSupport.Capture(() => GeneratePreviewLib.Execute(Context(modName: modName, assets: assets)));
+        return DecodeRgb(File.ReadAllBytes(Path.Combine(assets, "preview.png")));
+    }
+
+    [TestCase("Ducky.EntranceMod")]
+    [TestCase("Ducky.TryHarmony")]
+    [TestCase("a")]
+    public void Execute_RendersIdenticonMatchingHashDerivedGrid(string modName)
+    {
+        const int cell = 128 / 5; // 25px; the 5x5 grid covers 125px, the last 3px are background margin
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(modName));
+        var bg = (R: hash[0], G: hash[1], B: hash[2]);
+        var fg = (R: (byte)(255 - hash[0]), G: (byte)(255 - hash[1]), B: (byte)(255 - hash[2]));
+
+        var rgb = GenerateRgb(modName);
+
+        var filledCells = 0;
+        for (var gy = 0; gy < 5; gy++)
+        {
+            for (var gx = 0; gx < 5; gx++)
+            {
+                // Mirrored layout: columns 3 and 4 copy columns 1 and 0.
+                var sourceX = gx < 3 ? gx : 4 - gx;
+                var expected = hash[(gy * 3 + sourceX) % hash.Length] % 2 == 0 ? fg : bg;
+                if (expected == fg) filledCells++;
+
+                // Every pixel of the cell must carry the expected colour, not just its corner.
+                for (var y = gy * cell; y < (gy + 1) * cell; y++)
+                for (var x = gx * cell; x < (gx + 1) * cell; x++)
+                    Pixel(rgb, x, y).ShouldBe(expected, $"cell ({gx},{gy}) pixel ({x},{y})");
+            }
+        }
+
+        // Margin right of / below the grid is plain background.
+        for (var i = 0; i < 128; i++)
+        {
+            for (var m = 125; m < 128; m++)
+            {
+                Pixel(rgb, m, i).ShouldBe(bg);
+                Pixel(rgb, i, m).ShouldBe(bg);
+            }
+        }
+
+        // Guard against a degenerate all-background / all-foreground picture only when the hash itself isn't.
+        var expectedFilled = Enumerable.Range(0, 5).Sum(gy =>
+            Enumerable.Range(0, 5).Count(gx => hash[(gy * 3 + (gx < 3 ? gx : 4 - gx)) % hash.Length] % 2 == 0));
+        filledCells.ShouldBe(expectedFilled);
+    }
+
+    [Test]
+    public void Execute_ProducesOnlyTwoComplementaryColoursAndHorizontalSymmetry()
+    {
+        var rgb = GenerateRgb("Ducky.EntranceMod");
+
+        var colours = new HashSet<(byte, byte, byte)>();
+        for (var y = 0; y < 128; y++)
+        for (var x = 0; x < 128; x++)
+            colours.Add(Pixel(rgb, x, y));
+
+        colours.Count.ShouldBe(2);
+        var (a, b) = (colours.First(), colours.Last());
+        ((byte)(255 - a.Item1), (byte)(255 - a.Item2), (byte)(255 - a.Item3)).ShouldBe(b);
+
+        // Grid area (125px wide) is mirrored left-to-right.
+        for (var y = 0; y < 125; y++)
+        for (var x = 0; x < 125; x++)
+            Pixel(rgb, x, y).ShouldBe(Pixel(rgb, 124 - x, y), $"pixel ({x},{y}) must mirror ({124 - x},{y})");
+    }
+
+    [Test]
+    public void EncodePng_RoundTripsArbitraryPixels()
+    {
+        var pixels = new byte[128 * 128 * 3];
+        new Random(42).NextBytes(pixels);
+
+        DecodeRgb(GeneratePreviewLib.EncodePng(pixels, 128, 128)).ShouldBe(pixels);
+    }
+
+    [Test]
+    public void EncodePng_WritesCorrectChunkCrcs()
+    {
+        var png = GeneratePreviewLib.EncodePng(new byte[128 * 128 * 3], 128, 128);
+
+        // Independent CRC32 (bitwise, no table) over each chunk's type + data.
+        static uint Crc(byte[] buf, int start, int len)
+        {
+            var crc = 0xFFFFFFFFu;
+            for (var i = start; i < start + len; i++)
+            {
+                crc ^= buf[i];
+                for (var k = 0; k < 8; k++) crc = (crc & 1) != 0 ? 0xEDB88320u ^ (crc >> 1) : crc >> 1;
+            }
+
+            return ~crc;
+        }
+
+        var offset = 8;
+        var chunks = 0;
+        while (offset < png.Length)
+        {
+            var length = ReadBigEndian(png, offset);
+            var stored = (uint)ReadBigEndian(png, offset + 8 + length);
+            Crc(png, offset + 4, 4 + length).ShouldBe(stored, $"chunk #{chunks} CRC");
+            offset += 12 + length;
+            chunks++;
+        }
+
+        offset.ShouldBe(png.Length);
+        chunks.ShouldBeGreaterThanOrEqualTo(3); // IHDR, IDAT..., IEND
     }
 }
