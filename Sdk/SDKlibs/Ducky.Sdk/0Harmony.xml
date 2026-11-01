@@ -295,6 +295,15 @@
         <member name="F:HarmonyLib.ArgumentType.Pointer">
             <summary>This is a pointer argument (&amp;)</summary>
         </member>
+        <member name="T:HarmonyLib.ArgumentMode">
+            <summary>Specifies how Harmony resolves an argument name</summary>
+        </member>
+        <member name="F:HarmonyLib.ArgumentMode.Default">
+            <summary>Use Harmony's default argument name handling</summary>
+        </member>
+        <member name="F:HarmonyLib.ArgumentMode.Original">
+            <summary>Match an original method argument by its exact name</summary>
+        </member>
         <member name="T:HarmonyLib.HarmonyPatchType">
             <summary>Specifies the type of patch</summary>
         </member>
@@ -659,6 +668,11 @@
         <member name="M:HarmonyLib.HarmonyArgument.#ctor(System.String)">
             <summary>An annotation to declare injected arguments by name</summary>
         </member>
+        <member name="M:HarmonyLib.HarmonyArgument.#ctor(System.String,HarmonyLib.ArgumentMode)">
+            <summary>An annotation to declare an injected argument using the selected name handling</summary>
+            <param name="originalName">Name of the original argument</param>
+            <param name="mode">How Harmony resolves the argument name</param>
+        </member>
         <member name="M:HarmonyLib.HarmonyArgument.#ctor(System.Int32)">
             <summary>An annotation to declare injected arguments by index</summary>
             <param name="index">Zero-based index</param>
@@ -968,6 +982,27 @@
             <summary>Gets Harmony version for all active Harmony instances</summary>
             <param name="currentVersion">[out] The current Harmony version</param>
             <returns>A dictionary containing assembly versions keyed by Harmony IDs</returns>
+        </member>
+        <member name="M:HarmonyLib.Harmony.SetSwitch(System.String,System.Object)">
+            <summary>Sets a MonoMod switch value (e.g., "DMDDebug", "DMDDumpTo")</summary>
+            <param name="name">The switch name</param>
+            <param name="value">The value to set (bool, string, etc.)</param>
+        </member>
+        <member name="M:HarmonyLib.Harmony.ClearSwitch(System.String)">
+            <summary>Clears a MonoMod switch value</summary>
+            <param name="name">The switch name</param>
+        </member>
+        <member name="M:HarmonyLib.Harmony.TryGetSwitch(System.String,System.Object@)">
+            <summary>Tries to get a MonoMod switch value</summary>
+            <param name="name">The switch name</param>
+            <param name="value">The switch value if found</param>
+            <returns>True if the switch was found, false otherwise</returns>
+        </member>
+        <member name="M:HarmonyLib.Harmony.TryIsSwitchEnabled(System.String,System.Boolean@)">
+            <summary>Tries to determine if a MonoMod switch is enabled</summary>
+            <param name="name">The switch name</param>
+            <param name="isEnabled">True if the switch is enabled, false otherwise</param>
+            <returns>True if the switch enablement state could be determined, false otherwise</returns>
         </member>
         <member name="T:HarmonyLib.HarmonyException">
             <summary>Under Mono, HarmonyException wraps IL compile errors with detailed information about the failure</summary>
@@ -3005,8 +3040,13 @@
             <returns>A new code match</returns>
         </member>
         <member name="M:HarmonyLib.CodeMatch.Calls(System.Reflection.MethodInfo)">
-            <summary>Tests if the code instruction calls the method/constructor</summary>
+            <summary>Tests if the code instruction calls the method</summary>
             <param name="method">The method</param>
+            <returns>A new code match</returns>
+        </member>
+        <member name="M:HarmonyLib.CodeMatch.Calls(System.Reflection.ConstructorInfo)">
+            <summary>Tests if the code instruction calls the constructor</summary>
+            <param name="constructor">The constructor</param>
             <returns>A new code match</returns>
         </member>
         <member name="M:HarmonyLib.CodeMatch.LoadsConstant">
@@ -3039,9 +3079,22 @@
             <param name="byAddress">Set to true if the address of the field is loaded</param>
             <returns>A new code match</returns>
         </member>
+        <member name="M:HarmonyLib.CodeMatch.LoadsField``1(System.Linq.Expressions.Expression{System.Func{``0}},System.Boolean)">
+            <summary>Tests if the code instruction loads a field</summary>
+            <typeparam name="T">The field type</typeparam>
+            <param name="expression">The lambda expression using the field</param>
+            <param name="byAddress">Set to true if the address of the field is loaded</param>
+            <returns>A new code match</returns>
+        </member>
         <member name="M:HarmonyLib.CodeMatch.StoresField(System.Reflection.FieldInfo)">
             <summary>Tests if the code instruction stores a field</summary>
             <param name="field">The field</param>
+            <returns>A new code match</returns>
+        </member>
+        <member name="M:HarmonyLib.CodeMatch.StoresField``1(System.Linq.Expressions.Expression{System.Func{``0}})">
+            <summary>Tests if the code instruction stores a field</summary>
+            <typeparam name="T">The field type</typeparam>
+            <param name="expression">The lambda expression using the field</param>
             <returns>A new code match</returns>
         </member>
         <member name="M:HarmonyLib.CodeMatch.Calls(System.Linq.Expressions.Expression{System.Action})">
@@ -3622,10 +3675,10 @@
             <returns>True if the instruction branches</returns>
         </member>
         <member name="M:HarmonyLib.CodeInstructionExtensions.Calls(HarmonyLib.CodeInstruction,System.Reflection.MethodInfo)">
-            <summary>Tests if the code instruction calls the method/constructor</summary>
+            <summary>Tests if the code instruction calls the method</summary>
             <param name="code">The <see cref="T:HarmonyLib.CodeInstruction" /></param>
             <param name="method">The method</param>
-            <returns>True if the instruction calls the method or constructor</returns>
+            <returns>True if the instruction calls the method</returns>
         </member>
         <member name="M:HarmonyLib.CodeInstructionExtensions.LoadsConstant(HarmonyLib.CodeInstruction)">
             <summary>Tests if the code instruction loads a constant</summary>
@@ -3899,7 +3952,7 @@
             <param name="len">The length of bytes to log</param>
         </member>
         <member name="T:HarmonyLib.SymbolExtensions">
-            <summary>A helper class to retrieve reflection info for non-private methods</summary>
+            <summary>A helper class to retrieve reflection info for non-private methods and fields</summary>
         </member>
         <member name="M:HarmonyLib.SymbolExtensions.GetMethodInfo(System.Linq.Expressions.Expression{System.Action})">
             <summary>Given a lambda expression that calls a method, returns the method info</summary>
@@ -3923,6 +3976,17 @@
             <summary>Given a lambda expression that calls a method, returns the method info</summary>
             <param name="expression">The lambda expression using the method</param>
             <returns>The method in the lambda expression</returns>
+        </member>
+        <member name="M:HarmonyLib.SymbolExtensions.GetFieldInfo``1(System.Linq.Expressions.Expression{System.Func{``0}})">
+            <summary>Given a lambda expression that accesses a field, returns the field info</summary>
+            <typeparam name="T">The generic field type</typeparam>
+            <param name="expression">The lambda expression using the field</param>
+            <returns>The field in the lambda expression</returns>
+        </member>
+        <member name="M:HarmonyLib.SymbolExtensions.GetFieldInfo(System.Linq.Expressions.LambdaExpression)">
+            <summary>Given a lambda expression that accesses a field, returns the field info</summary>
+            <param name="expression">The lambda expression using the field</param>
+            <returns>The field in the lambda expression</returns>
         </member>
         <member name="T:HarmonyLib.Traverse`1">
             <summary>A reflection helper to read and write private elements</summary>
