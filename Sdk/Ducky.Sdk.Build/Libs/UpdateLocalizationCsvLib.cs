@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using Ducky.Sdk.Build.Localization;
 
 /// <summary>
 /// Script library for updating localization CSV files from JSON keys
@@ -34,7 +36,7 @@ public class UpdateLocalizationCsvLib
                 return SkipExitCode;
             }
 
-            var (keys, keyFileExtensions, supportedLanguages) = LoadKeysFromJson(jsonKeyFile, context);
+            var (keys, keyFileExtensions, supportedLanguages, patterns) = LoadKeysFromJson(jsonKeyFile, context);
             if (keys.Count == 0)
             {
                 context.LogInfo("No keys found in JSON file. Skipping CSV generation.");
@@ -42,6 +44,7 @@ public class UpdateLocalizationCsvLib
             }
 
             var distinctKeys = keys.Distinct().OrderBy(k => k).ToList();
+            var keyPatterns = CompilePatterns(patterns);
             var assemblyHash = ComputeHash(distinctKeys);
             var hashFile = Path.Combine(assetsDir!, "keys.hash.txt");
 
@@ -55,7 +58,7 @@ public class UpdateLocalizationCsvLib
             var languageEntries = GetLanguageEntries(supportedLanguages, localesDir, context);
 
             // Check if update is needed
-            if (!IsUpdateNeeded(hashFile, assemblyHash, languageEntries, localesDir, distinctKeys))
+            if (!IsUpdateNeeded(hashFile, assemblyHash, languageEntries, localesDir, distinctKeys, keyPatterns))
             {
                 context.LogInfo("Hash matches existing hash file and all CSVs exist; skipping CSV updates.");
                 return SkipExitCode;
@@ -65,7 +68,7 @@ public class UpdateLocalizationCsvLib
             Directory.CreateDirectory(localesDir);
 
             // Process languages
-            var stats = ProcessLanguages(languageEntries, distinctKeys, keyFileExtensions, localesDir, context);
+            var stats = ProcessLanguages(languageEntries, distinctKeys, keyFileExtensions, keyPatterns, localesDir, context);
 
             // Save hash
             File.WriteAllText(hashFile, assemblyHash);
@@ -83,11 +86,12 @@ public class UpdateLocalizationCsvLib
         }
     }
 
-    private static (List<string> keys, Dictionary<string, string> keyFileExtensions, List<string> supportedLanguages)
+    private static (List<string> keys, Dictionary<string, string> keyFileExtensions, List<string> supportedLanguages, List<string> patterns)
         LoadKeysFromJson(string jsonKeyFile, BuildContext context)
     {
         var keys = new List<string>();
         var keyFileExtensions = new Dictionary<string, string>();
+        var patterns = new List<string>();
         List<string> supportedLanguages = null;
 
         try
@@ -112,6 +116,19 @@ public class UpdateLocalizationCsvLib
 
                 context.LogInfo(
                     $"Found {supportedLanguages.Count} supported languages: {string.Join(", ", supportedLanguages)}");
+            }
+
+            // [KeyPattern] declarations: their rows are data-driven, so CSV updates keep them.
+            if (root.TryGetProperty("patterns", out var patternsArray) && patternsArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var patternElement in patternsArray.EnumerateArray())
+                {
+                    var pattern = patternElement.GetString();
+                    if (!string.IsNullOrWhiteSpace(pattern))
+                    {
+                        patterns.Add(pattern);
+                    }
+                }
             }
 
             if (root.TryGetProperty("keys", out var keysArray) || root.TryGetProperty("Keys", out keysArray))
@@ -190,7 +207,7 @@ public class UpdateLocalizationCsvLib
             throw new Exception($"Failed to read or parse JSON file: {ex.Message}", ex);
         }
 
-        return (keys, keyFileExtensions, supportedLanguages);
+        return (keys, keyFileExtensions, supportedLanguages, patterns);
     }
 
     private static string ComputeHash(List<string> distinctKeys)
@@ -349,31 +366,28 @@ public class UpdateLocalizationCsvLib
 
     private static bool IsUpdateNeeded(string hashFile, string assemblyHash,
         List<(string LangCode, string CsvPath, string LangDir)> languageEntries, string localesDir,
-        List<string> distinctKeys)
+        List<string> distinctKeys, List<Regex> keyPatterns)
     {
         // Pre-scan language entries to determine if any CSV is missing or empty
         var needUpdateForMissing =
             languageEntries.Any(entry => !File.Exists(entry.CsvPath) || new FileInfo(entry.CsvPath).Length == 0);
 
-        // Detect obsolete keys
+        // Detect obsolete keys: rows that are neither a static key nor matched by a [KeyPattern]
         int obsoleteKeysDetected = 0;
         if (Directory.Exists(localesDir))
         {
-            var keySet = new HashSet<string>(distinctKeys, StringComparer.Ordinal);
+            var keySet = new HashSet<string>(distinctKeys, StringComparer.OrdinalIgnoreCase);
             foreach (var csvFile in Directory.GetFiles(localesDir, "*.csv", SearchOption.AllDirectories))
             {
                 try
                 {
-                    var lines = File.ReadAllLines(csvFile);
                     var fileObsolete = 0;
-                    foreach (var line in lines)
+                    foreach (var row in CsvDocument.Parse(File.ReadAllText(csvFile)))
                     {
-                        if (string.IsNullOrWhiteSpace(line)) continue;
-                        if (line.Trim().Equals("Key,Value", StringComparison.OrdinalIgnoreCase)) continue;
-                        var idx = line.IndexOf(',');
-                        if (idx < 0) continue;
-                        var existingKey = line.Substring(0, idx);
-                        if (!keySet.Contains(existingKey))
+                        if (row.Count < 2) continue;
+                        var existingKey = row[0].Trim();
+                        if (existingKey.Length == 0 || string.Equals(existingKey, "key", StringComparison.OrdinalIgnoreCase)) continue;
+                        if (!keySet.Contains(existingKey) && !MatchesAnyPattern(keyPatterns, existingKey))
                         {
                             fileObsolete++;
                         }
@@ -406,6 +420,7 @@ public class UpdateLocalizationCsvLib
             List<(string LangCode, string CsvPath, string LangDir)> languageEntries,
             List<string> distinctKeys,
             Dictionary<string, string> keyFileExtensions,
+            List<Regex> keyPatterns,
             string localesDir,
             BuildContext context)
     {
@@ -420,6 +435,8 @@ public class UpdateLocalizationCsvLib
             return (0, 0, 0, 0);
         }
 
+        var keySet = new HashSet<string>(distinctKeys, StringComparer.OrdinalIgnoreCase);
+
         foreach (var entry in languageEntries)
         {
             var langCode = entry.LangCode;
@@ -429,29 +446,12 @@ public class UpdateLocalizationCsvLib
             context.LogInfo($"Processing language: {langCode}");
             languagesProcessed++;
 
-            var csvMap = new Dictionary<string, string>();
-            if (File.Exists(csvPath))
-            {
-                var lines = File.ReadAllLines(csvPath);
-                foreach (var line in lines)
-                {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
-                    if (line.Trim().Equals("Key,Value", StringComparison.OrdinalIgnoreCase)) continue;
-                    var idx = line.IndexOf(',');
-                    if (idx < 0) continue;
-                    var key = line.Substring(0, idx);
-                    var value = line.Substring(idx + 1);
-                    if (value.Length >= 2 && value[0] == '"' && value[^1] == '"')
-                    {
-                        value = value.Substring(1, value.Length - 2).Replace("\"\"", '"'.ToString());
-                    }
+            // Existing rows, read with the shared CSV reader (quotes, commas and line breaks survive a rewrite).
+            var csvMap = File.Exists(csvPath)
+                ? CsvDocument.ToDictionary(File.ReadAllText(csvPath))
+                : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-                    value = value.Replace("\"\"", '"'.ToString());
-                    csvMap[key] = value;
-                }
-            }
-
-            // Include standalone md/txt files
+            // Include standalone md/txt files as file references
             var localStandaloneCount = 0;
             if (!string.IsNullOrEmpty(langDir) && Directory.Exists(langDir))
             {
@@ -461,7 +461,7 @@ public class UpdateLocalizationCsvLib
                 {
                     var filename = Path.GetFileName(f);
                     var key = Path.GetFileNameWithoutExtension(f);
-                    csvMap[key] = filename;
+                    csvMap[key] = FileReference(filename);
                     localStandaloneCount++;
                 }
             }
@@ -474,7 +474,7 @@ public class UpdateLocalizationCsvLib
                 Directory.CreateDirectory(langDir);
             }
 
-            var newRows = new List<(string Key, string Value)>();
+            var newRows = new List<KeyValuePair<string, string>>();
             var filesCreated = 0;
 
             foreach (var key in distinctKeys)
@@ -491,31 +491,32 @@ public class UpdateLocalizationCsvLib
 
                         if (!File.Exists(filePath))
                         {
-                            File.WriteAllText(filePath, val ?? key, new UTF8Encoding(false));
+                            File.WriteAllText(filePath, FileContentFor(key, fileName, val), new UTF8Encoding(false));
                             filesCreated++;
                         }
                     }
 
-                    newRows.Add((key, fileName));
+                    newRows.Add(new KeyValuePair<string, string>(key, FileReference(fileName)));
                 }
                 else
                 {
-                    newRows.Add((key, val ?? string.Empty));
+                    newRows.Add(new KeyValuePair<string, string>(key, val ?? string.Empty));
+                }
+            }
+
+            // Rows matched by a [KeyPattern] are data-driven keys: keep them as they are. Any other unknown row is obsolete.
+            foreach (var row in csvMap)
+            {
+                if (!keySet.Contains(row.Key) && MatchesAnyPattern(keyPatterns, row.Key))
+                {
+                    newRows.Add(row);
                 }
             }
 
             var sorted = newRows.OrderBy(r => r.Key, StringComparer.Ordinal).ToList();
 
             // Prepare new content
-            var sbNew = new StringBuilder();
-            sbNew.AppendLine("Key,Value");
-            foreach (var r in sorted)
-            {
-                var v = r.Value?.Replace("\"", "\"\"") ?? string.Empty;
-                sbNew.AppendLine($"{r.Key},\"{v}\"");
-            }
-
-            var newContent = sbNew.ToString();
+            var newContent = CsvDocument.Serialize(sorted);
             var oldContent = File.Exists(csvPath) ? File.ReadAllText(csvPath) : string.Empty;
 
             if (!string.Equals(newContent, oldContent, StringComparison.Ordinal))
@@ -540,6 +541,37 @@ public class UpdateLocalizationCsvLib
         }
 
         return (languagesProcessed, csvsUpdated, totalStandaloneFilesIncluded, totalRowsWritten);
+    }
+
+    /// <summary>The CSV value that points at a translation file in the language folder.</summary>
+    private static string FileReference(string fileName) => "@file:" + fileName;
+
+    /// <summary>
+    /// Text of a newly created translation file: the key itself, unless the row holds real text. A missing row or a
+    /// file reference gives the key.
+    /// </summary>
+    private static string FileContentFor(string key, string fileName, string value)
+    {
+        if (string.IsNullOrEmpty(value) || value.StartsWith("@file:", StringComparison.Ordinal) ||
+            string.Equals(value, fileName, StringComparison.Ordinal))
+        {
+            return key;
+        }
+
+        return value;
+    }
+
+    private static List<Regex> CompilePatterns(IEnumerable<string> patterns)
+    {
+        return patterns
+            .Select(pattern => KeyPatternSyntax.Parse(pattern).ToRegex())
+            .Where(regex => regex != null)
+            .ToList();
+    }
+
+    private static bool MatchesAnyPattern(List<Regex> keyPatterns, string key)
+    {
+        return keyPatterns.Any(regex => regex.IsMatch(key));
     }
 
     private static void PrintStats(

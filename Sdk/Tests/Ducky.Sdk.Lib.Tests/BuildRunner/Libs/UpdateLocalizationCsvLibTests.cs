@@ -154,7 +154,7 @@ public class UpdateLocalizationCsvLibTests
         exit.ShouldBe(0);
         File.Exists(Path.Combine(_localesDir, "en", "ducky_intro.md")).ShouldBeTrue();
         File.Exists(Path.Combine(_localesDir, "zh", "ducky_intro.md")).ShouldBeTrue();
-        File.ReadAllText(Path.Combine(_localesDir, "en.csv")).ShouldBe("Key,Value\nducky_intro,\"ducky_intro.md\"\n");
+        File.ReadAllText(Path.Combine(_localesDir, "en.csv")).ShouldBe("Key,Value\nducky_intro,\"@file:ducky_intro.md\"\n");
     }
 
     [Test]
@@ -167,5 +167,38 @@ public class UpdateLocalizationCsvLibTests
         exit.ShouldBe(0);
         File.ReadAllText(Path.Combine(_localesDir, "en.csv")).ShouldBe("Key,Value\na_key,\"\"\nb_key,\"\"\n");
         File.Exists(Path.Combine(_localesDir, "zh.csv")).ShouldBeTrue();
+    }
+
+    [Test]
+    public void Execute_KeepsRowsMatchedByAKeyPatternAndStillRemovesObsoleteRows()
+    {
+        // Task 3.5: a pattern row is data-driven and kept; a row that matches no key or pattern is obsolete.
+        var golden = File.ReadAllText(Path.Combine(_assetsDir, "lkeys.json"));
+        ReplaceLkeys(golden.Replace("  \"keys\": [", "  \"patterns\": [\"worldeffect.{code}.{name|summary}\"],\n  \"keys\": ["));
+        Directory.CreateDirectory(_localesDir);
+        File.WriteAllText(Path.Combine(_localesDir, "en.csv"),
+            "Key,Value\nworldeffect.FROST.name,\"Frost\"\nold.gone,\"Obsolete\"\n");
+
+        var (exit, _, _) = LibTestSupport.Capture(() => UpdateLocalizationCsvLib.Execute(_context));
+
+        exit.ShouldBe(0);
+        var rows = Ducky.Sdk.Build.Localization.CsvDocument.ToDictionary(File.ReadAllText(Path.Combine(_localesDir, "en.csv")));
+        rows["worldeffect.FROST.name"].ShouldBe("Frost");
+        rows.ContainsKey("old.gone").ShouldBeFalse();
+    }
+
+    [Test]
+    public void Execute_RewriteKeepsMultilineAndQuotedValuesExactly()
+    {
+        Directory.CreateDirectory(_localesDir);
+        var value = "Line one\nLine \"two\", still two";
+        File.WriteAllText(Path.Combine(_localesDir, "en.csv"),
+            "Key,Value\nducky_doNothing_buff_name,\"" + value.Replace("\"", "\"\"") + "\"\n");
+
+        var (exit, _, _) = LibTestSupport.Capture(() => UpdateLocalizationCsvLib.Execute(_context));
+
+        exit.ShouldBe(0);
+        var rows = Ducky.Sdk.Build.Localization.CsvDocument.ToDictionary(File.ReadAllText(Path.Combine(_localesDir, "en.csv")));
+        rows["ducky_doNothing_buff_name"].ShouldBe(value);
     }
 }
