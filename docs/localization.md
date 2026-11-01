@@ -277,3 +277,10 @@ Tests: `LocaleToolTests.Set_ValueWithCommaAndQuote_IsQuotedAndReadBackUnchanged`
 `Validate_ErrorSeverity_ExitsOneWhenAFindingIsAnError` (`validate --validation Error`),
 `RoundTrip_SetThenSyncKeepsCommasQuotesAndLineBreaks` and `RoundTrip_SyncOfAnAlreadySyncedFileIsByteIdentical` (round trip),
 `NoCommand_PrintsUsageAndExitsTwo` and `SetWithoutAKey_PrintsUsageAndExitsTwo` (usage and exit 2).
+
+## Not in this version
+
+- **Other file formats.** JSON, resx and po are a long-term evaluation. They are not implemented. The CSV format stays
+  the only one, and the shared reader and writer are the place a second format would plug in.
+- **Plural forms.** Not implemented. A translation is one text per key.
+- **Translation context and translation comments.** Not implemented. There is no per-key note for translators.

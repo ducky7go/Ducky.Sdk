@@ -200,6 +200,18 @@ Settings,Settings
 Documentation,Documentation.md
 ```
 
+#### 4. Runtime API, file markers, fallback and validation
+
+See the [localization guide](docs/localization.md) for the full rules, and the [DOD migration guide](docs/localization-dod-migration.md) for moving a mod off its own localization code.
+
+- Runtime: `L.Get`, `L.TryGet`, `L.Dynamic` (formats a key template such as `"worldeffect.{0}.name"`). `L.RegisterLocales(modId, dir)` registers a sub-mod's `Locales` folder, and `L.Scope(modId)` looks up only that mod's sources.
+- Data-driven keys: declare `[KeyPattern("worldeffect.{code}.{name|summary|description}", Group = "WorldEffect")]` on `LK` to get typed accessors such as `L.WorldEffect.Name(code)`.
+- File references: a CSV value is a file only when it starts with `@file:` (for example `@file:Welcome.md`). Any other value is text.
+- Language codes are lower-case with `-` (`zh-Hant` becomes `zh-hant`). The default fallback chain is `zh-hant -> zh -> en`, and `L.ConfigureFallback` changes it.
+- Keys ignore case. Missing text gives `[key]`; `L.TryGet` reports the absence without a placeholder.
+- Build validation compares every language with the English baseline. `LocalizationValidation` (`Off` / `Warn` / `Error`, default `Warn`) controls missing keys and placeholder mismatches; `LocalizationExtraKeys` (`Ignore` / `Warn` / `Error`, default `Warn`) controls extra keys. Missing translations are written to `missing.csv`.
+- Translation commands: `dotnet tools/net10.0/Ducky.Sdk.Build.dll locales set | sync | validate ...`.
+
 ### Configuration Management
 
 Store and retrieve mod settings:

@@ -228,6 +228,18 @@ Key,Value
 - `UpdateLocalesCsv` target 会为所有目录生成和验证翻译文件
 - 其他资源文件仍使用 `AssetsDir` 指定的目录
 
+#### 5. 运行时 API、文件标记、语言回退与校验
+
+完整说明见 [本地化文档](docs/localization.md)；从自研本地化方案迁移见 [DOD 迁移指南](docs/localization-dod-migration.md)。
+
+- 运行时：`L.Get`、`L.TryGet`、`L.Dynamic`（格式化键模板，如 `"worldeffect.{0}.name"`）；`L.RegisterLocales(modId, dir)` 注册子 Mod 的 `Locales` 目录，`L.Scope(modId)` 只查询该 Mod 的来源。
+- 动态键：在 `LK` 上声明 `[KeyPattern("worldeffect.{code}.{name|summary|description}", Group = "WorldEffect")]`，生成 `L.WorldEffect.Name(code)` 等强类型访问器。
+- 文件引用：CSV 值以 `@file:` 开头时才表示文件（如 `@file:Welcome.md`），其他值一律按文本处理。
+- 语言代码统一为小写并使用 `-`（`zh-Hant` → `zh-hant`）；默认回退链为 `zh-hant → zh → en`，可用 `L.ConfigureFallback` 修改。
+- 键不区分大小写；缺失文本返回 `[key]`，`L.TryGet` 则不返回占位文本。
+- 构建校验：比较各语言与英文基线。`LocalizationValidation`（`Off` / `Warn` / `Error`，默认 `Warn`）控制缺失键和占位符不一致；`LocalizationExtraKeys`（`Ignore` / `Warn` / `Error`，默认 `Warn`）控制多余键。缺失项写入 `missing.csv`。
+- 翻译命令：`dotnet tools/net10.0/Ducky.Sdk.Build.dll locales set | sync | validate ...`。
+
 ### 配置管理
 
 存储和检索 Mod 设置：
