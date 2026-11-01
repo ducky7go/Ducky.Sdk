@@ -7,7 +7,7 @@ set -euo pipefail
 # This script:
 #   1. Calls packToLocal.sh to publish auto-incremented version of Ducky.Sdk
 #   2. Restores and rebuilds the Docky.Sdk.Sample.slnx solution
-#   Note: With auto-incrementing versions, cache clearing is no longer needed
+#   Note: packToLocal.sh replaces a version already in the NuGet cache (the packed version is never reused silently)
 #
 # Usage:
 #   ./scripts/rebuild_samples.sh [--purge-all-versions] [--no-clear-all-caches] [--skip-tests] [--no-build]
@@ -93,8 +93,8 @@ fi
 
 # Step 4: Rebuild the solution
 log "Step 4: Rebuilding sample solution"
-# -m:1 builds projects serially; kept until a parallel run is verified (see task 8.2)
-dotnet build "$SAMPLE_SOLUTION" --configuration Debug -m:1 || err "Failed to build sample solution"
+# Parallel builds are safe: the build runner has no shared script cache (the former dotnet-script race is gone)
+dotnet build "$SAMPLE_SOLUTION" --configuration Debug || err "Failed to build sample solution"
 
 # Read the actual version that was used from nuget.props
 if [[ -f "${ROOT_DIR}/nuget.props" ]]; then
