@@ -38,7 +38,7 @@ Prerequisites: .NET SDK 10 (root `global.json` pins 10.0.402, `rollForward: late
 - Because Lib is source-distributed and compiled into each mod, keep it free of dependencies the game does not provide and keep public/internal API changes backward compatible (`InternalsVisibleTo Ducky.Sdk.Lib.Tests` is declared).
 - Mod pattern: subclass `ModBehaviourBase`, implement `ModEnabled()` / `ModDisabled()`. Localization: a static `LK` class with `const string` keys (`[LanguageSupport("en","zh",...)]`, `[TranslateFile("md")]` for long text) -> generator emits `L` accessors, `LKeys`, and a key hash; CSVs live in the mod's `assets/Locales/`.
 - Project properties read by the SDK: `ModName`, `IsModLib`, `ExcludeSdkLib`, `IncludeHarmony` (default false), `EnableILRepack` (default true), `DeployMod` (default true, forced false for `IsModLib`), `EnableGlobalUsing` (default true), `AssetsDir`, `LocalizationAssetsDir`, `SteamFolder` / `DuckovFolder` / `ManagedDirectory` / `ModsDirectory`. Defaults are in `Ducky.Sdk.props`; with `CI=true` and no folder set, `Managed/` and `artifacts/Mods/` under the git root are used.
-- Commits/PRs: this checkout is a shallow clone with one visible commit, "default directory for CI (#45)", i.e. PR-number suffix style; OpenSpec change proposals are the planning mechanism.
+- Commits/PRs: PR-number suffix style (e.g. "default directory for CI (#45)"); OpenSpec change proposals are the planning mechanism.
 
 ## Gotchas
 
