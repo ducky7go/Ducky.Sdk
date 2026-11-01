@@ -1,0 +1,35 @@
+Ducky.MessageHubClient
+Ducky.MessageHubClient
+ModActive_Ducky.MessageHubClient: True
+Loading mod dll at path: C:/Program Files (x86)/Steam/steamapps/common/Escape from Duckov/Duckov_Data\Mods\Ducky.MessageHubClient\Ducky.MessageHubClient.dll
+Mod Loaded: Ducky.MessageHubClient
+[HotReload] shim up, mod=Ducky.MessageHubClient dir=C:/Program Files (x86)/Steam/steamapps/common/Escape from Duckov/Duckov_Data\Mods\Ducky.MessageHubClient watch=True
+[HotReload] reload #1 (initial)
+[HotReload] REPORT load=0 stage=before-load core=none coreAssembliesInDomain=1 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.MessageHubClient
+[ModBehaviourBase] Retrieved mod name: Ducky.MessageHubClient
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[ModBehaviourBase] Retrieved mod name: Newbe.Dod
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[ModBehaviourBase] Mod behaviour for ModBehaviour is already enabled. Skipping OnEnable.
+[ModBehaviourBase] Retrieved mod name: Newbe.DebugMod
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=1 stage=after-load core=Ducky.MessageHubClient.Core.20261101052559161 coreAssembliesInDomain=1 childObjects=1 hostComponents=1 buffs=0
+[HotReload] reload #2 (new Core Ducky.MessageHubClient.Core.20261101052620246)
+[HotReload] REPORT load=1 stage=after-unload core=Ducky.MessageHubClient.Core.20261101052559161 coreAssembliesInDomain=2 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.MessageHubClient
+[ModBehaviourBase] Retrieved mod name: Ducky.MessageHubClient
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=2 stage=after-load core=Ducky.MessageHubClient.Core.20261101052620246 coreAssembliesInDomain=2 childObjects=1 hostComponents=1 buffs=0
+[HotReload] reload #3 (new Core Ducky.MessageHubClient.Core.20261101052629013)
+[HotReload] REPORT load=2 stage=after-unload core=Ducky.MessageHubClient.Core.20261101052620246 coreAssembliesInDomain=3 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.MessageHubClient
+[ModBehaviourBase] Retrieved mod name: Ducky.MessageHubClient
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=3 stage=after-load core=Ducky.MessageHubClient.Core.20261101052629013 coreAssembliesInDomain=3 childObjects=1 hostComponents=1 buffs=0
+[HotReload] reload #4 (new Core Ducky.MessageHubClient.Core.20261101052637820)
+[HotReload] REPORT load=3 stage=after-unload core=Ducky.MessageHubClient.Core.20261101052629013 coreAssembliesInDomain=4 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.MessageHubClient
+[ModBehaviourBase] Retrieved mod name: Ducky.MessageHubClient
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=4 stage=after-load core=Ducky.MessageHubClient.Core.20261101052637820 coreAssembliesInDomain=4 childObjects=1 hostComponents=1 buffs=0

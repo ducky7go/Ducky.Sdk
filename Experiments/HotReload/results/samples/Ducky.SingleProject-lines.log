@@ -1,0 +1,35 @@
+Ducky.SingleProject
+Ducky.SingleProject
+ModActive_Ducky.SingleProject: True
+Loading mod dll at path: C:/Program Files (x86)/Steam/steamapps/common/Escape from Duckov/Duckov_Data\Mods\Ducky.SingleProject\Ducky.SingleProject.dll
+Mod Loaded: Ducky.SingleProject
+[HotReload] shim up, mod=Ducky.SingleProject dir=C:/Program Files (x86)/Steam/steamapps/common/Escape from Duckov/Duckov_Data\Mods\Ducky.SingleProject watch=True
+[HotReload] reload #1 (initial)
+[HotReload] REPORT load=0 stage=before-load core=none coreAssembliesInDomain=1 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.SingleProject
+[ModBehaviourBase] Retrieved mod name: Ducky.SingleProject
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[ModBehaviourBase] Retrieved mod name: Newbe.Dod
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[ModBehaviourBase] Mod behaviour for ModBehaviour is already enabled. Skipping OnEnable.
+[ModBehaviourBase] Retrieved mod name: Newbe.DebugMod
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=1 stage=after-load core=Ducky.SingleProject.Core.20261101052457359 coreAssembliesInDomain=1 childObjects=1 hostComponents=1 buffs=0
+[HotReload] reload #2 (new Core Ducky.SingleProject.Core.20261101052523634)
+[HotReload] REPORT load=1 stage=after-unload core=Ducky.SingleProject.Core.20261101052457359 coreAssembliesInDomain=2 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.SingleProject
+[ModBehaviourBase] Retrieved mod name: Ducky.SingleProject
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=2 stage=after-load core=Ducky.SingleProject.Core.20261101052523634 coreAssembliesInDomain=2 childObjects=1 hostComponents=1 buffs=0
+[HotReload] reload #3 (new Core Ducky.SingleProject.Core.20261101052532317)
+[HotReload] REPORT load=2 stage=after-unload core=Ducky.SingleProject.Core.20261101052523634 coreAssembliesInDomain=3 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.SingleProject
+[ModBehaviourBase] Retrieved mod name: Ducky.SingleProject
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=3 stage=after-load core=Ducky.SingleProject.Core.20261101052532317 coreAssembliesInDomain=3 childObjects=1 hostComponents=1 buffs=0
+[HotReload] reload #4 (new Core Ducky.SingleProject.Core.20261101052541110)
+[HotReload] REPORT load=3 stage=after-unload core=Ducky.SingleProject.Core.20261101052532317 coreAssembliesInDomain=4 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.SingleProject
+[ModBehaviourBase] Retrieved mod name: Ducky.SingleProject
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=4 stage=after-load core=Ducky.SingleProject.Core.20261101052541110 coreAssembliesInDomain=4 childObjects=1 hostComponents=1 buffs=0

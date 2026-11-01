@@ -1,0 +1,47 @@
+Ducky.MessageHubUI
+Ducky.MessageHubUI
+ModActive_Ducky.MessageHubUI: True
+Loading mod dll at path: C:/Program Files (x86)/Steam/steamapps/common/Escape from Duckov/Duckov_Data\Mods\Ducky.MessageHubUI\Ducky.MessageHubUI.dll
+Mod Loaded: Ducky.MessageHubUI
+[HotReload] shim up, mod=Ducky.MessageHubUI dir=C:/Program Files (x86)/Steam/steamapps/common/Escape from Duckov/Duckov_Data\Mods\Ducky.MessageHubUI watch=True
+[HotReload] reload #1 (initial)
+[HotReload] REPORT load=0 stage=before-load core=none coreAssembliesInDomain=1 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.MessageHubUI
+[ModBehaviourBase] Retrieved mod name: Ducky.MessageHubUI
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[ModBehaviourBase] Retrieved mod name: Newbe.Dod
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[ModBehaviourBase] Mod behaviour for ModBehaviour is already enabled. Skipping OnEnable.
+[ModBehaviourBase] Retrieved mod name: Newbe.DebugMod
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=1 stage=after-load core=Ducky.MessageHubUI.Core.20261101052817113 coreAssembliesInDomain=1 childObjects=1 hostComponents=1 buffs=0
+  at Ducky.MessageHubUI.TerminalMainView.AddMessageToUI (Ducky.MessageHubUI.TerminalMessage message) [0x000b5] in <8385bc802f76439190c985dfad46de4b>:0 
+  at Ducky.MessageHubUI.TerminalMainView.<SetupBindings>b__32_8 (Ducky.MessageHubUI.TerminalMessage message) [0x00001] in <8385bc802f76439190c985dfad46de4b>:0 
+  at Ducky.MessageHubUI.TerminalMainView.AddMessageToUI (Ducky.MessageHubUI.TerminalMessage message) [0x000b5] in <8385bc802f76439190c985dfad46de4b>:0 
+  at Ducky.MessageHubUI.TerminalMainView.<SetupBindings>b__32_8 (Ducky.MessageHubUI.TerminalMessage message) [0x00001] in <8385bc802f76439190c985dfad46de4b>:0 
+[HotReload] reload #2 (new Core Ducky.MessageHubUI.Core.20261101052841530)
+[HotReload] REPORT load=1 stage=after-unload core=Ducky.MessageHubUI.Core.20261101052817113 coreAssembliesInDomain=2 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.MessageHubUI
+[ModBehaviourBase] Retrieved mod name: Ducky.MessageHubUI
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=2 stage=after-load core=Ducky.MessageHubUI.Core.20261101052841530 coreAssembliesInDomain=2 childObjects=1 hostComponents=1 buffs=0
+  at Ducky.MessageHubUI.TerminalMainView.AddMessageToUI (Ducky.MessageHubUI.TerminalMessage message) [0x000b5] in <af3f0a7eba714648968848380824a1f8>:0 
+  at Ducky.MessageHubUI.TerminalMainView.<SetupBindings>b__32_8 (Ducky.MessageHubUI.TerminalMessage message) [0x00001] in <af3f0a7eba714648968848380824a1f8>:0 
+  at Ducky.MessageHubUI.TerminalMainView.AddMessageToUI (Ducky.MessageHubUI.TerminalMessage message) [0x000b5] in <af3f0a7eba714648968848380824a1f8>:0 
+  at Ducky.MessageHubUI.TerminalMainView.<SetupBindings>b__32_8 (Ducky.MessageHubUI.TerminalMessage message) [0x00001] in <af3f0a7eba714648968848380824a1f8>:0 
+[HotReload] reload #3 (new Core Ducky.MessageHubUI.Core.20261101052852076)
+[HotReload] REPORT load=2 stage=after-unload core=Ducky.MessageHubUI.Core.20261101052841530 coreAssembliesInDomain=3 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.MessageHubUI
+[ModBehaviourBase] Retrieved mod name: Ducky.MessageHubUI
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=3 stage=after-load core=Ducky.MessageHubUI.Core.20261101052852076 coreAssembliesInDomain=3 childObjects=1 hostComponents=1 buffs=0
+  at Ducky.MessageHubUI.TerminalMainView.AddMessageToUI (Ducky.MessageHubUI.TerminalMessage message) [0x000b5] in <4d360dd123b54bf5b82605d89534c259>:0 
+  at Ducky.MessageHubUI.TerminalMainView.<SetupBindings>b__32_8 (Ducky.MessageHubUI.TerminalMessage message) [0x00001] in <4d360dd123b54bf5b82605d89534c259>:0 
+  at Ducky.MessageHubUI.TerminalMainView.AddMessageToUI (Ducky.MessageHubUI.TerminalMessage message) [0x000b5] in <4d360dd123b54bf5b82605d89534c259>:0 
+  at Ducky.MessageHubUI.TerminalMainView.<SetupBindings>b__32_8 (Ducky.MessageHubUI.TerminalMessage message) [0x00001] in <4d360dd123b54bf5b82605d89534c259>:0 
+[HotReload] reload #4 (new Core Ducky.MessageHubUI.Core.20261101052902881)
+[HotReload] REPORT load=3 stage=after-unload core=Ducky.MessageHubUI.Core.20261101052852076 coreAssembliesInDomain=4 childObjects=0 hostComponents=0 buffs=0
+[Helper] Returning cached mod name: Ducky.MessageHubUI
+[ModBehaviourBase] Retrieved mod name: Ducky.MessageHubUI
+[ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
+[HotReload] REPORT load=4 stage=after-load core=Ducky.MessageHubUI.Core.20261101052902881 coreAssembliesInDomain=4 childObjects=1 hostComponents=1 buffs=0

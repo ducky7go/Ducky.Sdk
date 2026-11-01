@@ -1,0 +1,23 @@
+[Ducky.TryHarmony] build (Debug, hot reload on by default) and stage
+[Ducky.TryHarmony] staged ../../artifacts/Mods/Ducky.TryHarmony (9 files)
+[remote-test] deployed to C:/Program Files (x86)/Steam/steamapps/common/Escape from Duckov/Duckov_Data/Mods/Ducky.TryHarmony (sha256 ok)
+Global.json: updated
+slot 6: test save in place (494085 bytes)
+CurrentSlot: 6 (previous: absent)
+STARTED 9632
+[Ducky.TryHarmony] waiting for the first load
+[Ducky.TryHarmony] ok   load 1: one child, one host, buffs=1, Core Ducky.TryHarmony.Core.20261101051955780
+[Ducky.TryHarmony] ok   reload 2: after-unload of Ducky.TryHarmony.Core.20261101051955780 is clean
+[Ducky.TryHarmony] ok   reload 2: after-load of Ducky.TryHarmony.Core.20261101052034779 is one of each
+[Ducky.TryHarmony] ok   reload 3: after-unload of Ducky.TryHarmony.Core.20261101052034779 is clean
+[Ducky.TryHarmony] ok   reload 3: after-load of Ducky.TryHarmony.Core.20261101052045831 is one of each
+[Ducky.TryHarmony] ok   reload 4: after-unload of Ducky.TryHarmony.Core.20261101052045831 is clean
+[Ducky.TryHarmony] ok   reload 4: after-load of Ducky.TryHarmony.Core.20261101052057166 is one of each
+[Ducky.TryHarmony] ok   no exceptions mentioning the sample
+[Ducky.TryHarmony] lines: /tmp/claude-1000/-home-newbe36524-repos-ducky7go-ducky7go-mono/a658dfdd-0fda-4b90-9b50-454839bc5121/scratchpad/samples/Ducky.TryHarmony-2/sample-lines.log
+[Ducky.TryHarmony] PASS
+[Ducky.TryHarmony] cleanup: stop game, restore save, remove test mod, restore the shared mod config
+stopped 9632
+slot 6: restored
+CurrentSlot: restored to absent
+exit=0
