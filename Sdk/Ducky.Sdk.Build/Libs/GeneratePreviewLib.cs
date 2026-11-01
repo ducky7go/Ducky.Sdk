@@ -2,10 +2,10 @@
 
 using System;
 using System.IO;
+using System.Buffers.Binary;
+using System.IO.Compression;
 using System.Linq;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Drawing.Processing;
+using System.Text;
 
 /// <summary>
 /// Script library for enhanced preview generation with better error handling and logging
@@ -131,56 +131,105 @@ public class GeneratePreviewLib
 
         var modName = string.IsNullOrEmpty(context.ModName) ? Path.GetFileName(context.ProjectDir) : context.ModName;
 
-        using var image = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(size, size);
-
         // Generate identicon based on SHA256 hash of mod name
-        byte[] hash;
-        using (var sha = System.Security.Cryptography.SHA256.Create())
+        var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(modName));
+
+        // Background color from first 3 bytes, foreground is its complement
+        var bg = new[] { hash[0], hash[1], hash[2] };
+        var fg = new[] { (byte)(255 - hash[0]), (byte)(255 - hash[1]), (byte)(255 - hash[2]) };
+
+        // Plain RGB pixel buffer (no image library needed for flat-colour cells)
+        var rgb = new byte[size * size * 3];
+        for (var i = 0; i < size * size; i++)
         {
-            hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(modName));
+            rgb[i * 3] = bg[0];
+            rgb[i * 3 + 1] = bg[1];
+            rgb[i * 3 + 2] = bg[2];
         }
 
-        // Background color from first 3 bytes
-        var bgColor = Color.FromPixel(new SixLabors.ImageSharp.PixelFormats.Rgba32(hash[0], hash[1], hash[2]));
-
-        // Foreground color (complementary)
-        var fgColor =
-            Color.FromPixel(new SixLabors.ImageSharp.PixelFormats.Rgba32((byte)(255 - hash[0]), (byte)(255 - hash[1]),
-                (byte)(255 - hash[2])));
-
-        var fgBrush = new SolidBrush(fgColor);
-
-        image.Mutate(ctx =>
+        void FillCell(int cx, int cy)
         {
-            // Fill background
-            ctx.BackgroundColor(bgColor);
-
-            // Generate symmetric pattern (mirrored horizontally)
-            // Use hash bytes to determine which cells to fill
-            for (int y = 0; y < gridSize; y++)
+            for (var y = cy * cellSize; y < (cy + 1) * cellSize; y++)
+            for (var x = cx * cellSize; x < (cx + 1) * cellSize; x++)
             {
-                for (int x = 0; x < (gridSize + 1) / 2; x++) // Only half, mirror the rest
-                {
-                    int byteIndex = (y * 3 + x) % hash.Length;
-                    bool fill = (hash[byteIndex] % 2) == 0;
+                var i = (y * size + x) * 3;
+                rgb[i] = fg[0];
+                rgb[i + 1] = fg[1];
+                rgb[i + 2] = fg[2];
+            }
+        }
 
-                    if (fill)
-                    {
-                        // Fill left side
-                        ctx.Fill(fgBrush, new Rectangle(x * cellSize, y * cellSize, cellSize, cellSize));
-                        // Mirror to right side
-                        if (x != gridSize / 2) // Don't double-draw center column
-                        {
-                            ctx.Fill(fgBrush,
-                                new Rectangle((gridSize - 1 - x) * cellSize, y * cellSize, cellSize, cellSize));
-                        }
-                    }
+        // Symmetric pattern (mirrored horizontally): hash bytes decide which cells to fill
+        for (var y = 0; y < gridSize; y++)
+        {
+            for (var x = 0; x < (gridSize + 1) / 2; x++) // Only half, mirror the rest
+            {
+                if (hash[(y * 3 + x) % hash.Length] % 2 != 0) continue;
+
+                FillCell(x, y);
+                if (x != gridSize / 2) // Don't double-draw center column
+                {
+                    FillCell(gridSize - 1 - x, y);
                 }
             }
-        });
+        }
 
-        // Save as PNG
-        image.Save(previewPath);
+        File.WriteAllBytes(previewPath, EncodePng(rgb, size, size));
+    }
+
+    /// <summary>Encodes a tightly packed 8-bit RGB buffer as a PNG (no filtering, zlib-compressed).</summary>
+    internal static byte[] EncodePng(byte[] rgb, int width, int height)
+    {
+        using var idat = new MemoryStream();
+        using (var z = new ZLibStream(idat, CompressionLevel.Optimal, leaveOpen: true))
+        {
+            for (var y = 0; y < height; y++)
+            {
+                z.WriteByte(0); // filter type 0: None
+                z.Write(rgb, y * width * 3, width * 3);
+            }
+        }
+
+        var ihdr = new byte[13];
+        BinaryPrimitives.WriteInt32BigEndian(ihdr, width);
+        BinaryPrimitives.WriteInt32BigEndian(ihdr.AsSpan(4), height);
+        ihdr[8] = 8; // bit depth
+        ihdr[9] = 2; // colour type 2: RGB
+
+        using var png = new MemoryStream();
+        png.Write(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+        WritePngChunk(png, "IHDR", ihdr);
+        WritePngChunk(png, "IDAT", idat.ToArray());
+        WritePngChunk(png, "IEND", Array.Empty<byte>());
+        return png.ToArray();
+    }
+
+    private static void WritePngChunk(Stream stream, string type, byte[] data)
+    {
+        var typeBytes = Encoding.ASCII.GetBytes(type);
+        var buf = new byte[4];
+
+        BinaryPrimitives.WriteInt32BigEndian(buf, data.Length);
+        stream.Write(buf);
+        stream.Write(typeBytes);
+        stream.Write(data);
+
+        BinaryPrimitives.WriteUInt32BigEndian(buf, Crc32(Crc32(0, typeBytes), data));
+        stream.Write(buf);
+    }
+
+    private static readonly uint[] CrcTable = Enumerable.Range(0, 256).Select(n =>
+    {
+        var c = (uint)n;
+        for (var k = 0; k < 8; k++) c = (c & 1) != 0 ? 0xEDB88320u ^ (c >> 1) : c >> 1;
+        return c;
+    }).ToArray();
+
+    private static uint Crc32(uint crc, byte[] data)
+    {
+        crc ^= 0xFFFFFFFFu;
+        foreach (var b in data) crc = CrcTable[(crc ^ b) & 0xFF] ^ (crc >> 8);
+        return crc ^ 0xFFFFFFFFu;
     }
 
     private static string GetAssetsDirectory(BuildContext context)

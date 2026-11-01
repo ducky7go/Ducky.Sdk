@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Ducky.Sdk.Lib.Tests.Runner;
@@ -101,5 +103,39 @@ public class GeneratePreviewLibTests
 
         File.ReadAllBytes(Path.Combine(_assetsDir, "preview.png"))
             .ShouldNotBe(File.ReadAllBytes(Path.Combine(otherAssets, "preview.png")));
+    }
+
+    [Test]
+    public void Execute_WritesDecodablePngWithBackgroundFromModNameHash()
+    {
+        LibTestSupport.Capture(() => GeneratePreviewLib.Execute(Context()));
+        var png = File.ReadAllBytes(Path.Combine(_assetsDir, "preview.png"));
+
+        // Walk the chunks: collect IDAT payloads and make sure the file ends with the canonical IEND chunk.
+        var idat = new MemoryStream();
+        var offset = 8;
+        string lastType = "";
+        while (offset < png.Length)
+        {
+            var length = ReadBigEndian(png, offset);
+            lastType = Encoding.ASCII.GetString(png, offset + 4, 4);
+            if (lastType == "IDAT") idat.Write(png, offset + 8, length);
+            offset += 12 + length;
+        }
+        lastType.ShouldBe("IEND");
+        png.TakeLast(4).ToArray().ShouldBe(new byte[] { 0xAE, 0x42, 0x60, 0x82 }); // CRC32 of "IEND"
+
+        idat.Position = 0;
+        using var raw = new MemoryStream();
+        using (var z = new ZLibStream(idat, CompressionMode.Decompress)) z.CopyTo(raw);
+        var pixels = raw.ToArray();
+        pixels.Length.ShouldBe(128 * (1 + 128 * 3));
+
+        // The 5x5 grid covers 125px, so the bottom-right pixel is always the background colour.
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes("Ducky.EntranceMod"));
+        var last = pixels.Length - 3;
+        pixels[last].ShouldBe(hash[0]);
+        pixels[last + 1].ShouldBe(hash[1]);
+        pixels[last + 2].ShouldBe(hash[2]);
     }
 }
