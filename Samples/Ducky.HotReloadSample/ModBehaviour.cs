@@ -14,11 +14,13 @@ namespace Ducky.HotReloadSample;
 public class ModBehaviour : ModBehaviourBase
 {
     public const string LocKey = "HotReloadSample_Name";
+    private const string UiName = "HotReloadSampleUi";
     private const string HarmonyId = "ducky.hotreloadsample";
 
     private static Harmony? _harmony;
     private static int _subscribed;
     private GameObject? _child;
+    private GameObject? _ui;
     private int _buffId;
 
     public static string Marker => typeof(ModBehaviour).Assembly.GetName().Name ?? "?";
@@ -33,6 +35,9 @@ public class ModBehaviour : ModBehaviourBase
 
         _child = new GameObject("HotReloadSampleChild");
         _child.transform.SetParent(transform, false);
+
+        _ui = new GameObject(UiName, typeof(Canvas));
+        _ui.transform.SetParent(transform, false);
 
         _buffId = Contract.Buffs.RegisterBuff<SampleBuff>(_ => { });
         LocalizationManager.SetOverrideText(LocKey, "sample " + Marker);
@@ -49,6 +54,9 @@ public class ModBehaviour : ModBehaviourBase
         if (_child != null) Destroy(_child);
         _child = null;
 
+        if (_ui != null) Destroy(_ui);
+        _ui = null;
+
         LocalizationManager.RemoveOverrideText(LocKey);
     }
 
@@ -64,7 +72,8 @@ public class ModBehaviour : ModBehaviourBase
     {
         var patches = _harmony?.GetPatchedMethods().Count() ?? 0;
         var loc = LocalizationManager.TryGetOverrideText(LocKey, out var text) ? text : "none";
-        return $"samplePatches={patches} sampleSubscriptions={_subscribed} sampleLocalization={loc}";
+        var ui = UnityEngine.Object.FindObjectsOfType<Canvas>().Count(c => c != null && c.gameObject.name == UiName);
+        return $"samplePatches={patches} sampleSubscriptions={_subscribed} sampleUi={ui} sampleLocalization={loc}";
     }
 }
 
