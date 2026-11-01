@@ -132,6 +132,8 @@
             <_DuckyBuildProperty Include="21=$([MSBuild]::Escape($(DuckyHotReloadStamp)))" />
             <_DuckyBuildProperty Include="22=$([MSBuild]::Escape($(_DuckyHotReloadHarmony)))" />
             <_DuckyBuildProperty Include="23=$([MSBuild]::Escape($(_DuckyHotReloadTemplate)))" />
+            <_DuckyBuildProperty Include="24=$([MSBuild]::Escape($(LocalizationValidation)))" />
+            <_DuckyBuildProperty Include="25=$([MSBuild]::Escape($(LocalizationExtraKeys)))" />
         </ItemGroup>
         <WriteLinesToFile File="$(_DuckyBuildPropertiesFile)" Lines="@(_DuckyBuildProperty)" Overwrite="true" />
 

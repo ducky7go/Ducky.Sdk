@@ -229,6 +229,14 @@ public class BuildContext
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool HotReloadEnabled { get; init; }
 
+    /// <summary>LocalizationValidation: Off, Warn or Error for missing keys and placeholder mismatches. Null means Warn.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LocalizationValidation { get; set; }
+
+    /// <summary>LocalizationExtraKeys: Ignore, Warn or Error for keys the English baseline does not have. Null means Warn.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LocalizationExtraKeys { get; set; }
+
     /// <summary>HotReloadStamp: UTC millisecond stamp of this build, yyyyMMddHHmmssfff. Set only with HotReloadEnabled.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? HotReloadStamp { get; init; }

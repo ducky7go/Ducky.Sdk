@@ -244,4 +244,11 @@
       Text="[Ducky.Sdk] ManagedDirectory '$(ManagedDirectory)' does not exist. Game references will not be available." />
   </Target>
 
+  <!-- Localization validation (docs/localization.md): LocalizationValidation = Off | Warn | Error for missing keys and
+       placeholder mismatches; LocalizationExtraKeys = Ignore | Warn | Error for keys the English baseline lacks. -->
+  <PropertyGroup>
+    <LocalizationValidation Condition="'$(LocalizationValidation)' == ''">Warn</LocalizationValidation>
+    <LocalizationExtraKeys Condition="'$(LocalizationExtraKeys)' == ''">Warn</LocalizationExtraKeys>
+  </PropertyGroup>
+
 </Project>

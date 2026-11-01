@@ -138,6 +138,9 @@ internal static class BuildContextGenerationStep
             HotReloadStamp = hotReloadEnabled ? hotReloadStamp : null,
             HarmonyDllPath = hotReloadEnabled ? GetOptionalString(argsDict, "22") : null,
             ShimTemplatePath = hotReloadEnabled ? GetOptionalString(argsDict, "23") : null,
+            // 24-25: localization validation severities. Absent means the defaults (Warn).
+            LocalizationValidation = GetOptionalString(argsDict, "24"),
+            LocalizationExtraKeys = GetOptionalString(argsDict, "25"),
         };
     }
 
