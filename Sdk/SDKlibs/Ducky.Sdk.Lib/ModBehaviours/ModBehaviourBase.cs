@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using Duckov.Modding;
 using Ducky.Sdk.Contracts;
 using Ducky.Sdk.Contracts.ModProtocols;
@@ -55,6 +56,8 @@ public abstract class ModBehaviourBase : ModBehaviour
             catch
             {
                 state.IsEnabled = false;
+                // EnableCore may have failed after attaching shared resources; undo them.
+                ReleaseSharedResources();
                 throw;
             }
         }
@@ -72,6 +75,7 @@ public abstract class ModBehaviourBase : ModBehaviour
                 }
 
                 Log.Debug("Enabling mod behaviour: {ModBehaviour}", GetType().Name);
+                L.Instance.Attach(); // re-subscribe after a previous disable
                 L.Instance.SetLanguage(LocalizationManager.CurrentLanguage);
                 Log.Debug("Set localization language to: {Language}", LocalizationManager.CurrentLanguage);
                 BuffsContract.Instance.EnsureBuffIdRegion(); // ensure BuffRegistrator is initialized
@@ -116,6 +120,30 @@ public abstract class ModBehaviourBase : ModBehaviour
             }
 
             enabled = false;
+            ReleaseSharedResources();
+        }
+    }
+
+    /// <summary>
+    /// Undo what enabling attached to process-wide state, so a disabled mod stops reacting to game events.
+    /// Skipped while another <see cref="ModBehaviourBase"/> subclass in this mod is still enabled.
+    /// The MessageHub host is intentionally left running: it is shared by all mods and outlives any one of them.
+    /// Never throws, so it cannot mask the exception that triggered the teardown.
+    /// </summary>
+    private static void ReleaseSharedResources()
+    {
+        try
+        {
+            if (EnableStates.Values.Any(s => s.IsEnabled))
+            {
+                return;
+            }
+
+            L.Instance.Detach();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ModBehaviourBase] Failed to release shared resources: {e}");
         }
     }
 

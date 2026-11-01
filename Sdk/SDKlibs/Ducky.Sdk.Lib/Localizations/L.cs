@@ -26,7 +26,24 @@ public partial class L
 
     private L()
     {
+        Attach();
+    }
+
+    /// <summary>
+    /// Subscribe to the game's language-changed event. Idempotent.
+    /// </summary>
+    internal void Attach()
+    {
+        LocalizationManager.OnSetLanguage -= SetLanguage;
         LocalizationManager.OnSetLanguage += SetLanguage;
+    }
+
+    /// <summary>
+    /// Unsubscribe from the game's language-changed event (called when the mod is disabled). Idempotent.
+    /// </summary>
+    internal void Detach()
+    {
+        LocalizationManager.OnSetLanguage -= SetLanguage;
     }
 
 
