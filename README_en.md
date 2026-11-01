@@ -227,6 +227,74 @@ Log.Warn("Low health: {Health}", health);
 Log.Error(exception, "Failed to load resource: {ResourceId}", resourceId);
 ```
 
+## Shared Runtime APIs
+
+### ModInfo: the running mod's identity
+
+```csharp
+using Ducky.Sdk.Utils;
+
+string name = ModInfo.Name;              // mod name
+string id = ModInfo.Id;                  // "steam.<digits>" or "local.<folder name>"
+string? folder = ModInfo.Folder;         // full path of the mod folder, null when unknown
+string? assets = ModInfo.AssetsPath;     // <Folder>/assets, null when Folder is null
+bool core = ModInfo.IsHotReloadCore;     // hot reload Core (<ModName>.Core.<timestamp>)
+```
+
+A hot reload Core has no file path, so `Folder` uses the folder of the already loaded shim assembly of the same mod.
+Note: the default build copies the **contents** of `AssetsDir` into the mod folder root and does not create an `assets` subfolder. `AssetsPath` follows the specification (`Folder/assets`), so check that the directory exists before using it.
+
+### MainThread: from any thread to Unity's main thread
+
+```csharp
+using Ducky.Sdk.Threading;
+
+MainThread.Post(() => DoSomethingOnMainThread());          // queued; runs on the main thread in a later frame
+
+await MainThread.InvokeAsync(() => GameObject.Find("x"),   // returns Task<T> with the result or exception
+                             cancellationToken,
+                             TimeSpan.FromSeconds(2));     // timeout is optional
+```
+
+- Work **never runs inline**, even when called from the main thread. `Post` never blocks the caller.
+- Timeout before the work starts: the task faults with `TimeoutException` and the work never runs. Timeout after it started: the task completes with the work's own result or exception.
+- Cancellation before the work starts: the task is cancelled and the work does not run.
+- `ModBehaviourBase` starts the scheduler when the mod is enabled and closes it when the last enabled subclass is disabled (pending `InvokeAsync` tasks are cancelled and pending `Post` actions are discarded).
+- A mod that does not derive from `ModBehaviourBase` must call `MainThread.EnsureStarted()` on the main thread first; until then posted work waits.
+
+### Subscriptions: event subscriptions released with the mod
+
+```csharp
+using Ducky.Sdk.GameEvents;
+
+protected override void ModEnabled()
+{
+    Subscriptions.Add(LevelEvents.OnInitialized(() => OnLevelReady()));
+    Subscriptions.Add(SceneEvents.OnPhaseChanged((previous, next) => OnPhase(next)));
+    Subscriptions.Add(() => SomeOtherEvent -= handler);     // any Action works too
+}
+```
+
+- Released after `ModDisabled()`, in reverse order of addition. Released even when `ModDisabled()` throws, and the original exception is still rethrown. Hot reload releases the old Core's subscriptions the same way.
+- An item added while the behaviour is disabled is disposed at once and is not kept for the next enable.
+- A failing disposal is logged; the other subscriptions are still released.
+- `ScenePhases.Of(sceneName)` maps names starting with `Base` to `Base`, names starting with `Level` to `Raid`, and everything else to `Other`. Matching is case-sensitive.
+
+**Cleanup checklist**: event handlers added through `Subscriptions` need no `-=` in `ModDisabled`. These still need explicit cleanup in `ModDisabled`: Harmony patches, `GameObject`s, buff registrations and UI.
+
+### Analyzer diagnostics DUCKY006 / DUCKY007
+
+| ID | Meaning | Remedy |
+| --- | --- | --- |
+| `DUCKY006` | A Unity API is used inside a delegate passed to `Task.Run` or `UniTask.RunOnThreadPool` | `await UniTask.SwitchToMainThread()` first, or use `MainThread.InvokeAsync` |
+| `DUCKY007` | A Unity object is accessed in a static constructor or a static field/property initializer | Create it lazily on the main thread in an instance member |
+
+Both are warnings, enabled by default; they do not fail the build. Generated code is not analyzed. Known limits: Unity calls in helper methods and method groups are not followed. `Debug`, `Mathf` and structs such as `Vector3` are not flagged; `Debug.Log*` is covered by `DUCKY001`–`DUCKY005`.
+
+### Bullet count
+
+`ItemSetting_Gun` has `TryGetBulletCount(out int)` and `SetBulletCount(int)`, which read and write the game's internal `bulletCount` member (a private instance property). When the member is not found, a single log line is written; `SetBulletCount` then does nothing and returns the same gun, so calls can be chained.
+
 ## Advanced Features
 
 ### Harmony Runtime Patching

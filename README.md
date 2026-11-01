@@ -8,7 +8,6 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/download)
 [![NuGet](https://img.shields.io/nuget/v/Ducky.Sdk.svg)](https://www.nuget.org/packages/Ducky.Sdk/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Ducky.Sdk.svg)](https://www.nuget.org/packages/Ducky.Sdk/)
-[![MyGet](https://img.shields.io/myget/dk/v/Ducky.Sdk.svg)](https://www.myget.org/feed/duckysdk/package/nuget/Ducky.Sdk)
 [![GitHub Stars](https://img.shields.io/github/stars/ducky7go/Ducky.Sdk?style=social)](https://github.com/ducky7go/Ducky.Sdk/stargazers)
 [![GitHub Issues](https://img.shields.io/github/issues/ducky7go/Ducky.Sdk)](https://github.com/ducky7go/Ducky.Sdk/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/ducky7go/Ducky.Sdk)](https://github.com/ducky7go/Ducky.Sdk/pulls)
@@ -119,27 +118,15 @@ dotnet build
 
 ## 包发布渠道
 
-Ducky.Sdk 通过以下渠道发布：
+Ducky.Sdk 通过 NuGet.org 发布稳定版本：
 
 ### NuGet.org (稳定版)
 - **主要发布渠道** - 面向生产环境使用
 - **官方稳定版本** - 经过完整测试的正式版本
 - **访问地址**: [https://www.nuget.org/packages/Ducky.Sdk/](https://www.nuget.org/packages/Ducky.Sdk/)
 
-### MyGet (预览版)
-- **预览发布渠道** - 开发版本和预发布版本
-- **快速分发** - 开发者可快速获取最新功能
-- **持续集成** - main 分支的每次构建都会自动发布
-- **访问地址**: [https://www.myget.org/feed/duckysdk/package/nuget/Ducky.Sdk](https://www.myget.org/feed/duckysdk/package/nuget/Ducky.Sdk)
-
-### 双重发布机制
-- **容错设计**: 即使其中一个发布渠道失败，另一个仍会继续发布
-- **同步版本**: 标签版本会同时发布到两个渠道
-- **开发版本**: main 分支的构建版本优先在 MyGet 上提供
-
 ### 推荐使用方式
 - **生产环境**: 使用 NuGet.org 稳定版本
-- **开发测试**: 使用 MyGet 预览版本以获取最新功能
 - **体验测试**: 在项目中指定预发布版本：`<PackageReference Include="Ducky.Sdk" Version="*" />`
 
 ## 核心概念
@@ -267,6 +254,74 @@ Log.Info("玩家加入：{PlayerName}", playerName);
 Log.Warn("生命值过低：{Health}", health);
 Log.Error(exception, "加载资源失败：{ResourceId}", resourceId);
 ```
+
+## 共享运行时 API
+
+### ModInfo：当前 Mod 的身份
+
+```csharp
+using Ducky.Sdk.Utils;
+
+string name = ModInfo.Name;              // Mod 名称
+string id = ModInfo.Id;                  // "steam.<数字>" 或 "local.<文件夹名>"
+string? folder = ModInfo.Folder;         // Mod 所在目录的完整路径，未知时为 null
+string? assets = ModInfo.AssetsPath;     // Folder 下的 assets 路径，Folder 为 null 时为 null
+bool core = ModInfo.IsHotReloadCore;     // 是否为热重载 Core（<ModName>.Core.<时间戳>）
+```
+
+热重载 Core 没有文件路径，`Folder` 会取同一 Mod 已加载的 shim 程序集所在目录。
+注意：默认构建流程把 `AssetsDir` 的**内容**复制到 Mod 目录根部，不会创建 `assets` 子目录；`AssetsPath` 按规范返回 `Folder/assets`，使用前请确认目录确实存在。
+
+### MainThread：从任意线程回到 Unity 主线程
+
+```csharp
+using Ducky.Sdk.Threading;
+
+MainThread.Post(() => DoSomethingOnMainThread());          // 排队，之后的帧在主线程执行
+
+await MainThread.InvokeAsync(() => GameObject.Find("x"),   // 返回 Task<T>，可取结果或异常
+                             cancellationToken,
+                             TimeSpan.FromSeconds(2));     // 超时参数可选
+```
+
+- 工作**从不内联执行**，即使在主线程调用也一样；`Post` 不阻塞调用方。
+- 超时前工作未开始：任务以 `TimeoutException` 失败，工作永远不会执行。工作已开始：任务返回工作自身的结果或异常。
+- 取消在工作开始前生效：任务被取消，工作不执行。
+- `ModBehaviourBase` 在启用时自动启动主线程调度器，并在最后一个启用的子类被禁用时关闭它（待处理的 `InvokeAsync` 被取消，`Post` 被丢弃）。
+- 不继承 `ModBehaviourBase` 的 Mod 必须在主线程上先调用 `MainThread.EnsureStarted()`，否则投递的工作会一直等待。
+
+### Subscriptions：随禁用自动释放的事件订阅
+
+```csharp
+using Ducky.Sdk.GameEvents;
+
+protected override void ModEnabled()
+{
+    Subscriptions.Add(LevelEvents.OnInitialized(() => OnLevelReady()));
+    Subscriptions.Add(SceneEvents.OnPhaseChanged((previous, next) => OnPhase(next)));
+    Subscriptions.Add(() => SomeOtherEvent -= handler);     // 任意 Action 也可以
+}
+```
+
+- 在 `ModDisabled()` 之后按加入的逆序释放；`ModDisabled()` 抛出异常时也会释放，原异常照常抛出。热重载时同样释放旧 Core 的订阅。
+- 禁用期间加入的项会被立即释放，不会保留到下一次启用。
+- 单个订阅释放失败只记录日志，不影响其余订阅。
+- `ScenePhases.Of(sceneName)` 把场景名分为 `Base`（以 `Base` 开头）、`Raid`（以 `Level` 开头）和 `Other`，区分大小写。
+
+**清理清单**：经 `Subscriptions` 添加的事件处理器不需要在 `ModDisabled` 里 `-=`。下列内容仍需要在 `ModDisabled` 里显式清理：Harmony 补丁、`GameObject`、Buff 注册、UI。
+
+### 分析器诊断 DUCKY006 / DUCKY007
+
+| ID | 含义 | 处理方式 |
+| --- | --- | --- |
+| `DUCKY006` | `Task.Run` 或 `UniTask.RunOnThreadPool` 的委托中使用了 Unity API | 先 `await UniTask.SwitchToMainThread()`，或改用 `MainThread.InvokeAsync` |
+| `DUCKY007` | 静态构造函数或静态字段/属性初始化器中访问了 Unity 对象 | 改为在主线程上惰性创建的实例成员 |
+
+两者都是默认启用的警告（不会导致构建失败），生成的代码不分析。已知限制：不跟踪辅助方法和方法组中的 Unity 调用。`Debug`、`Mathf` 和结构体（如 `Vector3`）不会被标记；`Debug.Log*` 由 `DUCKY001`–`DUCKY005` 处理。
+
+### 子弹数 API
+
+`ItemSetting_Gun` 上提供 `TryGetBulletCount(out int)` 与 `SetBulletCount(int)`，读写游戏内部的 `bulletCount` 成员（私有实例属性）。找不到该成员时只记录一次日志，`SetBulletCount` 不做任何事并返回原对象，可以链式调用。
 
 ## 高级功能
 
