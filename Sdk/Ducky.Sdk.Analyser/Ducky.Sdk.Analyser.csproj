@@ -17,4 +17,11 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
   </ItemGroup>
+  <!-- Shared localization sources (Sdk/Shared/Localization), compiled as internal code of this assembly. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\Localization\LanguageCodes.cs" Link="Localizations\Shared\LanguageCodes.cs" />
+    <Compile Include="..\Shared\Localization\CsvDocument.cs" Link="Localizations\Shared\CsvDocument.cs" />
+    <Compile Include="..\Shared\Localization\KeyPatternSyntax.cs" Link="Localizations\Shared\KeyPatternSyntax.cs" />
+  </ItemGroup>
+
 </Project>

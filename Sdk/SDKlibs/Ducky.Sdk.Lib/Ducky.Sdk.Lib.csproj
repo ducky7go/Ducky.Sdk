@@ -19,6 +19,18 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Ducky.Sdk.Lib.Tests" />
   </ItemGroup>
+
+  <!-- Harmony-based helpers are compiled into this library only when the SDK's 0Harmony.dll is present; mods get the
+       same define from Ducky.Sdk.props when they set IncludeHarmony. -->
+  <PropertyGroup Condition="Exists('$(MSBuildThisFileDirectory)../Ducky.Sdk/0Harmony.dll')">
+    <DefineConstants>$(DefineConstants);DUCKY_SDK_HARMONY</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)../Ducky.Sdk/0Harmony.dll')">
+    <Reference Include="0Harmony">
+      <HintPath>$(MSBuildThisFileDirectory)../Ducky.Sdk/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
   <ItemGroup>
     <Reference Include="$(ManagedDirectory)TeamSoda.*" />
     <Reference Include="$(ManagedDirectory)Unity*" />
@@ -32,4 +44,11 @@
     <Reference Include="$(ManagedDirectory)DOTween*.dll" />
     <Reference Include="$(ManagedDirectory)UniTask*.dll" />
   </ItemGroup>
+  <!-- Shared localization sources (Sdk/Shared/Localization), compiled as internal code of this assembly. -->
+  <ItemGroup>
+    <Compile Include="..\..\Shared\Localization\LanguageCodes.cs" Link="Localizations\Shared\LanguageCodes.cs" />
+    <Compile Include="..\..\Shared\Localization\CsvDocument.cs" Link="Localizations\Shared\CsvDocument.cs" />
+    <Compile Include="..\..\Shared\Localization\KeyPatternSyntax.cs" Link="Localizations\Shared\KeyPatternSyntax.cs" />
+  </ItemGroup>
+
 </Project>

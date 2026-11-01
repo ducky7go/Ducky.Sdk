@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!--
     Build runner shipped inside the Ducky.Sdk package (tools/net10.0/Ducky.Sdk.Build.dll).
@@ -13,6 +13,7 @@
     <RootNamespace>Ducky.Sdk.Build</RootNamespace>
     <Nullable>enable</Nullable>
     <UseAppHost>false</UseAppHost>
+    <DefineConstants>$(DefineConstants);DUCKY_SDK_BUILD_SHARED</DefineConstants>
     <SelfContained>false</SelfContained>
   </PropertyGroup>
 
@@ -28,6 +29,13 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="ILRepack.Lib" />
+  </ItemGroup>
+
+  <!-- Shared localization sources (Sdk/Shared/Localization), compiled as internal code of this assembly. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\Localization\LanguageCodes.cs" Link="Localizations\Shared\LanguageCodes.cs" />
+    <Compile Include="..\Shared\Localization\CsvDocument.cs" Link="Localizations\Shared\CsvDocument.cs" />
+    <Compile Include="..\Shared\Localization\KeyPatternSyntax.cs" Link="Localizations\Shared\KeyPatternSyntax.cs" />
   </ItemGroup>
 
 </Project>

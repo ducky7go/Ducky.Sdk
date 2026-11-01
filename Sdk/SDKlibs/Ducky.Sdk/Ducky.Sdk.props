@@ -110,6 +110,12 @@
       <_HarmonyDllPath>$(MSBuildThisFileDirectory)../tools/0Harmony.dll</_HarmonyDllPath>
     </PropertyGroup>
 
+    <!-- The Harmony-based SDK helpers (Combat/LethalDamageGuard, Combat/HurtRules, GameEvents/EnemyReady) are compiled
+         only into mods that include Harmony, so a mod without it is unaffected. -->
+    <PropertyGroup Condition="Exists('$(_HarmonyDllPath)')">
+      <DefineConstants>$(DefineConstants);DUCKY_SDK_HARMONY</DefineConstants>
+    </PropertyGroup>
+
     <ItemGroup>
       <Reference Include="0Harmony" Condition="Exists('$(_HarmonyDllPath)')">
         <HintPath>$(_HarmonyDllPath)</HintPath>
