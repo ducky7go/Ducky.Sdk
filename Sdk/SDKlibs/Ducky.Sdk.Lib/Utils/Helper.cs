@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -75,26 +76,23 @@ public class Helper
             return _modId!;
         }
 
-        var folderName = GetModFolderName();
-
-        if (!string.IsNullOrEmpty(folderName))
-        {
-            // Check if folder name is all digits (Steam Workshop mod)
-            if (folderName.All(char.IsDigit))
-            {
-                _modId = "steam." + folderName;
-            }
-            else
-            {
-                _modId = "local." + folderName;
-            }
-        }
-        else
-        {
-            _modId = GetModName();
-        }
-
+        _modId = ResolveModId(GetModFolderName(), GetModName());
         return _modId!;
+    }
+
+    /// <summary>
+    /// The mod id for a folder name: "steam.&lt;digits&gt;" for a Workshop folder, "local.&lt;name&gt;" otherwise,
+    /// and the mod name when no folder is known. Pure, so it is unit-tested without Unity.
+    /// </summary>
+    internal static string ResolveModId(string? folderName, string modName)
+    {
+        if (string.IsNullOrEmpty(folderName))
+        {
+            return modName;
+        }
+
+        // Check if folder name is all digits (Steam Workshop mod)
+        return folderName.All(char.IsDigit) ? "steam." + folderName : "local." + folderName;
     }
 
     /// <summary>
@@ -104,21 +102,37 @@ public class Helper
     /// </summary>
     internal static string? GetModFolderName()
     {
+        var directory = GetModFolderPath();
+        return string.IsNullOrEmpty(directory) ? null : Path.GetFileName(directory);
+    }
+
+    private static string? _modFolderPath;
+
+    /// <summary>
+    /// Full path of the folder that holds the running mod, or null when it is unknown. It never throws. Only a
+    /// non-null result is cached, so a shim loaded later is still found on a later call.
+    /// </summary>
+    internal static string? GetModFolderPath()
+    {
+        if (!string.IsNullOrEmpty(_modFolderPath))
+        {
+            return _modFolderPath;
+        }
+
         try
         {
-            var location = Assembly.GetExecutingAssembly().Location;
-            if (string.IsNullOrEmpty(location))
+            var self = Assembly.GetExecutingAssembly();
+            var path = ResolveModFolderPath(
+                self.GetName().Name,
+                () => self.Location,
+                AppDomain.CurrentDomain.GetAssemblies()
+                    .Select(a => ((Func<string?>)(() => a.GetName().Name), (Func<string?>)(() => a.Location))));
+            if (!string.IsNullOrEmpty(path))
             {
-                location = FindLoadedModLocation();
+                _modFolderPath = path;
             }
 
-            if (string.IsNullOrEmpty(location))
-            {
-                return null;
-            }
-
-            var directory = Path.GetDirectoryName(location);
-            return string.IsNullOrEmpty(directory) ? null : Path.GetFileName(directory);
+            return path;
         }
         catch (Exception)
         {
@@ -126,17 +140,54 @@ public class Helper
         }
     }
 
-    private static string? FindLoadedModLocation()
+    /// <summary>
+    /// Folder of the running mod given the running assembly's name and location, and the loaded assemblies as
+    /// (name, location) readers. Falls back to the loaded shim of the same mod when the running assembly has no
+    /// location. A reader that throws <see cref="NotSupportedException"/> (a dynamic assembly) is skipped, so one
+    /// such assembly cannot hide the shim. Pure, so it is unit-tested without Unity.
+    /// </summary>
+    internal static string? ResolveModFolderPath(
+        string? ownAssemblyName,
+        Func<string?> ownLocation,
+        IEnumerable<(Func<string?> Name, Func<string?> Location)> loadedAssemblies)
     {
-        var modName = HotReloadNames.ToModName(Assembly.GetExecutingAssembly().GetName().Name ?? string.Empty);
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        var location = ReadOrNull(ownLocation);
+        if (string.IsNullOrEmpty(location))
         {
-            if (assembly.GetName().Name == modName && !string.IsNullOrEmpty(assembly.Location))
+            var modName = HotReloadNames.ToModName(ownAssemblyName ?? string.Empty);
+            foreach (var (name, loadedLocation) in loadedAssemblies)
             {
-                return assembly.Location;
+                if (ReadOrNull(name) != modName)
+                {
+                    continue;
+                }
+
+                location = ReadOrNull(loadedLocation);
+                if (!string.IsNullOrEmpty(location))
+                {
+                    break;
+                }
             }
         }
 
-        return null;
+        if (string.IsNullOrEmpty(location))
+        {
+            return null;
+        }
+
+        var directory = Path.GetDirectoryName(location);
+        return string.IsNullOrEmpty(directory) ? null : directory;
+    }
+
+    private static string? ReadOrNull(Func<string?> read)
+    {
+        try
+        {
+            return read();
+        }
+        catch (Exception)
+        {
+            return null; // dynamic assembly (no location) or a reader that fails: skip it
+        }
     }
 }
