@@ -322,7 +322,7 @@ Organize complex mods into multiple projects:
 The SDK automatically generates:
 
 1. **info.ini** - Basic mod metadata (name, displayName, description)
-2. **preview.png** - 256x256 identicon based on mod name
+2. **preview.png** - 256x256 preview: one of ten bundled backgrounds, chosen by a SHA-256 hash of the mod name, with the project abbreviation drawn on top (e.g. `Ducky.EntranceMod` → `DEM`). An existing `preview.png` is never overwritten, and library projects (`IsModLib`) get none. The backgrounds were generated once with ComfyUI and are committed; maintainers regenerate them with `scripts/generate_preview_backgrounds.sh`. Mod builds never call ComfyUI.
 3. **publishedFileId** - Steam Workshop ID synchronization
 
 Disable auto-deployment during development:
@@ -343,7 +343,7 @@ MyMod/
 ├── Local.props            # Git-ignored local config
 └── assets/
     ├── info.ini           # Mod metadata
-    ├── preview.png        # Mod icon
+    ├── preview.png        # Mod preview (background + abbreviation, auto-generated)
     ├── description.md     # Long description
     └── Locales/
         ├── en.csv         # English translations

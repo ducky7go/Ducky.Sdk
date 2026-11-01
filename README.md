@@ -428,7 +428,7 @@ public static class Player_TakeDamage_Patch
 SDK 会自动生成：
 
 1. **info.ini** - 基本 Mod 元数据（名称、显示名称、描述）
-2. **preview.png** - 基于 Mod 名称的 256x256 identicon
+2. **preview.png** - 256x256 预览图：按 Mod 名称的 SHA-256 哈希从 10 张内置背景中选一张，并在其上绘制项目名缩写（如 `Ducky.EntranceMod` → `DEM`）。已存在的 `preview.png` 不会被覆盖；库项目（`IsModLib`）不生成。背景由 ComfyUI 一次性生成并随 SDK 提交，维护者可运行 `scripts/generate_preview_backgrounds.sh` 重新生成；普通 Mod 构建不调用 ComfyUI。
 3. **publishedFileId** - Steam 创意工坊 ID 同步
 
 开发期间禁用自动部署：
@@ -449,7 +449,7 @@ MyMod/
 ├── Local.props            # Git 忽略的本地配置
 └── assets/
     ├── info.ini           # Mod 元数据
-    ├── preview.png        # Mod 图标
+    ├── preview.png        # Mod 预览图（背景 + 缩写，自动生成）
     ├── description.md     # 详细描述
     └── Locales/
         ├── en.csv         # 英文翻译
