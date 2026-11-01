@@ -42,12 +42,12 @@ public class Helper
 
             if (string.IsNullOrEmpty(_modName))
             {
-                _modName = asm.GetName().Name ?? "Mod";
+                _modName = HotReloadNames.ToModName(asm.GetName().Name ?? "Mod");
             }
         }
         catch
         {
-            _modName = Assembly.GetExecutingAssembly().GetName().Name ?? "Mod";
+            _modName = HotReloadNames.ToModName(Assembly.GetExecutingAssembly().GetName().Name ?? "Mod");
         }
 
         if (_modNameLogShown == 0)
@@ -75,9 +75,7 @@ public class Helper
             return _modId!;
         }
 
-        var asm = Assembly.GetExecutingAssembly();
-        var location = asm.Location;
-        var folderName = Path.GetFileName(Path.GetDirectoryName(location));
+        var folderName = GetModFolderName();
 
         if (!string.IsNullOrEmpty(folderName))
         {
@@ -97,5 +95,48 @@ public class Helper
         }
 
         return _modId!;
+    }
+
+    /// <summary>
+    /// Name of the folder that holds the running mod. A Core loaded from bytes (hot reload) has no
+    /// <see cref="Assembly.Location"/>, so the folder comes from the already loaded mod assembly of the same mod.
+    /// Returns null when neither location is known; it never throws.
+    /// </summary>
+    internal static string? GetModFolderName()
+    {
+        try
+        {
+            var location = Assembly.GetExecutingAssembly().Location;
+            if (string.IsNullOrEmpty(location))
+            {
+                location = FindLoadedModLocation();
+            }
+
+            if (string.IsNullOrEmpty(location))
+            {
+                return null;
+            }
+
+            var directory = Path.GetDirectoryName(location);
+            return string.IsNullOrEmpty(directory) ? null : Path.GetFileName(directory);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static string? FindLoadedModLocation()
+    {
+        var modName = HotReloadNames.ToModName(Assembly.GetExecutingAssembly().GetName().Name ?? string.Empty);
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            if (assembly.GetName().Name == modName && !string.IsNullOrEmpty(assembly.Location))
+            {
+                return assembly.Location;
+            }
+        }
+
+        return null;
     }
 }
