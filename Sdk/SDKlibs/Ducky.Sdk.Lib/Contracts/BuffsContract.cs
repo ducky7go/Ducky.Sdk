@@ -96,12 +96,7 @@ public class BuffsContract : MonoBehaviour
     /// </summary>
     internal static void ReleaseOwnedBuffs()
     {
-        List<Buff> owned;
-        lock (OwnedBuffs)
-        {
-            owned = OwnedBuffs.ToList();
-            OwnedBuffs.Clear();
-        }
+        var owned = TakeAll(OwnedBuffs, OwnedBuffs);
 
         if (owned.Count == 0)
         {
@@ -138,6 +133,21 @@ public class BuffsContract : MonoBehaviour
         }
     }
 
+    /// <summary>The first buff id of a new region, given how many regions exist already. Pure.</summary>
+    internal static int ComputeRegionStart(int existingRegionCount) =>
+        StartingBuffId + existingRegionCount * BuffIdRegionSize;
+
+    /// <summary>Copies the items and clears the list, under the given lock. Pure bookkeeping, tested without Unity.</summary>
+    internal static List<T> TakeAll<T>(List<T> items, object sync)
+    {
+        lock (sync)
+        {
+            var copy = items.ToList();
+            items.Clear();
+            return copy;
+        }
+    }
+
     public Buff? CreateBuffInstance(int id)
     {
         var allBuffs = GameplayDataSettings.Buffs.GetAllBuffs()!;
@@ -163,7 +173,7 @@ public class BuffsContract : MonoBehaviour
         var regions = ModOptions.ForAllMods.LoadConfig(BuffRegionOptionKey, Default)!;
         if (!regions.TryGetValue(currentModId, out var value))
         {
-            var newRegionStart = StartingBuffId + regions.Count * BuffIdRegionSize;
+            var newRegionStart = ComputeRegionStart(regions.Count);
             regions[currentModId] = newRegionStart;
             ModOptions.ForAllMods.SaveConfig(BuffRegionOptionKey, regions);
             _maxBuffId = newRegionStart;
