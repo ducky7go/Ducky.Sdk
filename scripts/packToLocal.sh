@@ -30,6 +30,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PKG_PROJ="${ROOT_DIR}/Sdk/SDKlibs/Ducky.Sdk/Ducky.Sdk.csproj"
+RUNNER_PROJ="${ROOT_DIR}/Sdk/Ducky.Sdk.Build/Ducky.Sdk.Build.csproj"
+RUNNER_PUBLISH_DIR="${ROOT_DIR}/Sdk/Ducky.Sdk.Build/publish/net10.0"
 NUSPEC_ORIG="${ROOT_DIR}/Sdk/SDKlibs/Ducky.Sdk/Ducky.Sdk.nuspec"
 LOCAL_FEED="${ROOT_DIR}/duckylocal"
 PACKAGE_ID="Ducky.Sdk"
@@ -213,6 +215,15 @@ if $BUILD; then
   dotnet build "$ROOT_DIR/Sdk/Ducky.Sdk.Analyser/Ducky.Sdk.Analyser.csproj" -c "$CONFIGURATION"
   log "Building SDK package project"
   dotnet build "$PKG_PROJ" -c "$CONFIGURATION"
+  log "Publishing build runner (packed as tools/net10.0)"
+  dotnet publish "$RUNNER_PROJ" -c "$CONFIGURATION" -o "$RUNNER_PUBLISH_DIR" --nologo || { err "dotnet publish failed for $RUNNER_PROJ"; exit 1; }
+fi
+
+# The package needs the published build runner; fail here with a clear message instead of packing without it
+if [[ ! -f "$RUNNER_PUBLISH_DIR/Ducky.Sdk.Build.dll" ]]; then
+  err "Build runner publish output not found: $RUNNER_PUBLISH_DIR/Ducky.Sdk.Build.dll"
+  err "Run without --no-build, or publish it first: dotnet publish $RUNNER_PROJ -c $CONFIGURATION -o $RUNNER_PUBLISH_DIR"
+  exit 1
 fi
 
 # Optional tests (only if there is a tests project)

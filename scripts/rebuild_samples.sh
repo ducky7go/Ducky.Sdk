@@ -53,10 +53,6 @@ done
 [[ -d "$SAMPLES_DIR" ]] || err "Samples directory not found: $SAMPLES_DIR"
 [[ -f "$SAMPLE_SOLUTION" ]] || err "Sample solution not found: $SAMPLE_SOLUTION"
 
-# Install required .NET tools
-log "Installing .NET tools..."
-dotnet tool restore || err "Failed to restore .NET tools"
-
 # Step 1: Pack Ducky.Sdk with auto-incremented version to local feed
 log "Step 1: Packing Ducky.Sdk with auto-incremented version to local feed"
 PACK_ARGS=(--configuration Debug)
@@ -97,7 +93,7 @@ fi
 
 # Step 4: Rebuild the solution
 log "Step 4: Rebuilding sample solution"
-# -m:1 builds projects serially: parallel nodes each run `dotnet script`, which races on its shared script cache (SIGBUS / "Root element is missing.")
+# -m:1 builds projects serially; kept until a parallel run is verified (see task 8.2)
 dotnet build "$SAMPLE_SOLUTION" --configuration Debug -m:1 || err "Failed to build sample solution"
 
 # Read the actual version that was used from nuget.props

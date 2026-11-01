@@ -1,44 +1,36 @@
 <Project>
     <!--
-    Simplified Orchestration Targets - Uses unified entry.csx system
-    All script execution goes through the unified entry point with BuildContext JSON.
+    Ducky.Sdk build orchestration.
 
-    Architecture:
-    - Generate BuildContext JSON with all project configuration
-    - Execute all script libraries in sequence
-    - Each library handles its own conditional execution logic internally
-    - No conditional logic in MSBuild targets - keep it simple
+    All build steps run in the Ducky.Sdk build runner, Ducky.Sdk.Build.dll, which is packed under tools/net10.0/.
+    A build starts at most two runner processes, one per phase, and no external tool is needed:
+    - GenerateBuildContext (BeforeBuild): writes the MSBuild property values to obj/ducky-build-properties.txt
+    - ExecutePreBuildScripts (after CoreCompile): runner phase pre. It writes obj/ducky-build-context.json from
+      the property file, then runs the pre steps (logging, validation, localization, info.ini, preview, collect).
+    - ExecutePostBuildScripts (after Build): runner phase post. It updates the BuildContext with the compiled
+      dependencies, then resets, merges (ILRepack), copies dependencies, deploys the mod and prints the result.
 
-    Execution Order:
-    1. InitializeBuildLoggingLib - Start build logging
-    2. ValidateProjectPathLib - Validate project structure
-    3. ResolveSdkPropertiesLib - Resolve SDK properties and paths
-    4. UpdateBuildContextAfterBuildLib - Update BuildContext with post-compilation dependency information
-    5. ExtractLocalizationKeysLib - Extract localization keys from source
-    6. UpdateLocalizationCsvLib - Update CSV localization files
-    7. CopyLocalizationAssetsLib - Copy localization assets
-    8. EnsureInfoIniLib - Generate/update info.ini
-    9. GeneratePreviewLib - Generate preview image
-    10. ValidateDuckovFolderLib - Validate game installation
-    11. CollectFromModLib - Collect mod data
-    12. DeployModLib - Deploy mod to game directory
-    13. ILRepackAssembliesLib - Merge assemblies (if enabled)
-    14. CopyDependenciesLib - Copy dependencies (if ILRepack disabled)
+    The runner runs on the .NET host that runs this build ($(DOTNET_HOST_PATH)) and falls back to "dotnet".
+    Paths are normalized with GetFullPath and quoted, so project folders and game folders may contain spaces.
     -->
 
-    <!-- Configuration Properties -->
     <PropertyGroup>
-        <!-- Entry script path -->
-        <_EntryScript>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../scripts/entry.csx'))</_EntryScript>
-        <_BuildContextJsonFile>$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)ducky-build-context.json</_BuildContextJsonFile>
-        <_ContextJsonScript>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../scripts/ContextJsonBuild.csx'))</_ContextJsonScript>
-
-        <!-- Script libraries execution order -->
-        <ScriptLibraries>InitializeBuildLoggingLib;ValidateProjectPathLib;ResolveSdkPropertiesLib;ExtractLocalizationKeysLib;UpdateLocalizationCsvLib;CopyLocalizationAssetsLib;EnsureInfoIniLib;GeneratePreviewLib;ValidateDuckovFolderLib;CollectFromModLib;DeployModLib;ILRepackAssembliesLib;CopyDependenciesLib</ScriptLibraries>
+        <_DuckyBuildContextJsonFile>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)ducky-build-context.json'))</_DuckyBuildContextJsonFile>
+        <_DuckyBuildPropertiesFile>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)ducky-build-properties.txt'))</_DuckyBuildPropertiesFile>
+        <_DuckyBuildRunnerDll>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../tools/net10.0/Ducky.Sdk.Build.dll'))</_DuckyBuildRunnerDll>
+        <_DuckyDotnetHost Condition="'$(DOTNET_HOST_PATH)' != ''">$(DOTNET_HOST_PATH)</_DuckyDotnetHost>
+        <_DuckyDotnetHost Condition="'$(_DuckyDotnetHost)' == ''">dotnet</_DuckyDotnetHost>
+        <_DuckyRunnerCommand>&quot;$(_DuckyDotnetHost)&quot; &quot;$(_DuckyBuildRunnerDll)&quot; &quot;$(_DuckyBuildContextJsonFile)&quot;</_DuckyRunnerCommand>
     </PropertyGroup>
 
-    <!-- Generate BuildContext JSON -->
-    <Target Name="GenerateBuildContext" BeforeTargets="BeforeBuild">
+    <!-- Fail with a restore hint when the runner is not in the package -->
+    <Target Name="_DuckyCheckBuildRunner">
+        <Error Condition="!Exists('$(_DuckyBuildRunnerDll)')"
+               Text="Ducky.Sdk build runner not found: '$(_DuckyBuildRunnerDll)'. Restore the Ducky.Sdk package (dotnet restore), then rebuild. If the file is still missing, delete the Ducky.Sdk folder under the NuGet packages directory and restore again." />
+    </Target>
+
+    <!-- Generate the BuildContext: MakeDir, absolute paths, and the property file read by the runner's pre phase -->
+    <Target Name="GenerateBuildContext" BeforeTargets="BeforeBuild" DependsOnTargets="_DuckyCheckBuildRunner">
         <Message Text="=== Generate BuildContext ===" Importance="normal" />
         <Message Text="Generating BuildContext JSON for: $(MSBuildProjectDirectory)" Importance="normal" />
 
@@ -52,158 +44,74 @@
             <_AbsoluteOutputPath Condition="$([System.IO.Path]::IsPathRooted($(OutputPath)))">$(OutputPath)</_AbsoluteOutputPath>
         </PropertyGroup>
 
-        <!-- Ensure obj directory exists before script execution -->
+        <!-- Ensure obj directory exists before the runner starts -->
         <MakeDir Directories="$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)"
                  Condition="!Exists('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)')" />
 
-        <!-- Generate BuildContext JSON using dedicated script -->
-        <Exec
-            Command="dotnet script &quot;$(_ContextJsonScript)&quot; 1 &quot;$(MSBuildProjectDirectory)&quot; 2 &quot;$(ModName)&quot; 3 &quot;$(Configuration)&quot; 4 &quot;$(TargetFramework)&quot; 5 &quot;$(DuckovFolder)&quot; 6 &quot;$(SteamFolder)&quot; 7 &quot;$(AssetsDir)&quot; 8 &quot;$(LocalizationAssetsDir)&quot; 9 &quot;$(EnableILRepack)&quot; 10 &quot;$(EnableGlobalUsing)&quot; 11 &quot;$(IncludeHarmony)&quot; 12 &quot;$(DeployMod)&quot; 13 &quot;$(ExcludeSdkLib)&quot; 14 &quot;$(IsModLib)&quot; 15 &quot;$(_AbsoluteIntermediateOutputPath)&quot; 16 &quot;$(_AbsoluteBaseIntermediateOutputPath)&quot; 17 &quot;$(_AbsoluteOutputPath)&quot; 18 &quot;$(ManagedDirectory)&quot; 19 &quot;$(ModsDirectory)&quot;"
-            ContinueOnError="false"
-            IgnoreExitCode="true"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_ContextJsonScript)')">
-            <Output TaskParameter="ExitCode" PropertyName="_SerializeContextExitCode" />
+        <!-- One line per property, "n=value". Escape ';' so a value such as LocalizationAssetsDir stays one value. -->
+        <ItemGroup>
+            <_DuckyBuildProperty Include="1=$([MSBuild]::Escape($(MSBuildProjectDirectory)))" />
+            <_DuckyBuildProperty Include="2=$([MSBuild]::Escape($(ModName)))" />
+            <_DuckyBuildProperty Include="3=$([MSBuild]::Escape($(Configuration)))" />
+            <_DuckyBuildProperty Include="4=$([MSBuild]::Escape($(TargetFramework)))" />
+            <_DuckyBuildProperty Include="5=$([MSBuild]::Escape($(DuckovFolder)))" />
+            <_DuckyBuildProperty Include="6=$([MSBuild]::Escape($(SteamFolder)))" />
+            <_DuckyBuildProperty Include="7=$([MSBuild]::Escape($(AssetsDir)))" />
+            <_DuckyBuildProperty Include="8=$([MSBuild]::Escape($(LocalizationAssetsDir)))" />
+            <_DuckyBuildProperty Include="9=$([MSBuild]::Escape($(EnableILRepack)))" />
+            <_DuckyBuildProperty Include="10=$([MSBuild]::Escape($(EnableGlobalUsing)))" />
+            <_DuckyBuildProperty Include="11=$([MSBuild]::Escape($(IncludeHarmony)))" />
+            <_DuckyBuildProperty Include="12=$([MSBuild]::Escape($(DeployMod)))" />
+            <_DuckyBuildProperty Include="13=$([MSBuild]::Escape($(ExcludeSdkLib)))" />
+            <_DuckyBuildProperty Include="14=$([MSBuild]::Escape($(IsModLib)))" />
+            <_DuckyBuildProperty Include="15=$([MSBuild]::Escape($(_AbsoluteIntermediateOutputPath)))" />
+            <_DuckyBuildProperty Include="16=$([MSBuild]::Escape($(_AbsoluteBaseIntermediateOutputPath)))" />
+            <_DuckyBuildProperty Include="17=$([MSBuild]::Escape($(_AbsoluteOutputPath)))" />
+            <_DuckyBuildProperty Include="18=$([MSBuild]::Escape($(ManagedDirectory)))" />
+            <_DuckyBuildProperty Include="19=$([MSBuild]::Escape($(ModsDirectory)))" />
+        </ItemGroup>
+        <WriteLinesToFile File="$(_DuckyBuildPropertiesFile)" Lines="@(_DuckyBuildProperty)" Overwrite="true" />
+
+        <Message Text="✅ BuildContext properties written: $(_DuckyBuildPropertiesFile)" Importance="normal" />
+    </Target>
+
+    <!-- Execute the pre phase after CoreCompile: writes the BuildContext JSON, then runs the pre steps -->
+    <Target Name="ExecutePreBuildScripts" AfterTargets="CoreCompile"
+            DependsOnTargets="_DuckyCheckBuildRunner;GenerateBuildContext">
+        <Message Text="=== Execute Pre-Build Build Steps (Ducky.Sdk.Build --phase pre) ===" Importance="normal" />
+
+        <Exec Command="$(_DuckyRunnerCommand) --phase pre"
+              ContinueOnError="false"
+              IgnoreExitCode="true"
+              WorkingDirectory="$(MSBuildProjectDirectory)">
+            <Output TaskParameter="ExitCode" PropertyName="_DuckyPreExitCode" />
         </Exec>
 
-        <Error Condition="'$(_SerializeContextExitCode)' != '0'"
-               Text="Failed to serialize BuildContext JSON (exit code $(_SerializeContextExitCode)). If 'dotnet script' is not found, run 'dotnet tool restore' or 'dotnet tool install --global dotnet-script'." />
+        <Error Condition="'$(_DuckyPreExitCode)' != '0'"
+               Text="Ducky.Sdk build runner failed in the pre phase (exit code $(_DuckyPreExitCode)). See the messages above. If the runner did not start, install the .NET 10 runtime (https://dotnet.microsoft.com/download/dotnet/10.0); newer .NET runtimes are also accepted." />
 
-        <Message Text="✅ BuildContext generated successfully" Importance="normal"
-                 Condition="'$(_SerializeContextExitCode)' == '0'" />
+        <Message Text="✅ Pre-build build steps executed successfully" Importance="normal" />
     </Target>
 
-    <!-- Execute Pre-Build Script Libraries (after CoreCompile) -->
-    <Target Name="ExecutePreBuildScripts" AfterTargets="CoreCompile"
-            DependsOnTargets="GenerateBuildContext">
-        <Message Text="=== Execute Pre-Build Script Libraries ===" Importance="normal" />
-
-        <!-- Error text changed from "does not exist" to "not found" -->
-        <Error Text="BuildContext JSON file not found: $(_BuildContextJsonFile)"
-               Condition="!Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute InitializeBuildLoggingLib -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; InitializeBuildLoggingLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute ValidateProjectPathLib -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ValidateProjectPathLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute ResolveSdkPropertiesLib -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ResolveSdkPropertiesLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute ExtractLocalizationKeysLib -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ExtractLocalizationKeysLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute UpdateLocalizationCsvLib -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; UpdateLocalizationCsvLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute CopyLocalizationAssetsLib -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CopyLocalizationAssetsLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute EnsureInfoIniLib -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; EnsureInfoIniLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute GeneratePreviewLib -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; GeneratePreviewLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute ValidateDuckovFolderLib -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ValidateDuckovFolderLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute CollectFromModLib -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CollectFromModLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <Message Text="✅ Pre-build script libraries executed successfully" Importance="normal" />
-    </Target>
-
-    <!-- Execute Post-Build Script Libraries (after full Build completion) -->
+    <!-- Execute the post phase after Build: updates the BuildContext, then deploys and prints the result -->
     <Target Name="ExecutePostBuildScripts" AfterTargets="Build"
             DependsOnTargets="ExecutePreBuildScripts">
-        <Message Text="=== Execute Post-Build Script Libraries ===" Importance="normal" />
+        <Message Text="=== Execute Post-Build Build Steps (Ducky.Sdk.Build --phase post) ===" Importance="normal" />
 
-        <!-- Error text changed from "does not exist" to "not found" -->
-        <Error Text="BuildContext JSON file not found: $(_BuildContextJsonFile)"
-               Condition="!Exists('$(_BuildContextJsonFile)')" />
+        <Error Condition="!Exists('$(_DuckyBuildContextJsonFile)')"
+               Text="BuildContext JSON file not found: $(_DuckyBuildContextJsonFile). Rebuild the project so the pre phase writes it." />
 
-        <!-- Execute UpdateBuildContextAfterBuildLib - needs compiled assemblies -->
-        <Exec
-            Command="dotnet script &quot;$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../scripts/UpdateBuildContextAfterBuildLib.csx'))&quot; &quot;$(MSBuildProjectDirectory)&quot;"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(MSBuildThisFileDirectory)../scripts/UpdateBuildContextAfterBuildLib.csx')" />
-
-        <!-- Reset deployment target directory first -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ResetDeployLib"
+        <Exec Command="$(_DuckyRunnerCommand) --phase post"
               ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+              IgnoreExitCode="true"
+              WorkingDirectory="$(MSBuildProjectDirectory)">
+            <Output TaskParameter="ExitCode" PropertyName="_DuckyPostExitCode" />
+        </Exec>
 
-        <!-- Execute ILRepackAssembliesLib - needs compiled assemblies -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; ILRepackAssembliesLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Error Condition="'$(_DuckyPostExitCode)' != '0'"
+               Text="Ducky.Sdk build runner failed in the post phase (exit code $(_DuckyPostExitCode)). See the messages above. If the runner did not start, install the .NET 10 runtime (https://dotnet.microsoft.com/download/dotnet/10.0); newer .NET runtimes are also accepted." />
 
-        <!-- Execute CopyDependenciesLib - needs compiled assemblies -->
-        <Exec
-            Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; CopyDependenciesLib"
-            ContinueOnError="false"
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <!-- Execute DeployModLib - needs final assemblies -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; DeployModLib"
-              ContinueOnError="false"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
-
-        <Message Text="✅ Post-build script libraries executed successfully" Importance="normal" />
-
-        <!-- Execute PrintResultLib to display build results -->
-        <Exec Command="dotnet script &quot;$(_EntryScript)&quot; &quot;$(_BuildContextJsonFile)&quot; PrintResultLib"
-              ContinueOnError="true"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
-              Condition="Exists('$(_EntryScript)') AND Exists('$(_BuildContextJsonFile)')" />
+        <Message Text="✅ Post-build build steps executed successfully" Importance="normal" />
     </Target>
-
 
 </Project>

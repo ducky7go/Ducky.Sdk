@@ -1,16 +1,16 @@
 <Project>
     <!--
-    Ducky.Sdk - CSX-Enhanced Build System
+    Ducky.Sdk - Build System
 
-    This imports the new pure orchestration targets that delegate all business logic to CSX scripts.
+    This imports the orchestration targets that delegate all build steps to the bundled build runner.
     The targets file only contains orchestration logic, making the build system:
     - More maintainable (C# instead of MSBuild XML)
-    - More testable (CSX scripts can be unit tested)
+    - More testable (build steps can be unit tested)
     - More debuggable (regular C# debugging)
     - More performant (caching and conditional execution)
     -->
 
-    <!-- Fail fast on an unusable project path or an unconfigured game folder, before any dotnet-script process starts.
+    <!-- Fail fast on an unusable project path or an unconfigured game folder, before any build runner process starts.
          Imported first so its BeforeBuild targets run before the orchestration ones. -->
     <Import Project="$(MSBuildThisFileDirectory)Ducky.Sdk.Validation.targets"
             Condition="Exists('$(MSBuildThisFileDirectory)Ducky.Sdk.Validation.targets')" />
