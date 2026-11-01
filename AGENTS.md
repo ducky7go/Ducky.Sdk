@@ -19,7 +19,7 @@ Ducky.Sdk is the NuGet package `Ducky.Sdk` (MIT, author Newbe36524, repo `ducky7
 - `Sdk/Tests/Ducky.Sdk.Lib.Tests/` - NUnit + Shouldly tests (`CodeGenTests.cs`, `ModOptionsTests.cs`, `BuildScriptsTests.cs`, `BuildRunner/*`). The csproj has a `ProjectReference` to `Ducky.Sdk.Build`; `Golden/` holds golden files (generated from the former pipeline).
 - `Samples/` - sample mods (`Docky.Sdk.Sample.slnx`): `Ducky.SingleProject`, `Ducky.EntranceMod` + `Ducky.EntranceMod2` + `Ducky.EntranceMod.Common` (multi-project, `IsModLib`), `Ducky.TryHarmony`, `Ducky.MessageHubHost/Client/UI`. They are SDK integration tests, not templates (the `Ducky.Samples` repo holds further samples that consume the published package).
 - `scripts/` - `packToLocal.sh`, `rebuild_samples.sh`, `fetch_build_dependency.sh`.
-- `duckylocal/` - local NuGet feed (git-ignored except `placeholder.txt`); `nuget.props` - holds `LocalNuGetVersion`; `GitVersion.yml`; `.config/dotnet-tools.json` (JetBrains ReSharper `jb` global tool 2026.2.4).
+- `duckylocal/` - local NuGet feed (git-ignored except `placeholder.txt`); `nuget.props` - holds `LocalNuGetVersion`; `GitVersion.yml`; `.config/dotnet-tools.json` (no tools; the former `jb` format tool was removed).
 
 ## Build / test / run
 
@@ -33,7 +33,7 @@ Prerequisites: .NET SDK 10 (root `global.json` pins 10.0.402, `rollForward: late
 ## Conventions
 
 - Package version: `Ducky.Sdk.nuspec` uses `$version`; the version is injected by `packToLocal.sh`. CI (`publish.yml`, on push to `main` and on `*.*.*` tags) uses the tag name for tags, or GitVersion `fullSemVer` (`GitVersion.yml`: main = ContinuousDelivery, label `dev`) for main, then pushes `.nupkg` to MyGet (continue-on-error) and NuGet.org.
-- PR workflow: `build_dotnet.yml` (restore, test, rebuild samples; on `main`/`develop`), `dotnet_format.yml` (ReSharper `jb cleanupcode` on changed files, auto-commits to the PR branch), `release-drafter.yml` (labels such as "Bug Fix", "Feature" in `.github/release-drafter.yml`).
+- PR workflow: `build_dotnet.yml` (restore, test, rebuild samples; on `main`/`develop`), `release-drafter.yml` (labels such as "Bug Fix", "Feature" in `.github/release-drafter.yml`).
 - Central package management in `Sdk/Directory.Packages.props` (MinVer is added only when `CI=true`). `Sdk/SDKlibs/Directory.Build.props` sets `netstandard2.1`, `ImplicitUsings=false`, `Nullable=enable`; Lib uses `LangVersion` 12. `.editorconfig` files exist in `Sdk/` and `Samples/`.
 - Because Lib is source-distributed and compiled into each mod, keep it free of dependencies the game does not provide and keep public/internal API changes backward compatible (`InternalsVisibleTo Ducky.Sdk.Lib.Tests` is declared).
 - Mod pattern: subclass `ModBehaviourBase`, implement `ModEnabled()` / `ModDisabled()`. Localization: a static `LK` class with `const string` keys (`[LanguageSupport("en","zh",...)]`, `[TranslateFile("md")]` for long text) -> generator emits `L` accessors, `LKeys`, and a key hash; CSVs live in the mod's `assets/Locales/`.
