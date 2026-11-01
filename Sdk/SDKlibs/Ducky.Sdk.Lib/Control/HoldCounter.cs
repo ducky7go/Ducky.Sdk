@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Ducky.Sdk.Control;
 
@@ -30,7 +31,8 @@ internal sealed class HoldCounter<TKey>
     private readonly Dictionary<TKey, int> _counts = new();
     private readonly HashSet<long> _live = new();
     private int _generation;
-    private long _nextId = 1; // 0 is never issued, so a default ticket is never live
+    // unique across every counter of this key type, so a ticket from another counter never matches; 0 is never issued
+    private static long _lastId;
 
     /// <summary>How many holds are live across all keys.</summary>
     public int Total => _live.Count;
@@ -46,7 +48,7 @@ internal sealed class HoldCounter<TKey>
     {
         var first = CountOf(key) == 0;
         _counts[key] = CountOf(key) + 1;
-        var id = _nextId++;
+        var id = Interlocked.Increment(ref _lastId);
         _live.Add(id);
         hold = new Hold(key, _generation, id);
         return first;
