@@ -9,6 +9,7 @@
     <ImplicitUsings>true</ImplicitUsings>
     <ModName>Ducky.TryHarmony</ModName>
     <IncludeHarmony>true</IncludeHarmony>
+    <DuckyHotReload Condition="'$(Configuration)' != 'Release'">true</DuckyHotReload>
   </PropertyGroup>
 
   <ItemGroup>
