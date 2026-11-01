@@ -9,7 +9,6 @@
     <ModName>Ducky.EntranceMod</ModName>
     <ExcludeSdkLib>true</ExcludeSdkLib>
     <IsModLib>false</IsModLib>
-    <DuckyHotReload Condition="'$(Configuration)' != 'Release'">true</DuckyHotReload>
   </PropertyGroup>
 
   <ItemGroup>

@@ -10,7 +10,6 @@
     <ModName>Ducky.SingleProject</ModName>
     <ModsDirectory>./Publish</ModsDirectory>
     <DeployMod>true</DeployMod>
-    <DuckyHotReload Condition="'$(Configuration)' != 'Release'">true</DuckyHotReload>
   </PropertyGroup>
 
   <ItemGroup>

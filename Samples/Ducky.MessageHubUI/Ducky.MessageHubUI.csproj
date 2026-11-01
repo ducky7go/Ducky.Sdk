@@ -8,7 +8,6 @@
     <LangVersion>preview</LangVersion>
     <ImplicitUsings>true</ImplicitUsings>
     <ModName>Ducky.MessageHubUI</ModName>
-    <DuckyHotReload Condition="'$(Configuration)' != 'Release'">true</DuckyHotReload>
   </PropertyGroup>
 
   <ItemGroup>

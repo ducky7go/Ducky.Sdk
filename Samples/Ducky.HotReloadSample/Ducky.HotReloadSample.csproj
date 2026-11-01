@@ -11,8 +11,7 @@
     <ModsDirectory>./Publish</ModsDirectory>
     <DeployMod>true</DeployMod>
     <IncludeHarmony>true</IncludeHarmony>
-    <!-- Validation sample for development hot reload (docs/hot-reload.md). Hot reload is on for non-Release builds only. -->
-    <DuckyHotReload Condition="'$(Configuration)' != 'Release'">true</DuckyHotReload>
+    <!-- Validation sample for development hot reload (docs/hot-reload.md). It uses the SDK default: on for Debug builds. -->
   </PropertyGroup>
 
   <ItemGroup>
