@@ -26,4 +26,21 @@ public static class LevelEvents
             add: h => LevelManager.OnLevelInitialized += h,
             remove: h => LevelManager.OnLevelInitialized -= h);
     }
+
+    /// <summary>
+    /// Runs <paramref name="handler"/> each time the game raises <c>LevelManager.OnAfterLevelInitialized</c>, which comes
+    /// after <see cref="OnInitialized"/>. Dispose the returned handle to unsubscribe.
+    /// </summary>
+    public static IDisposable OnAfterInitialized(Action handler)
+    {
+        if (handler == null)
+        {
+            throw new ArgumentNullException(nameof(handler));
+        }
+
+        return EventSubscription.Create<Action>(
+            EventSubscription.Isolate(handler),
+            add: h => LevelManager.OnAfterLevelInitialized += h,
+            remove: h => LevelManager.OnAfterLevelInitialized -= h);
+    }
 }
