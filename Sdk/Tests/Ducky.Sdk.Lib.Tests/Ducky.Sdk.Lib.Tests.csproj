@@ -34,6 +34,11 @@
     <None Include="Golden\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- The hot reload shim's decisions (plain C#, also compiled into every hot reload shim) -->
+  <ItemGroup>
+    <Compile Include="..\..\SDKlibs\Ducky.Sdk\HotReload\HotReloadSchedule.cs" Link="HotReload\HotReloadSchedule.cs" />
+  </ItemGroup>
+
   <!-- Only add references if ManagedDirectory exists -->
   <ItemGroup Condition="'$(ManagedDirectory)' != '' AND Exists('$(ManagedDirectory)')">
     <Reference Include="$(ManagedDirectory)TeamSoda.*" />

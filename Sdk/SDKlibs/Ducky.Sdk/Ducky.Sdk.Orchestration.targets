@@ -41,18 +41,20 @@
         has a name the game has not loaded before. AssemblyName and the IntermediateAssembly item must both change,
         because CoreCompile and the copy to the output folder read different ones.
     -->
+    <!-- No Condition on the target itself: MSBuild evaluates a target's Condition before its DependsOnTargets run,
+         and DuckyHotReloadActive is set by InitializeDuckySdkProperties. The conditions are on the groups instead. -->
     <Target Name="DuckyHotReloadPrepare" BeforeTargets="BeforeBuild"
-            DependsOnTargets="InitializeDuckySdkProperties"
-            Condition="'$(DuckyHotReloadActive)' == 'true' AND '$(ModName)' != ''">
-        <PropertyGroup>
+            DependsOnTargets="InitializeDuckySdkProperties">
+        <PropertyGroup Condition="'$(DuckyHotReloadActive)' == 'true' AND '$(ModName)' != ''">
             <DuckyHotReloadStamp>$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmmssfff'))</DuckyHotReloadStamp>
             <AssemblyName>$(ModName).Core.$(DuckyHotReloadStamp)</AssemblyName>
         </PropertyGroup>
-        <ItemGroup>
+        <ItemGroup Condition="'$(DuckyHotReloadActive)' == 'true' AND '$(ModName)' != ''">
             <IntermediateAssembly Remove="@(IntermediateAssembly)" />
             <IntermediateAssembly Include="$(IntermediateOutputPath)$(AssemblyName).dll" />
         </ItemGroup>
-        <Message Text="[Ducky.Sdk] Hot reload Core assembly: $(AssemblyName)" Importance="high" />
+        <Message Condition="'$(DuckyHotReloadActive)' == 'true' AND '$(ModName)' != ''"
+                 Text="[Ducky.Sdk] Hot reload Core assembly: $(AssemblyName)" Importance="high" />
     </Target>
 
     <!--
@@ -68,6 +70,7 @@
         </PropertyGroup>
         <ItemGroup>
             <_DuckyHotReloadShimSourceItem Include="$(_DuckyHotReloadShimSource)" />
+            <_DuckyHotReloadShimSourceItem Include="$(MSBuildThisFileDirectory)HotReload/HotReloadSchedule.cs" />
         </ItemGroup>
         <Error Condition="!Exists('$(_DuckyHotReloadShimSource)')"
                Text="Hot reload shim source not found: $(_DuckyHotReloadShimSource). The pre phase should have written it (HotReloadShimSourceStep)." />

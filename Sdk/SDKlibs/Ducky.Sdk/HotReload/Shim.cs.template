@@ -37,10 +37,8 @@ namespace __MOD_NAME__
         private GameObject _coreGo;
         private string _loadedName;          // assembly name of the running Core
         private DateTime _loadedWrite;
-        private string _candidateName;       // newest Core file seen, waiting until its write time is stable
-        private DateTime _candidateWrite;
-        private float _candidateSince;
-        private DateTime _rejectedWrite;     // last same-name write that was logged as rejected
+        private readonly Ducky.Sdk.HotReload.HotReloadSchedule.CoreWatch _watch =
+            new Ducky.Sdk.HotReload.HotReloadSchedule.CoreWatch(StableSeconds);
         private readonly List<Assembly> _loadedCores = new List<Assembly>();
         private readonly List<Type> _loadedEntries = new List<Type>();
         private readonly HashSet<string> _loadedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -73,33 +71,18 @@ namespace __MOD_NAME__
             var name = Path.GetFileNameWithoutExtension(newest);
             var write = File.GetLastWriteTimeUtc(newest);
 
-            if (name == _loadedName && write == _loadedWrite) return;
-
-            // The same assembly name again: the game keeps the first assembly with that name, so the old code would run.
-            // The build gives every Core a new stamp; a same-name file is refused and logged, never reported as a reload.
-            if (_loadedNames.Contains(name))
+            switch (_watch.Observe(name, write, Time.unscaledTime, _loadedName, _loadedWrite, _loadedNames))
             {
-                if (write != _rejectedWrite)
-                {
-                    _rejectedWrite = write;
+                case Ducky.Sdk.HotReload.HotReloadSchedule.Step.Reject:
+                    // The same assembly name again: the game keeps the first assembly with that name, so the old code would run.
+                    // The build gives every Core a new stamp; a same-name file is refused and logged, never reported as a reload.
                     Debug.LogError($"[HotReload] {Path.GetFileName(newest)} has an assembly name that is already loaded in this session. " +
                                    "Same-name reloads are unsupported and the old code keeps running; restart the game to load it.");
-                }
-                return;
+                    break;
+                case Ducky.Sdk.HotReload.HotReloadSchedule.Step.Reload:
+                    StartCoroutine(Reload("new Core " + name));
+                    break;
             }
-
-            // Wait for the file to stop changing (a copy in progress keeps changing its write time).
-            if (name != _candidateName || write != _candidateWrite)
-            {
-                _candidateName = name;
-                _candidateWrite = write;
-                _candidateSince = Time.unscaledTime;
-                return;
-            }
-
-            if (Time.unscaledTime - _candidateSince < StableSeconds) return;
-            _candidateName = null;
-            StartCoroutine(Reload("new Core " + name));
         }
 
         private IEnumerator Reload(string reason)
