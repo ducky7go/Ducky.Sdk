@@ -14,54 +14,54 @@ Mod Loaded: Ducky.HotReloadSample
 [ModBehaviourBase] Mod behaviour for ModBehaviour is already enabled. Skipping OnEnable.
 [ModBehaviourBase] Retrieved mod name: Newbe.DebugMod
 [ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
-[HotReload] REPORT load=1 stage=after-load core=Ducky.HotReloadSample.Core.20261101043658218 coreAssembliesInDomain=1 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101043658218
-[HotReload] reload #2 (new Core Ducky.HotReloadSample.Core.20261101043719007)
-[HotReload] REPORT load=1 stage=after-unload core=Ducky.HotReloadSample.Core.20261101043658218 coreAssembliesInDomain=2 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleLocalization=none
+[HotReload] REPORT load=1 stage=after-load core=Ducky.HotReloadSample.Core.20261101044857026 coreAssembliesInDomain=1 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101044857026
+[HotReload] reload #2 (new Core Ducky.HotReloadSample.Core.20261101044921944)
+[HotReload] REPORT load=1 stage=after-unload core=Ducky.HotReloadSample.Core.20261101044857026 coreAssembliesInDomain=2 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleHolders=0 sampleLocalization=none
 [Helper] Returning cached mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Retrieved mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
-[HotReload] REPORT load=2 stage=after-load core=Ducky.HotReloadSample.Core.20261101043719007 coreAssembliesInDomain=2 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101043719007
-[HotReload] reload #3 (new Core Ducky.HotReloadSample.Core.20261101043727863)
-[HotReload] REPORT load=2 stage=after-unload core=Ducky.HotReloadSample.Core.20261101043719007 coreAssembliesInDomain=3 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleLocalization=none
+[HotReload] REPORT load=2 stage=after-load core=Ducky.HotReloadSample.Core.20261101044921944 coreAssembliesInDomain=2 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101044921944
+[HotReload] reload #3 (new Core Ducky.HotReloadSample.Core.20261101044931015)
+[HotReload] REPORT load=2 stage=after-unload core=Ducky.HotReloadSample.Core.20261101044921944 coreAssembliesInDomain=3 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleHolders=0 sampleLocalization=none
 [Helper] Returning cached mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Retrieved mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
-[HotReload] REPORT load=3 stage=after-load core=Ducky.HotReloadSample.Core.20261101043727863 coreAssembliesInDomain=3 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101043727863
-[HotReload] reload #4 (new Core Ducky.HotReloadSample.Core.20261101043736793)
-[HotReload] REPORT load=3 stage=after-unload core=Ducky.HotReloadSample.Core.20261101043727863 coreAssembliesInDomain=4 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleLocalization=none
+[HotReload] REPORT load=3 stage=after-load core=Ducky.HotReloadSample.Core.20261101044931015 coreAssembliesInDomain=3 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101044931015
+[HotReload] reload #4 (new Core Ducky.HotReloadSample.Core.20261101044940608)
+[HotReload] REPORT load=3 stage=after-unload core=Ducky.HotReloadSample.Core.20261101044931015 coreAssembliesInDomain=4 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleHolders=0 sampleLocalization=none
 [Helper] Returning cached mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Retrieved mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
-[HotReload] REPORT load=4 stage=after-load core=Ducky.HotReloadSample.Core.20261101043736793 coreAssembliesInDomain=4 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101043736793
-[HotReload] reload #5 (new Core Ducky.HotReloadSample.Core.20261101043745795)
-[HotReload] REPORT load=4 stage=after-unload core=Ducky.HotReloadSample.Core.20261101043736793 coreAssembliesInDomain=5 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleLocalization=none
+[HotReload] REPORT load=4 stage=after-load core=Ducky.HotReloadSample.Core.20261101044940608 coreAssembliesInDomain=4 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101044940608
+[HotReload] reload #5 (new Core Ducky.HotReloadSample.Core.20261101044949705)
+[HotReload] REPORT load=4 stage=after-unload core=Ducky.HotReloadSample.Core.20261101044940608 coreAssembliesInDomain=5 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleHolders=0 sampleLocalization=none
 [Helper] Returning cached mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Retrieved mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
-[HotReload] REPORT load=5 stage=after-load core=Ducky.HotReloadSample.Core.20261101043745795 coreAssembliesInDomain=5 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101043745795
-[HotReload] reload #6 (new Core Ducky.HotReloadSample.Core.20261101043754624)
-[HotReload] REPORT load=5 stage=after-unload core=Ducky.HotReloadSample.Core.20261101043745795 coreAssembliesInDomain=6 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleLocalization=none
+[HotReload] REPORT load=5 stage=after-load core=Ducky.HotReloadSample.Core.20261101044949705 coreAssembliesInDomain=5 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101044949705
+[HotReload] reload #6 (new Core Ducky.HotReloadSample.Core.20261101044958760)
+[HotReload] REPORT load=5 stage=after-unload core=Ducky.HotReloadSample.Core.20261101044949705 coreAssembliesInDomain=6 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleHolders=0 sampleLocalization=none
 [Helper] Returning cached mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Retrieved mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
-[HotReload] REPORT load=6 stage=after-load core=Ducky.HotReloadSample.Core.20261101043754624 coreAssembliesInDomain=6 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101043754624
-[HotReload] reload #7 (new Core Ducky.HotReloadSample.Core.20261101043803683)
-[HotReload] REPORT load=6 stage=after-unload core=Ducky.HotReloadSample.Core.20261101043754624 coreAssembliesInDomain=7 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleLocalization=none
+[HotReload] REPORT load=6 stage=after-load core=Ducky.HotReloadSample.Core.20261101044958760 coreAssembliesInDomain=6 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101044958760
+[HotReload] reload #7 (new Core Ducky.HotReloadSample.Core.20261101045008011)
+[HotReload] REPORT load=6 stage=after-unload core=Ducky.HotReloadSample.Core.20261101044958760 coreAssembliesInDomain=7 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleHolders=0 sampleLocalization=none
 [Helper] Returning cached mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Retrieved mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
-[HotReload] REPORT load=7 stage=after-load core=Ducky.HotReloadSample.Core.20261101043803683 coreAssembliesInDomain=7 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101043803683
-[HotReload] reload #8 (new Core Ducky.HotReloadSample.Core.20261101043812740)
-[HotReload] REPORT load=7 stage=after-unload core=Ducky.HotReloadSample.Core.20261101043803683 coreAssembliesInDomain=8 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleLocalization=none
+[HotReload] REPORT load=7 stage=after-load core=Ducky.HotReloadSample.Core.20261101045008011 coreAssembliesInDomain=7 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101045008011
+[HotReload] reload #8 (new Core Ducky.HotReloadSample.Core.20261101045017168)
+[HotReload] REPORT load=7 stage=after-unload core=Ducky.HotReloadSample.Core.20261101045008011 coreAssembliesInDomain=8 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleHolders=0 sampleLocalization=none
 [Helper] Returning cached mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Retrieved mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
-[HotReload] REPORT load=8 stage=after-load core=Ducky.HotReloadSample.Core.20261101043812740 coreAssembliesInDomain=8 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101043812740
-[HotReload] reload #9 (new Core Ducky.HotReloadSample.Core.20261101043821743)
-[HotReload] REPORT load=8 stage=after-unload core=Ducky.HotReloadSample.Core.20261101043812740 coreAssembliesInDomain=9 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleLocalization=none
+[HotReload] REPORT load=8 stage=after-load core=Ducky.HotReloadSample.Core.20261101045017168 coreAssembliesInDomain=8 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101045017168
+[HotReload] reload #9 (new Core Ducky.HotReloadSample.Core.20261101045026241)
+[HotReload] REPORT load=8 stage=after-unload core=Ducky.HotReloadSample.Core.20261101045017168 coreAssembliesInDomain=9 childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleHolders=0 sampleLocalization=none
 [Helper] Returning cached mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Retrieved mod name: Ducky.HotReloadSample
 [ModBehaviourBase] Failed to get a valid logger. Using NoOpLogger.
-[HotReload] REPORT load=9 stage=after-load core=Ducky.HotReloadSample.Core.20261101043821743 coreAssembliesInDomain=9 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101043821743
-[HotReload] Ducky.HotReloadSample.Core.20261101043821743.dll has an assembly name that is already loaded in this session. Same-name reloads are unsupported and the old code keeps running; restart the game to load it.
-0x0000023561b26e2b (Mono JIT Code) Ducky.HotReloadSample.ModBehaviour:Update ()
+[HotReload] REPORT load=9 stage=after-load core=Ducky.HotReloadSample.Core.20261101045026241 coreAssembliesInDomain=9 childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample Ducky.HotReloadSample.Core.20261101045026241
+[HotReload] Ducky.HotReloadSample.Core.20261101045026241.dll has an assembly name that is already loaded in this session. Same-name reloads are unsupported and the old code keeps running; restart the game to load it.
+0x000001ec01f1bffb (Mono JIT Code) Ducky.HotReloadSample.ModBehaviour:Update ()
