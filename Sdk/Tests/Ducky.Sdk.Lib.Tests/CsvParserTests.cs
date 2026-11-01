@@ -171,4 +171,10 @@ public class CsvDocumentRulesTests
         map["menu.title"].ShouldBe("second");
         messages.Count.ShouldBe(1);
     }
+
+    [Test]
+    public void LaterRowNamedKey_IsARealKeyNotAHeader()
+    {
+        CsvParser.ParseCsvToDictionary("Key,Value\nkey,Keyword")["key"].ShouldBe("Keyword");
+    }
 }
