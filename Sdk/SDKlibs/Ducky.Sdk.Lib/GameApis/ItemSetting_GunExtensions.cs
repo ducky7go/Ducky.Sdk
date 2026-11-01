@@ -94,4 +94,52 @@ public static class ItemSetting_GunExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ItemSetting_Gun SetTriggerMode(this ItemSetting_Gun target, ItemSetting_Gun.TriggerModes value) =>
         target.SetField("triggerMode", value);
+
+    /// <summary>
+    /// Reads the gun's bullet count (the game's private <c>bulletCount</c> member). Returns false when the member is not
+    /// found, and logs that once.
+    /// </summary>
+    public static bool TryGetBulletCount(this ItemSetting_Gun target, out int count)
+    {
+        var accessor = BulletCount.Value;
+        if (accessor == null)
+        {
+            LogBulletCountNotFoundOnce();
+            count = 0;
+            return false;
+        }
+
+        count = accessor.Get(target);
+        return true;
+    }
+
+    /// <summary>
+    /// Sets the gun's bullet count. Chains like the other setters. When the member is not found, or cannot be written,
+    /// it logs once and does nothing.
+    /// </summary>
+    public static ItemSetting_Gun SetBulletCount(this ItemSetting_Gun target, int value)
+    {
+        var accessor = BulletCount.Value;
+        if (accessor == null || !accessor.TrySet(target, value))
+        {
+            LogBulletCountNotFoundOnce();
+            return target;
+        }
+
+        return target;
+    }
+
+    // Resolved on first use, never in a static constructor, so a failed lookup cannot poison this type.
+    private static readonly Lazy<BulletCountAccessor?> BulletCount =
+        new(() => BulletCountAccessor.Create(typeof(ItemSetting_Gun)));
+
+    private static int _bulletCountMissingLogged;
+
+    private static void LogBulletCountNotFoundOnce()
+    {
+        if (System.Threading.Interlocked.Exchange(ref _bulletCountMissingLogged, 1) == 0)
+        {
+            Ducky.Sdk.Logging.Log.Warn("ItemSetting_Gun '" + BulletCountAccessor.MemberName + "' member was not found or cannot be written; bullet count access does nothing.");
+        }
+    }
 }
