@@ -1,6 +1,7 @@
 using Duckov.Buffs;
 using HarmonyLib;
 using Ducky.Sdk.Contracts;
+using Ducky.Sdk.Utils;
 using Ducky.Sdk.ModBehaviours;
 using SodaCraft.Localizations;
 
@@ -73,7 +74,8 @@ public class ModBehaviour : ModBehaviourBase
         var patches = _harmony?.GetPatchedMethods().Count() ?? 0;
         var loc = LocalizationManager.TryGetOverrideText(LocKey, out var text) ? text : "none";
         var ui = UnityEngine.Object.FindObjectsOfType<Canvas>().Count(c => c != null && c.gameObject.name == UiName);
-        var holders = UnityEngine.Object.FindObjectsOfType<Transform>().Count(t => t.name.EndsWith("_BuffsContractHolder", StringComparison.Ordinal));
+        var holderName = $"{Helper.GetModId()}_BuffsContractHolder"; // this mod's holder only; other mods have their own
+        var holders = UnityEngine.Object.FindObjectsOfType<Transform>().Count(t => t.name == holderName);
         return $"samplePatches={patches} sampleSubscriptions={_subscribed} sampleUi={ui} sampleHolders={holders} sampleLocalization={loc}";
     }
 }
