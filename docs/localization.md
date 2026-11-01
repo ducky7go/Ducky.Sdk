@@ -159,3 +159,50 @@ language opens only those files.
   its chain that has them. Test: `PartialTranslation_MissingKeysArePublishedFromTheChain`.
 - **Lazy loading.** A language is loaded when the chain first needs it, and then cached per source. Test:
   `LazyLoad_OnlyTheLanguagesInTheChainAreLoaded`.
+
+## Key patterns
+
+Keys built from data (one key per world-effect code, for example) can be declared with `[KeyPattern]` on the `LK` class:
+
+```csharp
+[LanguageSupport("all")]
+[KeyPattern("worldeffect.{code}.{name|summary|description}", Group = "WorldEffect")]
+public static class LK { /* static keys */ }
+
+// generated:
+L.WorldEffect.Name(code)        // = L.Dynamic("worldeffect.{0}.name", code)
+L.WorldEffect.Summary(code)
+L.WorldEffect.Description(code)
+```
+
+- `{identifier}` is a runtime parameter; `{a|b|c}` is a choice list. A pattern has at most one choice list.
+- A parameter in the last segment may contain dots; any other parameter matches one segment.
+- Matching ignores case.
+- An accessor is generated for each choice, named after it in PascalCase. A pattern without a choice list gets no
+  accessor, but `L.Dynamic` still works with it.
+- `Group` names the accessor class. When it is not set, the class is the first literal segment with its first letter
+  upper-cased, so `worldeffect` gives `L.Worldeffect`. Set `Group = "WorldEffect"` for `L.WorldEffect`.
+- An invalid pattern (unclosed brace, empty choice, two choice lists, empty pattern) reports `DUCKYL001` as an error,
+  and no accessor is generated for it.
+- The pattern is written to `lkeys.json` in a `patterns` array, which is omitted when there are none. Patterns do not
+  add rows to the CSV files.
+
+Tests: `KeyPatternSyntaxTests` (`{ident}`, `{a|b|c}`, last-segment rule, two choice lists, empty pattern),
+`LocalizationGeneratorTests.KeyPattern_EmitsOneTypedAccessorPerChoiceOverDynamic`,
+`LocalizationGeneratorTests.InvalidKeyPattern_ReportsDucky001AndEmitsNoAccessor`,
+`LocalizationGeneratorTests.NoPattern_EmitsNoDynamicAccessorsAndNoPatternsKey`,
+`ExtractLocalizationKeysLibTests.Execute_CarriesKeyPatternsIntoLkeysJson`.
+
+## Build-time CSV updates
+
+The build keeps `Locales/*.csv` in step with the `LK` keys.
+
+- Rows whose key is a static key, or matches a `[KeyPattern]`, are kept. Any other row is obsolete and is removed.
+  Key matching ignores case. Test: `Execute_KeepsRowsMatchedByAKeyPatternAndStillRemovesObsoleteRows`.
+- A `[TranslateFile]` key is written as `@file:{key}.{ext}`, and the translation file is created in the language folder
+  when it is missing. Old bare rows are rewritten to the marker. Test:
+  `Execute_WritesFileReferenceKeysAsStandaloneFilesWithDefaultLanguages`.
+- Rows are read and written with the same CSV rules as the runtime, so a multiline or quoted value survives a rewrite
+  exactly. Test: `Execute_RewriteKeepsMultilineAndQuotedValuesExactly`.
+- The existing golden output for `Ducky.TryHarmony` is unchanged. Test:
+  `Execute_GeneratesLocaleCsvsAndHashMatchingBaselineGolden`.
