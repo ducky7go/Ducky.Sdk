@@ -101,6 +101,10 @@ A mod that does not clean up in `ModDisabled` shows duplicated or stale behaviou
 - **The shim itself is not reloaded.** A change to the shim (the SDK's template) needs a game restart.
 - **Harmony is not reloaded.** `0Harmony.dll` is the same assembly for every Core. Patches are applied and removed per Core.
 - **Library projects (`IsModLib`) are not reloaded.**
+- **MessageHub clients do not follow a host restart by themselves.** A reload stops the host that the old Core
+  started and the new Core starts a new one. The new host has no client registrations, so a client that used the old host
+  must register again after the reload. The sample does not include a client, so this was not observed in the game; it
+  follows from the host holding its registrations in memory (`ModHttpV1`).
 - **Game state outside the mod** is reloaded only as far as the list above says.
 
 ## Packaging
