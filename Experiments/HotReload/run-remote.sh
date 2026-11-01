@@ -76,8 +76,8 @@ if [ "$MODE" = sample ]; then
   newest_core() { ls -t "$PUB"/$MOD_NAME.Core.*.dll | head -1; }
   core_name() { basename "$1" .dll; }
   # line of a REPORT stage, as a regex prefix; $1 = load number, $2 = stage
-  report_wanted_after_load() { echo "REPORT load=$1 stage=after-load core=$2 coreAssembliesInDomain=[0-9]+ childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleLocalization=sample $2\s*\$"; }
-  report_wanted_after_unload() { echo "REPORT load=$1 stage=after-unload core=$2 coreAssembliesInDomain=[0-9]+ childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleLocalization=none"; }
+  report_wanted_after_load() { echo "REPORT load=$1 stage=after-load core=$2 coreAssembliesInDomain=[0-9]+ childObjects=1 hostComponents=1 buffs=1 samplePatches=1 sampleSubscriptions=1 sampleUi=1 sampleHolders=1 sampleLocalization=sample $2\s*\$"; }
+  report_wanted_after_unload() { echo "REPORT load=$1 stage=after-unload core=$2 coreAssembliesInDomain=[0-9]+ childObjects=0 hostComponents=0 buffs=0 samplePatches=0 sampleSubscriptions=0 sampleUi=0 sampleHolders=0 sampleLocalization=none"; }
 
   log "build the sample (SDK dev build) and stage the whole Publish folder"
   build_sample

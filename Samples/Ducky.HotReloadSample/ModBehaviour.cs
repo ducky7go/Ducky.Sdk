@@ -73,7 +73,8 @@ public class ModBehaviour : ModBehaviourBase
         var patches = _harmony?.GetPatchedMethods().Count() ?? 0;
         var loc = LocalizationManager.TryGetOverrideText(LocKey, out var text) ? text : "none";
         var ui = UnityEngine.Object.FindObjectsOfType<Canvas>().Count(c => c != null && c.gameObject.name == UiName);
-        return $"samplePatches={patches} sampleSubscriptions={_subscribed} sampleUi={ui} sampleLocalization={loc}";
+        var holders = UnityEngine.Object.FindObjectsOfType<Transform>().Count(t => t.name.EndsWith("_BuffsContractHolder", StringComparison.Ordinal));
+        return $"samplePatches={patches} sampleSubscriptions={_subscribed} sampleUi={ui} sampleHolders={holders} sampleLocalization={loc}";
     }
 }
 
