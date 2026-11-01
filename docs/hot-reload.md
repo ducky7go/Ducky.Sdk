@@ -97,6 +97,29 @@ always did.
 
 A mod that does not clean up in `ModDisabled` shows duplicated or stale behaviour after a reload.
 
+## Shared libraries
+
+A library project the mod references (a `ProjectReference`, for example `Ducky.EntranceMod.Common`) is covered by hot
+reload only when merging is on (`EnableILRepack`, the default):
+
+- **Merged (default).** ILRepack merges the library into the Core, so its types live in
+  `<ModName>.Core.<stamp>.dll`. No separate library DLL is deployed to the mod folder. Every reload is a new Core, so
+  the library's code and its static state are reloaded with it. The SDK's own `Ducky.Sdk.Lib` source is compiled into
+  the Core the same way. Checked on `Ducky.EntranceMod`: its Core contains the `Ducky.EntranceMod.Common` types, and the
+  mod folder has no `Ducky.EntranceMod.Common.dll`. The game run passed for the mod as a whole; the library's own logic
+  was not tested separately.
+- **Not merged (`EnableILRepack=false`).** Hot reload does not cover shared libraries in this mode, and the mod can fail
+  to load:
+  - The library DLL stays in `bin` and is not deployed. The Core cannot find it at runtime. Checked by a build: only
+    `bin/Debug/netstandard2.1/Ducky.EntranceMod.Common.dll` exists, not in the mod folder. The cause is that the existing
+    dependency copy only reads `bin/<Configuration>/<TargetFramework>/Dependency`, so project reference outputs are never
+    copied. This was already the case before hot reload. Not verified in the game.
+  - Even a library copied into the `Dependency` folder is loaded by the shim with `Assembly.LoadFrom`. A path is loaded
+    only once, so the library is not reloaded: its code and static state persist, and changes to it do not take effect.
+    This follows from the loading code. Not verified in the game.
+
+Keep `EnableILRepack` on for a mod you want to hot reload. With it off, do not rely on hot reload.
+
 ## Limits
 
 - **Logging from a reloaded Core is not observed.** In the game the SDK's logger for these mods is a no-op
@@ -117,6 +140,7 @@ A mod that does not clean up in `ModDisabled` shows duplicated or stale behaviou
   must register again after the reload. The sample does not include a client, so this was not observed in the game; it
   follows from the host holding its registrations in memory (`ModHttpV1`).
 - **Game state outside the mod** is reloaded only as far as the list above says.
+- **Shared libraries** are reloaded only with merging on. See "Shared libraries" above.
 
 ## Packaging
 
