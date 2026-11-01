@@ -91,7 +91,8 @@ internal static class UpdateBuildContextAfterBuildStep
 
             // Skip if it's the main assembly itself or a managed DLL
             if (!string.Equals(fileName, mainAssemblyName, StringComparison.OrdinalIgnoreCase) &&
-                !managedDlls.Contains(fileName))
+                !managedDlls.Contains(fileName) &&
+                !IsHotReloadOnlyFile(context, fileName))
             {
                 Console.WriteLine($"[UpdateBuildContext] Adding dependency: {fileName}");
                 dependencies.Add(dll);
@@ -102,8 +103,31 @@ internal static class UpdateBuildContextAfterBuildStep
         Console.WriteLine($"[UpdateBuildContext] Total dependencies: {dependencies.Count}");
     }
 
+    /// <summary>
+    /// In a hot reload build, Harmony is deployed once beside the shim and never merged, and the Core files of other
+    /// builds (ModName.Core.*.dll) are removed by HotReloadCleanupStep, so neither may become a merge input.
+    /// Always false in default builds.
+    /// </summary>
+    internal static bool IsHotReloadOnlyFile(BuildContext context, string fileName)
+    {
+        if (!context.HotReloadEnabled)
+        {
+            return false;
+        }
+
+        return string.Equals(fileName, HotReloadFiles.HarmonyFileName, StringComparison.OrdinalIgnoreCase) ||
+               HotReloadFiles.IsCoreFileOf(context.ModName, fileName);
+    }
+
     internal static string FindMainAssembly(BuildContext context)
     {
+        if (context.HotReloadEnabled)
+        {
+            // A hot reload build has exactly one Core for this build; anything else is not this build's output.
+            var core = Path.Combine(Path.GetDirectoryName(context.OutputPath), context.MainOutputFileName);
+            return File.Exists(core) ? core : string.Empty;
+        }
+
         // Try to find the main assembly based on project name
         var expectedDll = Path.Combine(
             Path.GetDirectoryName(context.OutputPath),

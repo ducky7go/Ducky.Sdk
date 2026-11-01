@@ -167,10 +167,10 @@ public class DeployModLib
         var targetDll = MainDllPath(context);
         if ((!context.EnableILRepack || !context.HasDependencies) && File.Exists(targetDll))
         {
-            planned.Add(Path.Combine(targetModDir, $"{context.ModName}.dll"));
+            planned.Add(Path.Combine(targetModDir, context.MainDeployFileName));
             if (File.Exists(Path.ChangeExtension(targetDll, ".pdb")))
             {
-                planned.Add(Path.Combine(targetModDir, $"{context.ModName}.pdb"));
+                planned.Add(Path.Combine(targetModDir, Path.ChangeExtension(context.MainDeployFileName, ".pdb")));
             }
         }
 
@@ -187,7 +187,7 @@ public class DeployModLib
 
     private static string MainDllPath(BuildContext context) =>
         Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
-            context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
+            context.TargetFramework ?? "netstandard2.1", context.MainOutputFileName);
 
     private static bool ShouldSkipDeployment(BuildContext context, DeploymentResult result)
     {
@@ -249,7 +249,7 @@ public class DeployModLib
 
         // Check target DLL
         var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
-            context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
+            context.TargetFramework ?? "netstandard2.1", context.MainOutputFileName);
         if (!File.Exists(targetDll))
         {
             result.Errors.Add($"Target DLL not found: {targetDll}");
@@ -334,8 +334,8 @@ public class DeployModLib
         try
         {
             var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
-                context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
-            var destDll = Path.Combine(targetDir ?? "", $"{context.ModName ?? "mod"}.dll");
+                context.TargetFramework ?? "netstandard2.1", context.MainOutputFileName);
+            var destDll = Path.Combine(targetDir ?? "", context.MainDeployFileName);
 
             if (File.Exists(targetDll))
             {

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Linq;
 
 /// <summary>
@@ -217,6 +218,51 @@ public class BuildContext
     /// AFFECTS: ILRepack execution decision
     /// </summary>
     public bool ShouldUseILRepack => EnableILRepack && HasDependencies;
+
+    // Development hot reload (opt-in, see docs/hot-reload.md). These are left out of the JSON unless set, so a
+    // default build writes exactly the context it always did.
+
+    /// <summary>
+    /// HotReloadEnabled: the build is a development hot reload build (shim + stamped Core).
+    /// AFFECTS: Core naming, stale Core cleanup, shim deployment, dependency filtering. DEFAULT: false.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool HotReloadEnabled { get; init; }
+
+    /// <summary>HotReloadStamp: UTC millisecond stamp of this build, yyyyMMddHHmmssfff. Set only with HotReloadEnabled.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? HotReloadStamp { get; init; }
+
+    /// <summary>HarmonyDllPath: the SDK's 0Harmony.dll, copied beside the shim once. Set only with HotReloadEnabled.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? HarmonyDllPath { get; init; }
+
+    /// <summary>ShimTemplatePath: the SDK's shim source template (HotReload/Shim.cs.template). Set only with HotReloadEnabled.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ShimTemplatePath { get; init; }
+
+    /// <summary>
+    /// CoreAssemblyName: the assembly name of this build's Core in hot reload builds (&lt;ModName&gt;.Core.&lt;stamp&gt;),
+    /// otherwise the project name. Computed, not stored.
+    /// </summary>
+    [JsonIgnore]
+    public string? CoreAssemblyName => HotReloadEnabled && !string.IsNullOrEmpty(HotReloadStamp)
+        ? $"{ModName}.Core.{HotReloadStamp}"
+        : null;
+
+    /// <summary>
+    /// MainOutputFileName: file name of the main compiled assembly in the build output folder. The project folder name
+    /// in default builds (the existing convention), the Core name in hot reload builds.
+    /// </summary>
+    [JsonIgnore]
+    public string MainOutputFileName => (CoreAssemblyName ?? Path.GetFileName(ProjectDir)) + ".dll";
+
+    /// <summary>
+    /// MainDeployFileName: file name of the main assembly in the deployed mod folder. ModName.dll in default builds;
+    /// the Core name in hot reload builds, where ModName.dll is the shim.
+    /// </summary>
+    [JsonIgnore]
+    public string MainDeployFileName => (CoreAssemblyName ?? ModName ?? "mod") + ".dll";
 
     // Utility Methods
     public string GetFullPath(string relativePath) => Path.GetFullPath(Path.Combine(ProjectDir, relativePath));

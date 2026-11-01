@@ -104,6 +104,15 @@ internal static class BuildContextGenerationStep
         var managedDirectory = GetSafeString(argsDict, "18", "");
         var modsDirectory = GetSafeString(argsDict, "19", "");
 
+        // 20-23: development hot reload. Absent or false in default builds, which then write the same context as before.
+        var hotReloadEnabled = ParseSafeBool(argsDict, "20", false);
+        var hotReloadStamp = GetSafeString(argsDict, "21", "");
+        if (hotReloadEnabled && string.IsNullOrEmpty(hotReloadStamp))
+        {
+            throw new InvalidOperationException(
+                "Hot reload is enabled but the build properties carry no Core stamp (property 21).");
+        }
+
         return new BuildContext
         {
             ProjectDir = projectDir,
@@ -125,8 +134,15 @@ internal static class BuildContextGenerationStep
             DeployMod = ParseSafeBool(argsDict, "12", true),
             ExcludeSdkLib = ParseSafeBool(argsDict, "13", false),
             IsModLib = ParseSafeBool(argsDict, "14", false),
+            HotReloadEnabled = hotReloadEnabled,
+            HotReloadStamp = hotReloadEnabled ? hotReloadStamp : null,
+            HarmonyDllPath = hotReloadEnabled ? GetOptionalString(argsDict, "22") : null,
+            ShimTemplatePath = hotReloadEnabled ? GetOptionalString(argsDict, "23") : null,
         };
     }
+
+    private static string? GetOptionalString(IReadOnlyDictionary<string, string> dict, string key) =>
+        dict.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value) ? value.Trim() : null;
 
     private static string GetSafeString(IReadOnlyDictionary<string, string> dict, string key, string defaultValue)
     {
