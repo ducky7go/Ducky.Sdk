@@ -25,14 +25,13 @@
     <Using Include="Shouldly" />
   </ItemGroup>
 
-  <!-- Build scripts are plain C# loaded by dotnet-script at build time; compile the testable ones here. -->
   <ItemGroup>
-    <Compile Include="..\..\SDKlibs\scripts\shared\BuildContext.cs" Link="BuildScripts\BuildContext.cs" />
-    <Compile Include="..\..\SDKlibs\scripts\libs\ILRepackAssembliesLib.cs" Link="BuildScripts\ILRepackAssembliesLib.cs" />
+    <ProjectReference Include="..\..\SDKlibs\Ducky.Sdk.Lib\Ducky.Sdk.Lib.csproj" />
+    <ProjectReference Include="..\..\Ducky.Sdk.Build\Ducky.Sdk.Build.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\SDKlibs\Ducky.Sdk.Lib\Ducky.Sdk.Lib.csproj" />
+    <None Include="Golden\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Only add references if ManagedDirectory exists -->

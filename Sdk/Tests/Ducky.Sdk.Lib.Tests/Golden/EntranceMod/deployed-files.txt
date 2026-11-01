@@ -1,0 +1,5 @@
+./Ducky.EntranceMod.dll
+./info.ini
+./Locales/en.csv
+./Locales/zh.csv
+./preview.png

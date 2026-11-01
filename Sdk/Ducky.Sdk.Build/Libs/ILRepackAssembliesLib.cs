@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using ILRepacking;
 
 /// <summary>
 /// Script library for enhanced ILRepack assembly merging with better dependency resolution and error handling
@@ -104,10 +105,10 @@ public class ILRepackAssembliesLib
             // Build ILRepack command
             var ilrepackArgs = BuildILRepackArgs(mainAssembly, dependencies, tempOutput, context);
             context.LogInfo(
-                $"ILRepack command: ilrepack {string.Join(" ", ilrepackArgs.Select(a => a.Contains(' ') ? $"\"{a}\"" : a))}");
+                $"ILRepack (in process) arguments: {string.Join(" ", ilrepackArgs.Select(a => a.Contains(' ') ? $"\"{a}\"" : a))}");
 
-            // Execute ILRepack (each list element is one argument, so paths with spaces stay intact)
-            var (exitCode, output) = BuildUtils.ExecuteCommand("ilrepack", context.ProjectDir, ilrepackArgs.ToArray());
+            // Execute ILRepack in process (each list element is one argument, so paths with spaces stay intact)
+            var (exitCode, output) = RunRepack(ilrepackArgs);
 
             if (exitCode == 0 && File.Exists(tempOutput))
             {
@@ -227,6 +228,26 @@ public class ILRepackAssembliesLib
     {
         var modsDirectory = context.ModsDirectory;
         return Path.Combine(modsDirectory, context.ModName);
+    }
+
+    /// <summary>
+    /// Runs ILRepack.Lib in process with the arguments <see cref="BuildILRepackArgs"/> produces. Those are the
+    /// ilrepack command-line options, parsed by <see cref="RepackOptions(string[])"/>, so the merge options
+    /// (/internalize, /wildcards, /ndebug, /parallel, /lib) keep their meaning. No external program is started.
+    /// Returns (0, "") on success or (1, error text) on failure.
+    /// </summary>
+    internal static (int exitCode, string output) RunRepack(List<string> args)
+    {
+        try
+        {
+            var options = new RepackOptions(args.ToArray());
+            new ILRepack(options).Repack();
+            return (0, string.Empty);
+        }
+        catch (Exception ex)
+        {
+            return (1, ex.ToString());
+        }
     }
 
     /// <summary>

@@ -258,12 +258,6 @@ public class BuildResult
 }
 
 /// <summary>
-/// Exit code for script libraries that are intentionally skipped
-/// This code is used to distinguish skip status from success (0) and failure (non-zero)
-/// </summary>
-public const int SkipExitCode = 36524;
-
-/// <summary>
 /// Utilities for BuildResult operations
 /// </summary>
 public static class BuildResultUtils

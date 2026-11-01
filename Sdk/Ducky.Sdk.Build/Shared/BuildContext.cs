@@ -273,8 +273,6 @@ public class BuildContext
         };
     }
 
-    private const int SkipExitCode = 0;
-
     private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -395,7 +393,7 @@ public static class BuildUtils
         {
             return (127,
                 $"Failed to start '{command}': {ex.Message}. Make sure it is installed and on PATH " +
-                "(for ilrepack: dotnet tool install --global dotnet-ilrepack).");
+                "Make sure the program is installed and on PATH.");
         }
 
         // Read both streams concurrently so a full stderr pipe cannot block the child while we wait on stdout.

@@ -1,4 +1,3 @@
-#!/usr/bin/env dotnet-script
 #nullable enable
 
 using System;
