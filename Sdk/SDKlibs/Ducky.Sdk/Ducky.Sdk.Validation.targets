@@ -23,4 +23,21 @@
         <Error Condition=" '$(DuckovFolder)' == '' AND '$(SteamFolder)' == '' AND '$(ManagedDirectory)' == '' AND '$(ModsDirectory)' == '' "
                Text="Either DuckovFolder or SteamFolder must be specified (or ManagedDirectory/ModsDirectory, or CI=true). Please set one of them in your project or Local.props file." />
     </Target>
+
+    <!-- Release guard (hot reload is development only): a package must not carry the dev shim marker or a stamped Core.
+         The check reads the mod folder that the deploy step writes and the build output folder. -->
+    <Target Name="ValidateHotReloadPackageInput" BeforeTargets="Pack"
+            DependsOnTargets="InitializeDuckySdkProperties"
+            Condition="'$(ModName)' != '' AND '$(IsModLib)' != 'true'">
+        <ItemGroup>
+            <_DuckyHotReloadLeftover Include="$(ModsDirectory)$(ModName)/hotreload.enabled"
+                                     Condition="'$(ModsDirectory)' != '' AND Exists('$(ModsDirectory)$(ModName)/hotreload.enabled')" />
+            <_DuckyHotReloadLeftover Include="$(ModsDirectory)$(ModName)/$(ModName).Core.*.dll"
+                                     Condition="'$(ModsDirectory)' != ''" />
+            <_DuckyHotReloadLeftover Include="$(OutDir)$(ModName).Core.*.dll" />
+            <_DuckyHotReloadLeftover Include="$(OutDir)hotreload.enabled" Condition="Exists('$(OutDir)hotreload.enabled')" />
+        </ItemGroup>
+        <Error Condition="'@(_DuckyHotReloadLeftover)' != ''"
+               Text="Hot reload development artifacts found, so this package is not a release: @(_DuckyHotReloadLeftover, ' ') . Remove them, or build the mod in Release without DuckyHotReload, before packaging." />
+    </Target>
 </Project>
