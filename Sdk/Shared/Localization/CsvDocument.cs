@@ -85,15 +85,19 @@ internal static class CsvDocument
     }
 
     /// <summary>
-    /// Reads a two-column key,value table. The first column is trimmed. A row named <c>key</c> (any case) is treated
-    /// as a header and skipped. Rows with fewer than two fields or an empty key are skipped. For a key that appears
-    /// more than once (compared ignoring case) the later row wins and <paramref name="diagnostic"/> is called.
+    /// Reads a two-column key,value table. The first column is trimmed. The first row is a header when its key is
+    /// <c>key</c> (any case); only that first row is skipped, so a later row may use <c>key</c> as a real key. Rows with
+    /// fewer than two fields or an empty key are skipped. For a key that appears more than once (compared ignoring case)
+    /// the later row wins and <paramref name="diagnostic"/> is called.
     /// </summary>
     public static Dictionary<string, string> ToDictionary(string? text, Action<string>? diagnostic = null)
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var first = true;
         foreach (var row in Parse(text))
         {
+            var isFirst = first;
+            first = false;
             if (row.Count < 2)
             {
                 diagnostic?.Invoke($"skipped row with {row.Count} field(s): {row[0]}");
@@ -101,7 +105,7 @@ internal static class CsvDocument
             }
 
             var key = row[0].Trim();
-            if (key.Length == 0 || string.Equals(key, "key", StringComparison.OrdinalIgnoreCase))
+            if (key.Length == 0 || (isFirst && string.Equals(key, "key", StringComparison.OrdinalIgnoreCase)))
             {
                 continue;
             }
