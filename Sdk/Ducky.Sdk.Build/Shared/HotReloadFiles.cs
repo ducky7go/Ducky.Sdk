@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 
 /// <summary>
-/// File names and locations of the development hot reload outputs (opt-in, see docs/hot-reload.md).
+/// File names and locations of the development hot reload outputs (on by default for eligible mods, see docs/hot-reload.md).
 /// A Core file is named ModName.Core.&lt;stamp&gt;.dll, the stamp being a UTC timestamp yyyyMMddHHmmssfff.
 /// </summary>
 internal static class HotReloadFiles

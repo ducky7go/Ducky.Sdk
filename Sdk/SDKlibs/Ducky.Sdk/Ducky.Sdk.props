@@ -60,11 +60,14 @@
       <!-- For library projects, disable mod deployment and packaging by default -->
       <DeployMod Condition="'$(IsModLib)' == 'true'">false</DeployMod>
 
-      <!-- Development hot reload (opt-in, default off, see docs/hot-reload.md).
-           Effective only in a non-Release configuration and never for IsModLib projects. -->
-      <DuckyHotReload Condition="'$(DuckyHotReload)' == ''">false</DuckyHotReload>
+      <!-- Development hot reload (on by default, see docs/hot-reload.md). Set DuckyHotReload=false to opt out.
+           Remember whether the author set it explicitly, before the default is applied, so the "ignored" warnings
+           only report a request the author actually made. -->
+      <_DuckyHotReloadExplicit>$(DuckyHotReload)</_DuckyHotReloadExplicit>
+      <DuckyHotReload Condition="'$(DuckyHotReload)' == ''">true</DuckyHotReload>
+      <!-- Active only for a project that can produce a hot reload build: not Release, not IsModLib, has a ModName, and is deployed -->
       <DuckyHotReloadActive>false</DuckyHotReloadActive>
-      <DuckyHotReloadActive Condition="'$(DuckyHotReload)' == 'true' AND '$(Configuration)' != 'Release' AND '$(IsModLib)' != 'true'">true</DuckyHotReloadActive>
+      <DuckyHotReloadActive Condition="'$(DuckyHotReload)' == 'true' AND '$(Configuration)' != 'Release' AND '$(IsModLib)' != 'true' AND '$(ModName)' != '' AND '$(DeployMod)' == 'true'">true</DuckyHotReloadActive>
 
       <!-- IsModLib projects still process localization but skip all other automation -->
       <_ShouldProcessLocalization Condition="'$(IsModLib)' == 'true'">true</_ShouldProcessLocalization>
@@ -85,12 +88,12 @@
              Condition="'$(IsModLib)' == 'true'" />
     <Message Text="[Ducky.Sdk] Project mode: Final release mod project (full automation enabled)" Importance="high"
              Condition="'$(IsModLib)' != 'true' AND '$(ModName)' != ''" />
-    <Warning Condition="'$(DuckyHotReload)' == 'true' AND '$(IsModLib)' == 'true'"
+    <Warning Condition="'$(_DuckyHotReloadExplicit)' == 'true' AND '$(IsModLib)' == 'true'"
              Text="[Ducky.Sdk] DuckyHotReload is ignored for library projects (IsModLib=true). The project builds normally." />
-    <Warning Condition="'$(DuckyHotReload)' == 'true' AND '$(IsModLib)' != 'true' AND '$(Configuration)' == 'Release'"
+    <Warning Condition="'$(_DuckyHotReloadExplicit)' == 'true' AND '$(IsModLib)' != 'true' AND '$(Configuration)' == 'Release'"
              Text="[Ducky.Sdk] DuckyHotReload is ignored in the Release configuration: hot reload is development only. The mod builds as a single assembly." />
     <Message Condition="'$(DuckyHotReloadActive)' == 'true'" Importance="high"
-             Text="[Ducky.Sdk] Hot reload: development build (shim + Core), DuckyHotReload=true, configuration $(Configuration)" />
+             Text="[Ducky.Sdk] Hot reload: development build (shim + Core), configuration $(Configuration). Set DuckyHotReload=false to opt out." />
     <Message Text="[Ducky.Sdk] Global using: $(EnableGlobalUsing)" Importance="high" />
     <Message
       Text="[Ducky.Sdk] Global using enabled - SDK, game engine, and common namespaces will be automatically imported"

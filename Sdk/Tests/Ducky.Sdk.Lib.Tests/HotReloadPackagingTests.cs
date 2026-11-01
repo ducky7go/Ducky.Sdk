@@ -4,7 +4,8 @@ using Ducky.Sdk.Lib.Tests.Runner;
 namespace Ducky.Sdk.Lib.Tests;
 
 /// <summary>
-/// MSBuild-level checks of the hot reload opt-in matrix (default, opt-in, Release plus opt-in, IsModLib plus opt-in),
+/// MSBuild-level checks of the hot reload default matrix (default on, opt-out with false, eligibility by ModName,
+/// DeployMod, IsModLib and Release, and the "ignored" warnings for an explicit true),
 /// the stamped Core name, and the release guard in Ducky.Sdk.Validation.targets. They evaluate the SDK's own props and
 /// targets with a small probe project, so no game or package is needed.
 /// </summary>
@@ -95,15 +96,57 @@ public class HotReloadPackagingTests
     }
 
     [Test]
-    public void Default_IsOff()
+    public void Default_IsOn()
     {
-        ActiveFor("-p:Configuration=Debug").ShouldBe("false");
+        ActiveFor("-p:Configuration=Debug").ShouldBe("true");
     }
 
     [Test]
     public void OptIn_InDebug_IsOn()
     {
         ActiveFor("-p:Configuration=Debug", "-p:DuckyHotReload=true").ShouldBe("true");
+    }
+
+    [Test]
+    public void OptOut_InDebug_IsOffWithoutWarning()
+    {
+        var (exit, output) = Run(Probe, ["-t:PrintActive", "-p:Configuration=Debug", "-p:DuckyHotReload=false"]);
+
+        exit.ShouldBe(0, output);
+        output.ShouldContain("ACTIVE=false");
+        output.ShouldNotContain("DuckyHotReload is ignored");
+    }
+
+    [Test]
+    public void NoModName_IsOffAndBuildSucceeds()
+    {
+        ActiveFor("-p:Configuration=Debug", "-p:ModName=").ShouldBe("false");
+    }
+
+    [Test]
+    public void NotDeployed_IsOffAndBuildSucceeds()
+    {
+        ActiveFor("-p:Configuration=Debug", "-p:DeployMod=false").ShouldBe("false");
+    }
+
+    [Test]
+    public void UnsetInRelease_IsOffWithoutWarning()
+    {
+        var (exit, output) = Run(Probe, ["-t:PrintActive", "-p:Configuration=Release"]);
+
+        exit.ShouldBe(0, output);
+        output.ShouldContain("ACTIVE=false");
+        output.ShouldNotContain("DuckyHotReload is ignored");
+    }
+
+    [Test]
+    public void UnsetForIsModLib_IsOffWithoutWarning()
+    {
+        var (exit, output) = Run(Probe, ["-t:PrintActive", "-p:Configuration=Debug", "-p:IsModLib=true"]);
+
+        exit.ShouldBe(0, output);
+        output.ShouldContain("ACTIVE=false");
+        output.ShouldNotContain("DuckyHotReload is ignored");
     }
 
     [Test]

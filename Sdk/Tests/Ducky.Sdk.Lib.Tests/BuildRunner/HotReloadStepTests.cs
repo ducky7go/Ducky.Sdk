@@ -1,7 +1,8 @@
 namespace Ducky.Sdk.Lib.Tests.Runner;
 
 /// <summary>
-/// Development hot reload (opt-in) in the build runner: default builds stay as before, and a hot reload build
+/// Development hot reload (on by default for eligible mods, DuckyHotReload=false opts out) in the build runner: builds
+/// that are not hot reload builds stay as before, and a hot reload build
 /// names its Core by stamp, cleans older Cores, deploys the shim, Harmony and the marker, and never merges Harmony.
 /// </summary>
 public class HotReloadStepTests

@@ -219,8 +219,8 @@ public class BuildContext
     /// </summary>
     public bool ShouldUseILRepack => EnableILRepack && HasDependencies;
 
-    // Development hot reload (opt-in, see docs/hot-reload.md). These are left out of the JSON unless set, so a
-    // default build writes exactly the context it always did.
+    // Development hot reload (on by default for eligible mods, see docs/hot-reload.md). These are left out of the JSON
+    // unless set, so a build that is not a hot reload build writes exactly the context it always did.
 
     /// <summary>
     /// HotReloadEnabled: the build is a development hot reload build (shim + stamped Core).
