@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The shim: the only assembly the game loads. Type must be <ModName>.ModBehaviour in <ModName>.dll. -->
+  <PropertyGroup>
+    <AssemblyName>Ducky.HotReload</AssemblyName>
+    <RootNamespace>Ducky.HotReload</RootNamespace>
+  </PropertyGroup>
+</Project>

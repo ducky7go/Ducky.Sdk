@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The reloadable part. CoreStamp (e.g. ".b42") makes the assembly name unique per build; empty = same name every build. -->
+  <PropertyGroup>
+    <CoreStamp></CoreStamp>
+    <Marker>A</Marker>
+    <AssemblyName>Ducky.HotReload.Core$(CoreStamp)</AssemblyName>
+    <RootNamespace>Ducky.HotReload.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Ducky.HotReload\Ducky.HotReload.csproj"><Private>false</Private></ProjectReference>
+    <Reference Include="0Harmony"><HintPath>$(HarmonyDll)</HintPath><Private>false</Private></Reference>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Marker</_Parameter1><_Parameter2>$(Marker)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>

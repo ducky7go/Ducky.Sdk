@@ -1,0 +1,17 @@
+<Project>
+  <!-- Experiment: shim + Core hot reload spike. Plain csproj files on purpose (no Ducky.Sdk package),
+       so rebuild_samples.sh and CI never touch them. Needs the game's Managed DLLs (see ../../Managed). -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <ManagedDir Condition="'$(ManagedDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../Managed/'))</ManagedDir>
+    <HarmonyDll>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../Sdk/SDKlibs/Ducky.Sdk/0Harmony.dll'))</HarmonyDll>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(ManagedDir)UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TeamSoda.Duckov.Core"><HintPath>$(ManagedDir)TeamSoda.Duckov.Core.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>
