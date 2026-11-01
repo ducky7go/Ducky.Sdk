@@ -1,0 +1,69 @@
+{
+  "1": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "qwen_3_06b_base.safetensors", "type": "stable_diffusion", "device": "default" },
+    "_meta": { "title": "Text encoder (Qwen3 0.6B, as in the Anima template)" }
+  },
+  "2": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "qwen_image_vae.safetensors" },
+    "_meta": { "title": "VAE" }
+  },
+  "3": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "anima-aesthetic-v1.1.safetensors", "weight_dtype": "default" },
+    "_meta": { "title": "Model (anima-aesthetic-v1.1, the model chosen for the committed backgrounds)" }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "dark abstract background, deep navy and charcoal gradient, muted olive and steel accents, soft low-contrast geometric shapes and faint light streaks, subtle film grain, calm and minimal, evenly lit, no text, no letters, no words, no symbols, no people, no characters, no faces, no logos, no watermark",
+      "clip": ["1", 0]
+    },
+    "_meta": { "title": "Positive prompt" }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, text, letters, words, watermark, signature, people, face, bright white areas, high contrast, noise",
+      "clip": ["1", 0]
+    },
+    "_meta": { "title": "Negative prompt" }
+  },
+  "6": {
+    "class_type": "EmptyLatentImage",
+    "inputs": { "width": 1024, "height": 1024, "batch_size": 1 },
+    "_meta": { "title": "Generate at 1024, then downscale to 256 (node 9)" }
+  },
+  "7": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 30,
+      "cfg": 4,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": ["3", 0],
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "latent_image": ["6", 0]
+    },
+    "_meta": { "title": "Seed placeholder: scripts/generate_preview_backgrounds.sh sets a fixed seed per background" }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["7", 0], "vae": ["2", 0] },
+    "_meta": { "title": "Decode" }
+  },
+  "9": {
+    "class_type": "ImageScale",
+    "inputs": { "image": ["8", 0], "upscale_method": "lanczos", "width": 256, "height": 256, "crop": "disabled" },
+    "_meta": { "title": "Downscale to the 256x256 preview size" }
+  },
+  "10": {
+    "class_type": "SaveImage",
+    "inputs": { "images": ["9", 0], "filename_prefix": "PreviewBackground" },
+    "_meta": { "title": "Save (downloaded through /view by the script)" }
+  }
+}
