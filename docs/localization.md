@@ -16,7 +16,7 @@ Menu"
 
 - Quoted fields may contain commas, `""` (an escaped quote) and line breaks.
 - A UTF-8 byte order mark is accepted, and both CRLF and LF line endings are read.
-- The header row (`key`, any case) and blank rows are skipped.
+- A first row named `key` (any case) is the header and is skipped; blank rows are skipped. A later row may use `key` as a real key.
 - Whitespace outside quotes is ignored; whitespace inside quotes is kept.
 - The same reader and writer are used by the runtime, the build steps and the translation commands, so a file
   readable by one is readable by all.
@@ -206,3 +206,74 @@ The build keeps `Locales/*.csv` in step with the `LK` keys.
   exactly. Test: `Execute_RewriteKeepsMultilineAndQuotedValuesExactly`.
 - The existing golden output for `Ducky.TryHarmony` is unchanged. Test:
   `Execute_GeneratesLocaleCsvsAndHashMatchingBaselineGolden`.
+
+## Build-time validation
+
+Each build compares every language with the English baseline, after the CSV update step. The baseline is the static key
+list of `lkeys.json` when that file exists, otherwise the English CSV. Validation works from the files alone, so it also
+fits mods whose keys are built at runtime.
+
+| Property | Values | Default | Applies to |
+|---|---|---|---|
+| `LocalizationValidation` | `Off`, `Warn`, `Error` | `Warn` | missing keys (absent or empty) and placeholder mismatches |
+| `LocalizationExtraKeys` | `Ignore`, `Warn`, `Error` | `Warn` | keys a language has but the baseline does not |
+
+```xml
+<PropertyGroup>
+  <LocalizationValidation>Error</LocalizationValidation>
+  <LocalizationExtraKeys>Ignore</LocalizationExtraKeys>
+</PropertyGroup>
+```
+
+- `Warn` prints `warning: [LocalizationValidation] ...` lines and the build succeeds. `Error` prints `error: ...` and
+  fails the build. `Off` skips the check and writes no report.
+- An unknown value gives the default and a warning.
+- A key matched by a `[KeyPattern]` is never reported as extra.
+- Placeholders are compared as sets of numbers, so `{0}` and `{1}` may appear in any order. `{{` and `}}` are not
+  placeholders. Both comparisons ignore case for keys.
+- The check never edits a language file. When something is missing, it writes `missing.csv` into the assets folder,
+  next to `Locales` (not inside it), with the columns `Language,Key,English`, sorted by language then key. When nothing is
+  missing, an old `missing.csv` is removed.
+- A missing English baseline (no `lkeys.json` and no `en.csv`) gives a `BaselineMissing` finding and compares nothing.
+
+Tests: `ValidateLocalizationLibTests` (`DirectoryWithoutLkeys_ComparesTheOtherLanguageWithEnglish`,
+`NoEnglishFile_ReportsTheBaselineAndComparesNothing`, `AbsentKey_IsReportedAsMissingForThatLanguage`,
+`EmptyValue_IsReportedAsMissing`, `DifferentCasing_CountsAsPresent`, `ObsoleteKey_IsReportedAsExtraOfThatLanguage`,
+`PatternKey_IsNeverReportedAsExtra`, `MissingPlaceholder_IsReported`, `ReorderedPlaceholders_AreNotAMismatch`,
+`EscapedBraces_AreNotPlaceholders`, `MissingReport_IsWrittenToAssetsNotLocales`, `AllTranslated_WritesNoReportAndRemovesAnOldOne`,
+`DefaultSeverity_ReportsWarningsAndExitsZero`, `ErrorMode_FailsTheBuildWithTheKeyAndLanguage`,
+`ExtraKeys_StayASeparateSeverity`, `Off_SkipsValidationAndWritesNoReport`, `SeverityChange_TakesEffectOnTheNextRun`).
+
+## Translation commands
+
+The build runner also has three commands for maintaining language files. They use the same CSV rules as the runtime,
+so commas, quotes and line breaks in values are kept. A file is rewritten only when its content changes, and writes go
+through a temp file.
+
+```sh
+dotnet tools/net10.0/Ducky.Sdk.Build.dll locales set <Locales dir> <lang> <key> <value>
+dotnet tools/net10.0/Ducky.Sdk.Build.dll locales set <Locales dir> <key> --lang <lang>=<value> --lang <lang>=<value>
+dotnet tools/net10.0/Ducky.Sdk.Build.dll locales sync <Locales dir> [--fill english|empty] [--prune] [--dry-run]
+dotnet tools/net10.0/Ducky.Sdk.Build.dll locales validate <Locales dir>... [--validation Off|Warn|Error] [--extra-keys Ignore|Warn|Error]
+```
+
+- `set` creates the key or the language file when needed, keeps the file sorted by key, and creates a new language file
+  with a `Key,Value` header. The multi form sets one key in several languages in one call.
+- `sync` gives every language file every key of `en.csv`. By default a missing key gets the English text; `--fill empty`
+  leaves it empty so that validation still reports it. Existing translations are never overwritten. Keys the English file
+  lacks are kept unless `--prune` is given, and a key matched by a pattern in `../lkeys.json` is never pruned. `--dry-run`
+  lists the changes and writes nothing. `@file:` rows are kept as written.
+- `validate` runs the same check as the build, for each folder given, and exits with 1 when a finding is an error.
+  It writes `missing.csv` into the folder above each Locales folder.
+- Bad arguments print the usage and exit with 2. The build usage (`<build-context.json> --phase pre|post`) is unchanged.
+
+Tests: `LocaleToolTests.Set_ValueWithCommaAndQuote_IsQuotedAndReadBackUnchanged` (`set`),
+`SetMultiForm_SetsOneKeyInSeveralLanguagesInOneCall` (multi-form `set`),
+`Sync_FillsMissingKeysFromEnglish_AndKeepsExistingTranslations` (`sync`),
+`Sync_EmptyFill_LeavesNewKeysEmptySoValidationStillSeesThem` (`sync --fill empty`),
+`Sync_Prune_RemovesKeysEnglishLacksUnlessAPatternMatches` (`sync --prune`),
+`Sync_DryRun_ChangesNoFile` (`sync --dry-run`),
+`Validate_SeveralSubModFolders_ChecksEachAndExitsZeroWithoutErrors` (`validate` with two folders),
+`Validate_ErrorSeverity_ExitsOneWhenAFindingIsAnError` (`validate --validation Error`),
+`RoundTrip_SetThenSyncKeepsCommasQuotesAndLineBreaks` and `RoundTrip_SyncOfAnAlreadySyncedFileIsByteIdentical` (round trip),
+`NoCommand_PrintsUsageAndExitsTwo` and `SetWithoutAKey_PrintsUsageAndExitsTwo` (usage and exit 2).
