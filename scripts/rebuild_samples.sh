@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # This script:
 #   1. Calls packToLocal.sh to publish auto-incremented version of Ducky.Sdk
-#   2. Restores and rebuilds the Docky.Sdk.Sample.slnx solution
+#   2. Rewrites the Ducky.Sdk version in every sample csproj, then restores and rebuilds Docky.Sdk.Sample.slnx
 #   Note: packToLocal.sh replaces a version already in the NuGet cache (the packed version is never reused silently)
 #
 # Usage:
@@ -61,47 +61,31 @@ ${CLEAR_ALL_CACHES} && PACK_ARGS+=(--clear-all-caches)
 PACK_ARGS+=("${FORWARD_PACK_FLAGS[@]}")
 bash "$PACK_SCRIPT" "${PACK_ARGS[@]}" || err "Failed to pack Ducky.Sdk"
 
-# Step 2: Restore NuGet packages for the solution
-log "Step 2: Restoring NuGet packages for sample solution"
+# Step 2: Point Sample projects at the freshly packed Ducky.Sdk version.
+# This must happen BEFORE any restore: the committed samples pin a version that
+# the local feed does not contain on a clean checkout (e.g. CI), so restoring first fails with NU1102.
+log "Step 2: Updating Sample projects with new Ducky.Sdk version"
+[[ -f "${ROOT_DIR}/nuget.props" ]] || err "nuget.props not found"
+ACTUAL_VERSION=$(grep -Po '(?<=<LocalNuGetVersion>)[^<]+' "${ROOT_DIR}/nuget.props" | head -1 || true)
+[[ -n "$ACTUAL_VERSION" ]] || err "Failed to extract version from nuget.props"
+
 cd "$SAMPLES_DIR"
+log "Updating all Sample projects to Ducky.Sdk ${ACTUAL_VERSION}"
+while IFS= read -r proj; do
+  log "Updating Ducky.Sdk version in $proj"
+  sed -E -i "s#(<PackageReference[[:space:]]+Include=\"Ducky\.Sdk\"[[:space:]]+Version=\")[^\"]+(\")#\1${ACTUAL_VERSION}\2#" "$proj"
+done < <(find . -name "*.csproj" -exec grep -l 'Include="Ducky.Sdk"' {} \;)
+
+# Step 3: Clean and restore the solution against the updated versions
+log "Step 3: Restoring NuGet packages for sample solution"
 dotnet clean "$SAMPLE_SOLUTION" || err "Failed to clean sample solution"
 dotnet restore "$SAMPLE_SOLUTION" || err "Failed to restore sample solution"
-
-# Step 3: Update Sample projects with new version
-log "Step 3: Updating Sample projects with new Ducky.Sdk version"
-if [[ -f "${ROOT_DIR}/nuget.props" ]]; then
-  ACTUAL_VERSION=$(grep -Po '(?<=<LocalNuGetVersion>)[^<]+' "${ROOT_DIR}/nuget.props" | head -1 || true)
-  if [[ -n "$ACTUAL_VERSION" ]]; then
-    log "Updating all Sample projects to Ducky.Sdk ${ACTUAL_VERSION}"
-
-    # Find all csproj files in samples directory and update Ducky.Sdk version
-    find . -name "*.csproj" -exec grep -l "Ducky.Sdk" {} \; | while read proj; do
-      log "Updating Ducky.Sdk version in $proj"
-      # Use dotnet add package to update the version reliably
-      cd "$(dirname "$proj")"
-      dotnet add package "Ducky.Sdk" --version "$ACTUAL_VERSION" --source "${ROOT_DIR}/duckylocal" || err "Failed to update Ducky.Sdk in $(basename "$proj")"
-      cd "$SAMPLES_DIR"
-    done
-    dotnet restore "$SAMPLE_SOLUTION" || err "Failed to restore sample solution after updating versions"
-    log "✓ All Sample projects updated to Ducky.Sdk ${ACTUAL_VERSION}"
-  else
-    err "Failed to extract version from nuget.props"
-  fi
-else
-  err "nuget.props not found"
-fi
+log "✓ All Sample projects updated to Ducky.Sdk ${ACTUAL_VERSION}"
 
 # Step 4: Rebuild the solution
 log "Step 4: Rebuilding sample solution"
 # Parallel builds are safe: the build runner has no shared script cache (the former dotnet-script race is gone)
 dotnet build "$SAMPLE_SOLUTION" --configuration Debug || err "Failed to build sample solution"
-
-# Read the actual version that was used from nuget.props
-if [[ -f "${ROOT_DIR}/nuget.props" ]]; then
-  ACTUAL_VERSION=$(grep -Po '(?<=<LocalNuGetVersion>)[^<]+' "${ROOT_DIR}/nuget.props" | head -1 || true)
-else
-  ACTUAL_VERSION="unknown"
-fi
 
 log "✓ Sample projects rebuilt successfully with Ducky.Sdk ${ACTUAL_VERSION}"
 log "Done."
