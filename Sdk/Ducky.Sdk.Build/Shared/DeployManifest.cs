@@ -106,7 +106,8 @@ internal static class DeployManifest
         var outputs = DeployModLib.PlannedOutputs(context)
             .Concat(ILRepackAssembliesLib.PlannedOutputs(context))
             .Concat(CopyDependenciesLib.PlannedOutputs(context))
-            .Concat(CopyLocalizationAssetsLib.PlannedOutputs(context));
+            .Concat(CopyLocalizationAssetsLib.PlannedOutputs(context))
+            .Concat(HotReloadShimStep.PlannedOutputs(context));
 
         foreach (var file in outputs)
         {

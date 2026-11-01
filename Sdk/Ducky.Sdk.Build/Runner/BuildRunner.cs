@@ -32,6 +32,26 @@ internal static class BuildRunner
         "DeployModLib",
     ];
 
+    /// <summary>
+    /// Pre phase steps of a hot reload build: the legacy steps, then the shim source (HotReloadShimStep.PrepareSource).
+    /// Default builds run <see cref="PreSteps"/> only, so their step list is unchanged.
+    /// </summary>
+    internal static readonly string[] HotReloadPreSteps = [.. PreSteps, "HotReloadShimSourceStep"];
+
+    /// <summary>
+    /// Post phase steps of a hot reload build. The stale Core cleanup runs before ILRepack so the merge never reads an
+    /// older Core; the shim is deployed last. Default builds run <see cref="PostSteps"/> only.
+    /// </summary>
+    internal static readonly string[] HotReloadPostSteps =
+    [
+        "ResetDeployLib",
+        "HotReloadCleanupStep",
+        "ILRepackAssembliesLib",
+        "CopyDependenciesLib",
+        "DeployModLib",
+        "HotReloadShimDeployStep",
+    ];
+
     internal static readonly IReadOnlyDictionary<string, Func<BuildContext, int>> StepTable =
         new Dictionary<string, Func<BuildContext, int>>(StringComparer.Ordinal)
         {
@@ -49,6 +69,9 @@ internal static class BuildRunner
             ["ILRepackAssembliesLib"] = ILRepackAssembliesLib.Execute,
             ["CopyDependenciesLib"] = CopyDependenciesLib.Execute,
             ["DeployModLib"] = DeployModLib.Execute,
+            ["HotReloadShimSourceStep"] = HotReloadShimStep.PrepareSource,
+            ["HotReloadCleanupStep"] = HotReloadCleanupStep.Execute,
+            ["HotReloadShimDeployStep"] = HotReloadShimStep.Deploy,
         };
 
     /// <summary>
@@ -67,7 +90,7 @@ internal static class BuildRunner
 
         var context = LoadContext(buildContextPath);
         var buildResult = BuildResult.LoadOrCreate(context.ProjectDir);
-        return RunSteps(PreSteps, context, buildResult, StepTable);
+        return RunSteps(context.HotReloadEnabled ? HotReloadPreSteps : PreSteps, context, buildResult, StepTable);
     }
 
     /// <summary>
@@ -96,7 +119,7 @@ internal static class BuildRunner
             return Program.ExitFailure;
         }
 
-        var code = RunSteps(PostSteps, context, buildResult, StepTable);
+        var code = RunSteps(context.HotReloadEnabled ? HotReloadPostSteps : PostSteps, context, buildResult, StepTable);
         if (code != Program.ExitSuccess)
         {
             return code;
