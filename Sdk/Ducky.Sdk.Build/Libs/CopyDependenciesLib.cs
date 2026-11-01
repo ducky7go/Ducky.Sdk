@@ -94,8 +94,23 @@ public class CopyDependenciesLib
 
             // Copy dependencies
             var targetDir = GetTargetDependencyDirectory(context);
+
+            // Up-to-date check: same dependency files and destination as the last successful run, and every copy still exists
+            var expectedOutputs = dependencies.Select(dependency => Path.Combine(targetDir, Path.GetFileName(dependency))).ToList();
+            var fingerprint = BuildStamp.Compute(dependencies,
+                BuildStamp.ContextKey(context) + "|dest=" + targetDir);
+            if (BuildStamp.IsUpToDate(context, nameof(CopyDependenciesLib), fingerprint, expectedOutputs))
+            {
+                context.LogInfo("Dependencies are up to date (no source or destination change); skipping copy");
+                result.SkippedFiles.AddRange(expectedOutputs);
+                result.Success = true;
+                result.ExitCode = SkipExitCode;
+                return result;
+            }
+
             BuildUtils.EnsureDirectoryExists(targetDir);
 
+            var copyFailed = false;
             foreach (var dependency in dependencies)
             {
                 var fileName = Path.GetFileName(dependency);
@@ -119,7 +134,14 @@ public class CopyDependenciesLib
                 {
                     context.LogWarning($"Failed to copy dependency {dependency}: {ex.Message}");
                     result.SkippedFiles.Add(targetPath);
+                    copyFailed = true;
                 }
+            }
+
+            // A per-file copy failure is only logged, so it must block the stamp explicitly.
+            if (!copyFailed)
+            {
+                BuildStamp.Write(context, nameof(CopyDependenciesLib), fingerprint);
             }
 
             result.Success = true;
@@ -161,14 +183,50 @@ public class CopyDependenciesLib
         return false;
     }
 
+    /// <summary>
+    /// The files this step writes into the destination Dependency folder in a successful run, from the same inputs
+    /// and conditions as CopyDependencies. ResetDeployLib uses this list to decide which deployed files are stale.
+    /// </summary>
+    public static List<string> PlannedOutputs(BuildContext context)
+    {
+        if (context.EnableILRepack || context.IsModLib || string.IsNullOrEmpty(context.ModName))
+        {
+            return new List<string>();
+        }
+
+        var targetDir = GetTargetDependencyDirectory(context);
+        return ListDependencies(context)
+            .Select(dependency => Path.Combine(targetDir, Path.GetFileName(dependency)))
+            .ToList();
+    }
+
     private static List<string> FindDependenciesToCopy(BuildContext context)
     {
+        if (!Directory.Exists(DependencySourceDirectory(context)))
+        {
+            context.LogInfo("No Dependency directory found");
+            return new List<string>();
+        }
+
+        var dependencies = ListDependencies(context);
+        context.LogInfo($"Found {dependencies.Count} dependencies to copy");
+        return dependencies;
+    }
+
+    private static string DependencySourceDirectory(BuildContext context) =>
+        Path.Combine(context.ProjectDir, "Dependency");
+
+    /// <summary>
+    /// The DLLs of the project's Dependency folder that get copied, without the system and Unity assemblies.
+    /// Logs nothing, so it can be used for planning.
+    /// </summary>
+    private static List<string> ListDependencies(BuildContext context)
+    {
         var dependencies = new List<string>();
-        var dependencyDir = Path.Combine(context.ProjectDir, "Dependency");
+        var dependencyDir = DependencySourceDirectory(context);
 
         if (!Directory.Exists(dependencyDir))
         {
-            context.LogInfo("No Dependency directory found");
             return dependencies;
         }
 
@@ -192,7 +250,6 @@ public class CopyDependenciesLib
             }
         }
 
-        context.LogInfo($"Found {dependencies.Count} dependencies to copy");
         return dependencies;
     }
 

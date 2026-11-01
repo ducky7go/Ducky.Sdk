@@ -98,12 +98,29 @@ public class CopyLocalizationAssetsLib
                 return result;
             }
 
+            // Up-to-date check: same sources and destinations as the last successful run, and every copy still exists
+            var sourceFiles = Directory.GetFiles(sourceDir!, "*.*", SearchOption.AllDirectories);
+            var expectedOutputs = targetDirs.Concat(targetDirs.SelectMany(targetDir =>
+                sourceFiles.Select(sourceFile => Path.Combine(targetDir, Path.GetRelativePath(sourceDir!, sourceFile))))).ToList();
+            var fingerprint = BuildStamp.Compute(sourceFiles,
+                BuildStamp.ContextKey(context) + "|source=" + sourceDir + "|targets=" + string.Join(";", targetDirs));
+            if (BuildStamp.IsUpToDate(context, nameof(CopyLocalizationAssetsLib), fingerprint, expectedOutputs))
+            {
+                context.LogInfo("Localization assets are up to date (no source or destination change); skipping copy");
+                result.FilesSkipped = sourceFiles.Length * targetDirs.Count;
+                result.Success = true;
+                result.ExitCode = SkipExitCode;
+                return result;
+            }
+
             foreach (var targetDir in targetDirs)
             {
                 BuildUtils.EnsureDirectoryExists(targetDir);
                 CopyFromDirectory(sourceDir!, targetDir, context, result);
             }
 
+            // Only reached when every copy succeeded; a failure throws into the catch and writes no stamp.
+            BuildStamp.Write(context, nameof(CopyLocalizationAssetsLib), fingerprint);
             result.Success = true;
             context.LogInfo(
                 $"Localization asset copying completed: {result.FilesCopied} copied, {result.FilesSkipped} skipped");
@@ -111,6 +128,7 @@ public class CopyLocalizationAssetsLib
         catch (Exception ex)
         {
             result.Success = false;
+            result.ExitCode = 1;
             result.ErrorMessage = $"Asset copying error: {ex.Message}";
             context.LogError($"Exception: {ex}");
         }
@@ -139,25 +157,58 @@ public class CopyLocalizationAssetsLib
         }
 
         // skip if any LocalizationAssetsDir is the same as assets/Locales
-        var targetDirs = GetTargetDirectories(context);
-        var sourceDir = GetSourceDirectory(context);
-        if (!string.IsNullOrEmpty(sourceDir))
+        if (TargetsSourceDirectory(context))
         {
-            foreach (var targetDir in targetDirs)
-            {
-                if (string.Equals(Path.GetFullPath(sourceDir).TrimEnd(Path.DirectorySeparatorChar),
-                        Path.GetFullPath(targetDir).TrimEnd(Path.DirectorySeparatorChar),
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    context.LogInfo(
-                        "Skipping asset copying: LocalizationAssetsDir is the same as assets/Locales directory");
-                    result.Success = true;
-                    return true;
-                }
-            }
+            context.LogInfo(
+                "Skipping asset copying: LocalizationAssetsDir is the same as assets/Locales directory");
+            result.Success = true;
+            return true;
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// The files this step writes in a successful run, from the same inputs and conditions as CopyAssets.
+    /// ResetDeployLib uses this list to decide which deployed files are stale.
+    /// </summary>
+    public static List<string> PlannedOutputs(BuildContext context)
+    {
+        var planned = new List<string>();
+        if (!context.ShouldProcessLocalization || string.IsNullOrEmpty(context.LocalizationAssetsDir))
+        {
+            return planned;
+        }
+
+        var sourceDir = GetSourceDirectory(context);
+        if (string.IsNullOrEmpty(sourceDir) || TargetsSourceDirectory(context))
+        {
+            return planned;
+        }
+
+        var sourceFiles = Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories);
+        foreach (var targetDir in GetTargetDirectories(context))
+        {
+            planned.AddRange(sourceFiles.Select(sourceFile =>
+                Path.Combine(targetDir, Path.GetRelativePath(sourceDir, sourceFile))));
+        }
+
+        return planned;
+    }
+
+    /// <summary>True when any target folder is the source folder (assets/Locales).</summary>
+    private static bool TargetsSourceDirectory(BuildContext context)
+    {
+        var sourceDir = GetSourceDirectory(context);
+        if (string.IsNullOrEmpty(sourceDir))
+        {
+            return false;
+        }
+
+        return GetTargetDirectories(context).Any(targetDir =>
+            string.Equals(Path.GetFullPath(sourceDir).TrimEnd(Path.DirectorySeparatorChar),
+                Path.GetFullPath(targetDir).TrimEnd(Path.DirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase));
     }
 
     private static string GetSourceDirectory(BuildContext context)

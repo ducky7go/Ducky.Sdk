@@ -102,6 +102,9 @@ internal static class BuildRunner
             return code;
         }
 
+        // The next reset removes only the files this successful build no longer plans to write.
+        DeployManifest.Write(context);
+
         PrintResultNonFatal(context, buildResult, printResult ?? PrintResultLib.Execute);
         return Program.ExitSuccess;
     }
@@ -130,7 +133,7 @@ internal static class BuildRunner
 
     /// <summary>
     /// Runs the named steps in order and stops at the first failure. A step that returns
-    /// <see cref="BuildScriptGlobals.SkipExitCode"/> counts as success. Every step is recorded in BuildResult.
+    /// <see cref="RunnerExitCodes.SkipExitCode"/> counts as success. Every step is recorded in BuildResult.
     /// </summary>
     internal static int RunSteps(IEnumerable<string> names, BuildContext context, BuildResult buildResult,
         IReadOnlyDictionary<string, Func<BuildContext, int>> table)
@@ -144,7 +147,7 @@ internal static class BuildRunner
             }
 
             var exitCode = BuildResultUtils.ExecuteAndRecord(buildResult, name, () => step(context));
-            if (exitCode != Program.ExitSuccess && exitCode != BuildScriptGlobals.SkipExitCode)
+            if (exitCode != Program.ExitSuccess && exitCode != RunnerExitCodes.SkipExitCode)
             {
                 Console.Error.WriteLine($"[BuildRunner][ERROR] Step {name} failed with exit code {exitCode}");
                 return Program.ExitFailure;

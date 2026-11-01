@@ -51,7 +51,7 @@ public class BuildRunnerStepTests
         var result = new BuildResult { ProjectDirectory = _projectDir };
         var table = new Dictionary<string, Func<BuildContext, int>>
         {
-            ["Skipper"] = _ => BuildScriptGlobals.SkipExitCode,
+            ["Skipper"] = _ => RunnerExitCodes.SkipExitCode,
         };
 
         var exit = BuildRunner.RunSteps(["Skipper"], context, result, table);

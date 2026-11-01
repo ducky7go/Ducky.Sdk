@@ -84,7 +84,7 @@ public class ExtractLocalizationKeysLibTests
 
         // Not 0 (success) and not SkipExitCode: the runner treats both as a failed step.
         exit.ShouldNotBe(0);
-        exit.ShouldNotBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldNotBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("Error: JsonData constant not found");
         error.ShouldContain("Could not find JsonData constant");
         File.Exists(Path.Combine(_assetsDir, "lkeys.json")).ShouldBeFalse();
@@ -100,7 +100,7 @@ public class ExtractLocalizationKeysLibTests
         var (exit, output, _) = LibTestSupport.Capture(() => ExtractLocalizationKeysLib.Execute(context));
 
         exit.ShouldNotBe(0);
-        exit.ShouldNotBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldNotBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("Error: Object directory not found");
         File.Exists(Path.Combine(_assetsDir, "lkeys.json")).ShouldBeFalse();
     }

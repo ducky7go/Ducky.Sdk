@@ -64,7 +64,7 @@ public class UpdateLocalizationCsvLibTests
 
         var (exit, output, _) = LibTestSupport.Capture(() => UpdateLocalizationCsvLib.Execute(_context));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("skipping CSV updates");
         foreach (var (path, time) in csvBefore)
         {
@@ -116,7 +116,7 @@ public class UpdateLocalizationCsvLibTests
 
         var (exit, output, _) = LibTestSupport.Capture(() => UpdateLocalizationCsvLib.Execute(_context));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("Skipping CSV generation");
         Directory.Exists(_localesDir).ShouldBeFalse();
     }
@@ -128,7 +128,7 @@ public class UpdateLocalizationCsvLibTests
 
         var (exit, output, _) = LibTestSupport.Capture(() => UpdateLocalizationCsvLib.Execute(_context));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("No keys found in JSON file");
     }
 

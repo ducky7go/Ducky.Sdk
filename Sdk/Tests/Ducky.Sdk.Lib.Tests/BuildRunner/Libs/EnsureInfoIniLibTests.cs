@@ -30,7 +30,7 @@ public class EnsureInfoIniLibTests
     {
         var (exit, output, _) = LibTestSupport.Capture(() => EnsureInfoIniLib.Execute(Context(modName: null)));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("ModName not specified");
         Directory.Exists(_assetsDir).ShouldBeFalse();
     }
@@ -40,7 +40,7 @@ public class EnsureInfoIniLibTests
     {
         var (exit, output, _) = LibTestSupport.Capture(() => EnsureInfoIniLib.Execute(Context(isModLib: true)));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("IsModLib is true");
         File.Exists(_infoPath).ShouldBeFalse();
     }

@@ -27,7 +27,7 @@ public class ValidateDuckovFolderLibTests
 
         var (exit, output, _) = LibTestSupport.Capture(() => ValidateDuckovFolderLib.Execute(context));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("Duckov folder validation skipped (library project)");
     }
 

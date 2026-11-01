@@ -88,10 +88,11 @@ public class DeployModLib
             // Validate deployment prerequisites
             if (!ValidateDeploymentPrerequisites(context, result))
             {
+                result.ExitCode = 1;
                 return result;
             }
 
-            // Create target directory (ResetDeployLib should have already cleaned it)
+            // Create target directory (ResetDeployLib has already removed the stale files of the last deploy)
             BuildUtils.EnsureDirectoryExists(targetModDir);
 
             // Copy assets
@@ -121,6 +122,7 @@ public class DeployModLib
             }
 
             result.Success = result.Errors.Count == 0;
+            result.ExitCode = result.Success ? 0 : 1;
 
             if (result.Success)
             {
@@ -130,12 +132,62 @@ public class DeployModLib
         catch (Exception ex)
         {
             result.Success = false;
+            result.ExitCode = 1;
             result.Errors.Add($"Deployment error: {ex.Message}");
             context.LogError($"Exception: {ex}");
         }
 
         return result;
     }
+
+    /// <summary>
+    /// The files Deploy writes under the mod folder in a successful run, from the same inputs and conditions as Deploy.
+    /// Keep the two in step: ResetDeployLib uses this list to decide which deployed files are stale.
+    /// </summary>
+    public static List<string> PlannedOutputs(BuildContext context)
+    {
+        var planned = new List<string>();
+        if (!context.DeployMod || context.IsModLib || string.IsNullOrEmpty(context.ModName))
+        {
+            return planned;
+        }
+
+        var targetModDir = ResetDeployLib.GetTargetModDirectory(context);
+
+        // Assets (CopyAssets)
+        var assetsDir = string.IsNullOrEmpty(context.AssetsDir) ? "assets" : context.AssetsDir;
+        var sourceAssetsDir = context.GetFullPath(assetsDir);
+        if (Directory.Exists(sourceAssetsDir))
+        {
+            planned.AddRange(Directory.GetFiles(sourceAssetsDir, "*.*", SearchOption.AllDirectories)
+                .Select(file => Path.Combine(targetModDir, Path.GetRelativePath(sourceAssetsDir, file))));
+        }
+
+        // Main DLL and PDB (CopyMainDll), copied unless ILRepack merges the dependencies into it
+        var targetDll = MainDllPath(context);
+        if ((!context.EnableILRepack || !context.HasDependencies) && File.Exists(targetDll))
+        {
+            planned.Add(Path.Combine(targetModDir, $"{context.ModName}.dll"));
+            if (File.Exists(Path.ChangeExtension(targetDll, ".pdb")))
+            {
+                planned.Add(Path.Combine(targetModDir, $"{context.ModName}.pdb"));
+            }
+        }
+
+        // Dependencies from the build output (CopyDependencies), only when ILRepack is disabled
+        var dependencyDir = Path.Combine(Path.GetDirectoryName(targetDll) ?? "", "Dependency");
+        if (!context.EnableILRepack && Directory.Exists(dependencyDir))
+        {
+            planned.AddRange(Directory.GetFiles(dependencyDir, "*.dll")
+                .Select(dll => Path.Combine(targetModDir, "Dependency", Path.GetFileName(dll))));
+        }
+
+        return planned;
+    }
+
+    private static string MainDllPath(BuildContext context) =>
+        Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
+            context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
 
     private static bool ShouldSkipDeployment(BuildContext context, DeploymentResult result)
     {
@@ -160,9 +212,9 @@ public class DeployModLib
         // Skip if no ModName
         if (string.IsNullOrEmpty(context.ModName))
         {
-            context.LogError("Skipping deployment: ModName not specified");
+            context.LogError("Deployment failed: ModName not specified");
             result.Success = false;
-            result.ExitCode = SkipExitCode;
+            result.ExitCode = 1;
             result.Errors.Add("ModName is required for deployment");
             return true;
         }
@@ -317,7 +369,8 @@ public class DeployModLib
             var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
                 context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
             var targetDirName = Path.GetDirectoryName(targetDll) ?? "";
-            var dependencyDir = Path.Combine(targetDir, "Dependency");
+            // Source: the build output's Dependency folder (bin/<Configuration>/<TargetFramework>/Dependency).
+            var dependencyDir = Path.Combine(targetDirName, "Dependency");
 
             if (!Directory.Exists(dependencyDir))
             {

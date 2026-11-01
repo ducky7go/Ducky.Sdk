@@ -85,7 +85,7 @@ public class DeployModLibTests
     {
         var (exit, _, _) = LibTestSupport.Capture(() => DeployModLib.Execute(Context(deployMod: false)));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         Directory.Exists(_target).ShouldBeFalse();
     }
 
@@ -94,7 +94,7 @@ public class DeployModLibTests
     {
         var (exit, _, _) = LibTestSupport.Capture(() => DeployModLib.Execute(Context(isModLib: true)));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         Directory.Exists(_target).ShouldBeFalse();
     }
 
@@ -119,10 +119,9 @@ public class DeployModLibTests
         Directory.Exists(_target).ShouldBeFalse();
     }
 
-    // Known discrepancy (see report): the missing-ModName branch sets Success=false and an error, but returns
-    // SkipExitCode (DeployModLib.cs:163-166), so the runner counts it as skipped. Expected: failure (1).
+    // Fixed (was a known discrepancy): the missing-ModName branch sets Success=false and an error, and now returns
+    // failure (1) instead of SkipExitCode, so the runner stops the post phase.
     [Test]
-    [Ignore("Known production discrepancy: DeployModLib.cs:165 returns SkipExitCode although the deployment failed.")]
     public void Execute_ReturnsFailureWhenModNameIsMissing()
     {
         var (exit, _, _) = LibTestSupport.Capture(() => DeployModLib.Execute(Context(modName: null)));
@@ -130,10 +129,9 @@ public class DeployModLibTests
         exit.ShouldBe(1);
     }
 
-    // Known discrepancy (see report): Deploy records errors but never sets ExitCode (DeployModLib.cs:91 and 123),
-    // so Execute (line 62) returns 0 for a failed deployment. Remove the Ignore once failures set ExitCode = 1.
+    // Fixed (was a known discrepancy): a failed prerequisite check and a failed deployment now set ExitCode = 1
+    // (DeployModLib.Deploy), so Execute returns 1.
     [Test]
-    [Ignore("Known production discrepancy: DeployModLib.cs:91/123 never set ExitCode on failure, so Execute returns 0 (line 62).")]
     public void Execute_ReturnsFailureWhenTargetDllIsMissing()
     {
         File.Delete(Path.Combine(_binDir, "Ducky.EntranceMod.dll"));
@@ -199,11 +197,9 @@ public class DeployModLibTests
         File.Exists(Path.Combine(_target, "Locales", "en.csv")).ShouldBeTrue();
     }
 
-    // Known discrepancy (see report): CopyDependencies reads targetDir/Dependency (the mods folder) instead of the
-    // build output's Dependency folder (DeployModLib.cs:319-320; targetDirName is computed but unused). Nothing gets
-    // deployed from bin, and a pre-existing target Dependency folder would be copied onto itself.
+    // Fixed (was a known discrepancy): CopyDependencies read targetDir/Dependency (the mod folder) and copied it onto
+    // itself. It now reads bin/<Configuration>/<TargetFramework>/Dependency, the folder its targetDirName was computed for.
     [Test]
-    [Ignore("Known production discrepancy: DeployModLib.cs:319-320 copies from the mod folder, not from bin/.../Dependency.")]
     public void Execute_WithIlRepackDisabledCopiesBinDependencies()
     {
         LibTestSupport.WriteText(Path.Combine(_binDir, "Dependency", "Serilog.dll"), "serilog");

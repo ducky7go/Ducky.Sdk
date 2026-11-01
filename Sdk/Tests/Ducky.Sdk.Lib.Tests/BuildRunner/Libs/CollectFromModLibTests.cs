@@ -46,7 +46,7 @@ public class CollectFromModLibTests
 
         var (exit, output, _) = LibTestSupport.Capture(() => CollectFromModLib.Execute(Context(deployMod: false)));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("Mod deployment is disabled");
         File.Exists(_assetsInfo).ShouldBeFalse();
     }

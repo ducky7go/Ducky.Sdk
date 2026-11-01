@@ -99,7 +99,7 @@ public class CopyLocalizationAssetsLibTests
     {
         var (exit, output, _) = LibTestSupport.Capture(() => CopyLocalizationAssetsLib.Execute(Context(null)));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("LocalizationAssetsDir not specified");
         Directory.Exists(_targetA).ShouldBeFalse();
     }
@@ -141,10 +141,8 @@ public class CopyLocalizationAssetsLibTests
         result.ErrorMessage.ShouldContain("Asset copying error");
     }
 
-    // Known discrepancy (see report): CopyLocalizationAssetsLib.CopyAssets sets Success=false but never sets
-    // ExitCode, so Execute returns 0 on failure. Remove the Ignore once ExitCode is set in the catch block.
+    // Fixed (was a known discrepancy): CopyAssets sets ExitCode = 1 in its catch block, so Execute returns 1.
     [Test]
-    [Ignore("Known production discrepancy: CopyLocalizationAssetsLib.cs:111-116 leaves ExitCode at 0 on failure, so Execute returns 0 (line 61).")]
     public void Execute_ReturnsFailureWhenTargetCannotBeCreated()
     {
         var blocker = Path.Combine(_root, "blocked target");

@@ -45,7 +45,7 @@ public class CopyDependenciesLibTests
 
         var (exit, output, _) = LibTestSupport.Capture(() => CopyDependenciesLib.Execute(Context(enableIlRepack: true)));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("ILRepack is enabled");
         Directory.Exists(_targetDeps).ShouldBeFalse();
     }
@@ -57,7 +57,7 @@ public class CopyDependenciesLibTests
 
         var (exit, output, _) = LibTestSupport.Capture(() => CopyDependenciesLib.Execute(Context(isModLib: true)));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("IsModLib=true");
         Directory.Exists(_targetDeps).ShouldBeFalse();
     }

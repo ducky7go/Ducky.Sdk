@@ -1,6 +1,9 @@
 namespace Ducky.Sdk.Lib.Tests.Runner;
 
-/// <summary>Task 5.4: ResetDeployLib removes the target mod folder (ModsDirectory first, DuckovFolder as fallback).</summary>
+/// <summary>
+/// ResetDeployLib removes only the stale files of the last successful deploy (listed in the deployed-files manifest).
+/// It never deletes the mod folder, files the SDK did not write, or files this build still plans to write.
+/// </summary>
 public class ResetDeployLibTests
 {
     private string _root = null!;
@@ -27,25 +30,50 @@ public class ResetDeployLibTests
             modsDirectory: mods ?? _mods,
             duckovFolder: duckov);
 
-    private void CreateOldDeployment(string folder)
+    /// <summary>Writes files of a previous deploy and the manifest that lists them.</summary>
+    private static void CreateOldDeployment(BuildContext context, string folder, params string[] relativeFiles)
     {
-        LibTestSupport.WriteText(Path.Combine(folder, "Ducky.EntranceMod.dll"), "old");
-        LibTestSupport.WriteText(Path.Combine(folder, "Locales", "en.csv"), "Key,Value\n");
+        foreach (var relative in relativeFiles)
+        {
+            LibTestSupport.WriteText(Path.Combine(folder, relative.Replace('/', Path.DirectorySeparatorChar)), "old");
+        }
+
+        DeployManifest.WriteEntries(context, folder, relativeFiles);
     }
 
     [Test]
-    public void Reset_DeletesExistingModFolderIncludingNestedFiles()
+    public void Reset_KeepsFilesTheSdkDidNotWriteWhenNoManifestExists()
     {
-        CreateOldDeployment(_target);
+        LibTestSupport.WriteText(Path.Combine(_target, "Ducky.EntranceMod.dll"), "old");
+        LibTestSupport.WriteText(Path.Combine(_target, "notes.txt"), "mine");
 
         var result = ResetDeployLib.Reset(Context());
 
         result.Success.ShouldBeTrue();
         result.DirectoryExisted.ShouldBeTrue();
-        result.DirectoryDeleted.ShouldBeTrue();
+        result.RemovedFiles.ShouldBeEmpty();
         result.TargetModDir.ShouldBe(_target);
-        Directory.Exists(_target).ShouldBeFalse();
-        Directory.Exists(_mods).ShouldBeTrue();
+        File.Exists(Path.Combine(_target, "Ducky.EntranceMod.dll")).ShouldBeTrue();
+        File.Exists(Path.Combine(_target, "notes.txt")).ShouldBeTrue();
+    }
+
+    [Test]
+    public void Reset_RemovesOnlyTheStaleFilesOfTheLastDeploy()
+    {
+        var context = Context();
+        CreateOldDeployment(context, _target, "Ducky.EntranceMod.dll", "Locales/en.csv", "Dependency/Old.dll");
+        LibTestSupport.WriteText(Path.Combine(_target, "notes.txt"), "mine");
+
+        var result = ResetDeployLib.Reset(context);
+
+        result.Success.ShouldBeTrue();
+        result.RemovedFiles.Count.ShouldBe(3);
+        File.Exists(Path.Combine(_target, "Ducky.EntranceMod.dll")).ShouldBeFalse();
+        File.Exists(Path.Combine(_target, "Locales", "en.csv")).ShouldBeFalse();
+        Directory.Exists(Path.Combine(_target, "Locales")).ShouldBeFalse("an emptied folder is removed");
+        Directory.Exists(Path.Combine(_target, "Dependency")).ShouldBeFalse("an emptied folder is removed");
+        Directory.Exists(_target).ShouldBeTrue("the mod folder itself is never removed");
+        File.Exists(Path.Combine(_target, "notes.txt")).ShouldBeTrue();
     }
 
     [Test]
@@ -63,36 +91,37 @@ public class ResetDeployLibTests
     {
         var duckov = Path.Combine(_root, "Escape From Duckov");
         var target = Path.Combine(duckov, "Duckov_Data", "Mods", "Ducky.EntranceMod");
-        CreateOldDeployment(target);
+        var context = Context(mods: string.Empty, duckov: duckov);
+        CreateOldDeployment(context, target, "Ducky.EntranceMod.dll");
 
-        var (exit, _, _) = LibTestSupport.Capture(() =>
-            ResetDeployLib.Execute(Context(mods: string.Empty, duckov: duckov)));
+        var (exit, _, _) = LibTestSupport.Capture(() => ResetDeployLib.Execute(context));
 
         exit.ShouldBe(0);
-        Directory.Exists(target).ShouldBeFalse();
+        File.Exists(Path.Combine(target, "Ducky.EntranceMod.dll")).ShouldBeFalse();
+        Directory.Exists(target).ShouldBeTrue();
     }
 
     [Test]
     public void Execute_SkipsLibraryProjectsAndKeepsDeployment()
     {
-        CreateOldDeployment(_target);
+        LibTestSupport.WriteText(Path.Combine(_target, "Ducky.EntranceMod.dll"), "old");
 
         var (exit, _, _) = LibTestSupport.Capture(() => ResetDeployLib.Execute(Context(isModLib: true)));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         File.Exists(Path.Combine(_target, "Ducky.EntranceMod.dll")).ShouldBeTrue();
     }
 
     [Test]
     public void Execute_SkipsWhenModNameIsMissingAndKeepsSiblingFolders()
     {
-        CreateOldDeployment(_target);
+        LibTestSupport.WriteText(Path.Combine(_target, "Ducky.EntranceMod.dll"), "old");
         var sibling = Path.Combine(_mods, "Other Mod");
         LibTestSupport.WriteText(Path.Combine(sibling, "Other.dll"), "keep");
 
         var (exit, output, _) = LibTestSupport.Capture(() => ResetDeployLib.Execute(Context(modName: null)));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         output.ShouldContain("ModName is not specified");
         File.Exists(Path.Combine(sibling, "Other.dll")).ShouldBeTrue();
         File.Exists(Path.Combine(_target, "Ducky.EntranceMod.dll")).ShouldBeTrue();
@@ -109,21 +138,36 @@ public class ResetDeployLibTests
     }
 
     [Test]
-    public void Reset_ReportsDeleteErrorWhenFileInsideModFolderCannotBeRemoved()
+    public void Reset_IgnoresAManifestThatBelongsToAnotherFolder()
+    {
+        var context = Context();
+        CreateOldDeployment(context, Path.Combine(_mods, "Other Mod"), "Ducky.EntranceMod.dll");
+        LibTestSupport.WriteText(Path.Combine(_target, "Ducky.EntranceMod.dll"), "unrelated");
+
+        var result = ResetDeployLib.Reset(context);
+
+        result.Success.ShouldBeTrue();
+        result.RemovedFiles.ShouldBeEmpty();
+        File.Exists(Path.Combine(_target, "Ducky.EntranceMod.dll")).ShouldBeTrue();
+    }
+
+    [Test]
+    public void Reset_ReportsDeleteErrorWhenStaleFileCannotBeRemoved()
     {
         if (OperatingSystem.IsWindows())
         {
             Assert.Ignore("Read-only directories are emulated with Unix file modes.");
         }
 
-        var locked = CreateLockedFileInsideTarget();
+        var context = Context();
+        var locked = CreateLockedStaleFile(context);
         try
         {
-            var result = ResetDeployLib.Reset(Context());
+            var result = ResetDeployLib.Reset(context);
 
             result.Success.ShouldBeFalse();
-            result.DirectoryDeleted.ShouldBeFalse();
-            result.Errors.ShouldContain(e => e.StartsWith("Failed to delete deployment directory"));
+            result.RemovedFiles.ShouldBeEmpty();
+            result.Errors.ShouldContain(e => e.StartsWith("Failed to delete stale file"));
         }
         finally
         {
@@ -131,21 +175,20 @@ public class ResetDeployLibTests
         }
     }
 
-    // Known discrepancy (see report): on a failed delete, Reset returns early (ResetDeployLib.cs:108-112) without
-    // setting ExitCode, so Execute returns 0 (line 64). Remove the Ignore once ExitCode is set on that path.
+    // Fixed (was a known discrepancy): a failed delete now sets ExitCode 1 (ResetDeployLib.Reset), so Execute returns 1.
     [Test]
-    [Ignore("Known production discrepancy: ResetDeployLib.cs:108-112 returns with ExitCode 0 after a failed delete, so Execute returns 0.")]
-    public void Execute_ReturnsFailureWhenModFolderCannotBeDeleted()
+    public void Execute_ReturnsFailureWhenStaleFileCannotBeDeleted()
     {
         if (OperatingSystem.IsWindows())
         {
             Assert.Ignore("Read-only directories are emulated with Unix file modes.");
         }
 
-        var locked = CreateLockedFileInsideTarget();
+        var context = Context();
+        var locked = CreateLockedStaleFile(context);
         try
         {
-            var (exit, _, _) = LibTestSupport.Capture(() => ResetDeployLib.Execute(Context()));
+            var (exit, _, _) = LibTestSupport.Capture(() => ResetDeployLib.Execute(context));
 
             exit.ShouldBe(1);
         }
@@ -156,13 +199,14 @@ public class ResetDeployLibTests
     }
 
     /// <summary>
-    /// Puts a file in a read-only subfolder of the target, so recursive delete fails with UnauthorizedAccessException.
-    /// Returns the read-only folder so the caller can restore its mode. Assumes (not asserts) when the test runs as root.
+    /// Lists a file in a read-only subfolder of the target as a stale entry of the last deploy, so recursive
+    /// delete of that file fails with UnauthorizedAccessException. Returns the read-only folder so the caller can
+    /// restore its mode. Assumes (not asserts) when the test runs as root.
     /// </summary>
-    private string CreateLockedFileInsideTarget()
+    private string CreateLockedStaleFile(BuildContext context)
     {
+        CreateOldDeployment(context, _target, "locked/pinned.dll");
         var locked = Path.Combine(_target, "locked");
-        LibTestSupport.WriteText(Path.Combine(locked, "pinned.dll"), "pinned");
         File.SetUnixFileMode(locked, UnixFileMode.UserRead | UnixFileMode.UserExecute);
 
         var stillWritable = false;

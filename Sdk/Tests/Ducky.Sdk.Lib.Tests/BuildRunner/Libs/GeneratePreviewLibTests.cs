@@ -50,7 +50,7 @@ public class GeneratePreviewLibTests
 
         var (exit, _, _) = LibTestSupport.Capture(() => GeneratePreviewLib.Execute(context));
 
-        exit.ShouldBe(BuildScriptGlobals.SkipExitCode);
+        exit.ShouldBe(RunnerExitCodes.SkipExitCode);
         File.Exists(Path.Combine(_assetsDir, "preview.png")).ShouldBeFalse();
     }
 

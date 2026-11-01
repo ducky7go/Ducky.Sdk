@@ -174,6 +174,30 @@ public class ILRepackAssembliesLib
         return result;
     }
 
+    /// <summary>
+    /// The files RepackAssemblies writes under the mod folder in a successful run, from the same conditions as
+    /// RepackAssemblies. Keep the two in step: ResetDeployLib uses this list to decide which deployed files are stale.
+    /// </summary>
+    public static List<string> PlannedOutputs(BuildContext context)
+    {
+        var planned = new List<string>();
+        if (!context.DeployMod || !context.ShouldUseILRepack || context.IsModLib || string.IsNullOrEmpty(context.ModName))
+        {
+            return planned;
+        }
+
+        var targetModDir = GetTargetModDirectory(context);
+        planned.Add(Path.Combine(targetModDir, $"{context.ModName}.dll"));
+
+        var mainAssembly = context.MainAssemblyPath ?? FindMainAssembly(context);
+        if (!string.IsNullOrEmpty(mainAssembly) && File.Exists(Path.ChangeExtension(mainAssembly, ".pdb")))
+        {
+            planned.Add(Path.Combine(targetModDir, $"{context.ModName}.pdb"));
+        }
+
+        return planned;
+    }
+
     private static bool ShouldSkipRepack(BuildContext context, RepackResult result)
     {
         // skip if no deploy mod
