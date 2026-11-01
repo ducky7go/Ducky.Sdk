@@ -28,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\SDKlibs\Ducky.Sdk.Lib\Ducky.Sdk.Lib.csproj" />
     <ProjectReference Include="..\..\Ducky.Sdk.Build\Ducky.Sdk.Build.csproj" />
+    <ProjectReference Include="..\..\Ducky.Sdk.Analyser\Ducky.Sdk.Analyser.csproj" />
   </ItemGroup>
 
   <ItemGroup>
