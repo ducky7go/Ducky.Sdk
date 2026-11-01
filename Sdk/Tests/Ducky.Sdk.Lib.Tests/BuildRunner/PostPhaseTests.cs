@@ -55,7 +55,7 @@ public class PostPhaseTests
     }
 
     [Test]
-    public void PreSteps_MatchLegacyOrder()
+    public void PreSteps_MatchLegacyOrderPlusTheLocalizationValidation()
     {
         BuildRunner.PreSteps.ShouldBe([
             "InitializeBuildLoggingLib",
@@ -63,6 +63,7 @@ public class PostPhaseTests
             "ResolveSdkPropertiesLib",
             "ExtractLocalizationKeysLib",
             "UpdateLocalizationCsvLib",
+            "ValidateLocalizationLib",
             "CopyLocalizationAssetsLib",
             "EnsureInfoIniLib",
             "GeneratePreviewLib",

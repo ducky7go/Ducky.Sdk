@@ -106,7 +106,8 @@ public class BuildRunnerStepTests
         var legacy = BuildRunner.PreSteps.Concat(BuildRunner.PostSteps).ToArray();
 
         legacy.ShouldAllBe(name => BuildRunner.StepTable.ContainsKey(name));
-        legacy.Length.ShouldBe(14);
+        // 14 legacy steps plus ValidateLocalizationLib, which runs after UpdateLocalizationCsvLib.
+        legacy.Length.ShouldBe(15);
     }
 
     private static int Track(List<string> order, string name)
