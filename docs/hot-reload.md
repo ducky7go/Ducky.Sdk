@@ -1,35 +1,56 @@
 # Development hot reload
 
-Hot reload lets a mod author change mod code while the game keeps running. It is **development only**: it is off by
-default, it is ignored in Release builds, and a package that contains its files is refused.
+Hot reload lets a mod author change mod code while the game keeps running. It is **development only**: it is on by
+default for the Debug builds of a mod that can use it, you can opt out with `DuckyHotReload=false`, it is ignored in
+Release builds, and a package that contains its files is refused.
 
 Mono cannot unload an assembly, and the game loads a mod with `Assembly.LoadFrom(<mod>/<name>.dll)`, which returns the
 assembly it already loaded for that path. Hot reload works around this with a small shim that the game loads, and a
 Core assembly that the shim loads from bytes under a new name for every build.
 
-## Enable it
+## Default on, opt out
 
-Set one property in the mod project. It only takes effect in a non-Release configuration, and never for `IsModLib`
-projects:
+Hot reload needs no configuration. A Debug (any non-Release) build of a mod project is a hot reload build when the
+project can produce one, which means all of these hold:
+
+- the configuration is not Release;
+- the project is not an `IsModLib` library;
+- the project declares a `ModName`;
+- the project is deployed (`DeployMod` is not `false`).
+
+Every other project builds as a normal single assembly, with no hot reload file and no hot reload warning.
+
+To opt out, set the property to `false` in the mod project (or in a shared props file that the mod imports):
 
 ```xml
 <PropertyGroup>
-  <DuckyHotReload>true</DuckyHotReload>
+  <DuckyHotReload>false</DuckyHotReload>
 </PropertyGroup>
 ```
 
-| Configuration | `DuckyHotReload` | Result |
-|---|---|---|
-| Debug (or any non-Release) | `true` | Hot reload build: shim + stamped Core |
-| Debug | not set / `false` | Normal single-assembly build (unchanged) |
-| Release | `true` | Normal single-assembly build, with the warning *DuckyHotReload is ignored in the Release configuration* |
-| `IsModLib` project | `true` | Normal build, with the warning *DuckyHotReload is ignored for library projects* |
+| Configuration | Project | `DuckyHotReload` | Result |
+|---|---|---|---|
+| Debug (or any non-Release) | deployed mod (`ModName` set, `DeployMod` not `false`) | not set / `true` | Hot reload build: shim + stamped Core |
+| Debug | deployed mod | `false` | Normal single-assembly build (opt-out, no warning) |
+| Debug | no `ModName`, or `DeployMod=false` | not set / `true` | Normal single-assembly build, no warning |
+| Release | any | not set / `false` | Normal single-assembly build, no warning |
+| Release | any | `true` | Normal single-assembly build, with the warning *DuckyHotReload is ignored in the Release configuration* |
+| `IsModLib` project | any | not set / `false` | Normal single-assembly build, no warning |
+| `IsModLib` project | any | `true` | Normal build, with the warning *DuckyHotReload is ignored for library projects* |
+
+The warnings appear only when the author sets `DuckyHotReload` to `true` explicitly. A project that gets hot reload by
+default is never warned about it.
 
 The build prints `[Ducky.Sdk] Hot reload: development build (shim + Core)` when the mode is on.
 
-The sample mods in `Samples/` that are deployed (`Ducky.TryHarmony`, `Ducky.SingleProject`,
-`Ducky.MessageHubClient`, `Ducky.MessageHubHost`, `Ducky.MessageHubUI`, `Ducky.EntranceMod`, `Ducky.HotReloadSample`) set it
-for non-Release builds, so their Debug builds are hot reloadable by default. The SDK default is still off.
+A normal build does not remove the Cores and `hotreload.enabled` that an earlier hot reload build left in the mod folder.
+After you opt out, delete `hotreload.enabled` and the `<ModName>.Core.*.dll` files from the mod folder, or the release
+packaging guard refuses the package (see Packaging).
+
+The deployed sample mods in `Samples/` (`Ducky.TryHarmony`, `Ducky.SingleProject`, `Ducky.MessageHubClient`,
+`Ducky.MessageHubHost`, `Ducky.MessageHubUI`, `Ducky.EntranceMod`, `Ducky.HotReloadSample`) use the SDK default, so their
+Debug builds are hot reloadable with no property set. `Ducky.EntranceMod2` (`DeployMod=false`) and
+`Ducky.EntranceMod.Common` (`IsModLib`) build normally.
 
 ## What a hot reload build writes
 
