@@ -21,8 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SixLabors.ImageSharp" />
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="ILRepack.Lib" />
   </ItemGroup>
