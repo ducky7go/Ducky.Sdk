@@ -26,6 +26,7 @@ internal sealed class LocalizationService
 
     private readonly Dictionary<string, Dictionary<string, string>> _db =
         new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _overrideKeys = new();
 
     private readonly string _localesPath;
     private SystemLanguage _currentLanguage = SystemLanguage.English;
@@ -183,6 +184,7 @@ internal sealed class LocalizationService
             {
                 var value = Get(_currentLanguage, key);
                 LocalizationManager.SetOverrideText(key, value);
+                _overrideKeys.Add(key);
             }
         }
     }
@@ -190,6 +192,20 @@ internal sealed class LocalizationService
     public void SetLanguage(SystemLanguage language)
     {
         SelectLanguage(language);
+    }
+
+    /// <summary>
+    /// Removes from the game the override texts this service set (hot reload disable). A key is removed only if this
+    /// service set it, so texts of other mods stay.
+    /// </summary>
+    internal void ReleaseOverrideTexts()
+    {
+        foreach (var key in _overrideKeys)
+        {
+            LocalizationManager.RemoveOverrideText(key);
+        }
+
+        _overrideKeys.Clear();
     }
 
     public string Get(string key, string? fallback = null)

@@ -58,6 +58,9 @@ public class BuffsContract : MonoBehaviour
     }
 
     private static readonly ConcurrentDictionary<Type, Buff> Buffs = new();
+
+    /// <summary>Buffs this assembly registered. Hot reload removes them when the Core is disabled.</summary>
+    private static readonly List<Buff> OwnedBuffs = new();
     private static int _maxBuffId = 1000456;
 
     public int RegisterBuff<T>(Action<T> configure) where T : Buff
@@ -76,10 +79,63 @@ public class BuffsContract : MonoBehaviour
         configure(buff);
 
         Buffs[buffType] = buff;
+        lock (OwnedBuffs)
+        {
+            OwnedBuffs.Add(buff);
+        }
+
         var allBuffs = GameplayDataSettings.Buffs.GetAllBuffs();
         allBuffs.Add(buff);
         Log.Info($"Registered buff of type {buffType.FullName} with ID {buff.ID}.");
         return buff.ID;
+    }
+
+    /// <summary>
+    /// Removes every buff this assembly registered from the game's buff list and destroys its registrar object.
+    /// Buffs of other assemblies stay. Used when a hot reload Core is disabled; the buff types themselves cannot be unloaded.
+    /// </summary>
+    internal static void ReleaseOwnedBuffs()
+    {
+        List<Buff> owned;
+        lock (OwnedBuffs)
+        {
+            owned = OwnedBuffs.ToList();
+            OwnedBuffs.Clear();
+        }
+
+        if (owned.Count == 0)
+        {
+            return;
+        }
+
+        Buffs.Clear();
+        var allBuffs = GameplayDataSettings.Buffs.GetAllBuffs();
+        foreach (var buff in owned)
+        {
+            if (buff == null)
+            {
+                continue;
+            }
+
+            allBuffs.Remove(buff);
+            UnityEngine.Object.Destroy(buff.gameObject);
+        }
+
+        Log.Info($"Released {owned.Count} buff registration(s) of this mod.");
+    }
+
+    /// <summary>
+    /// Destroys the holder object this assembly created. A holder made by an old Core cannot be reused by a new one
+    /// (its component type belongs to the old assembly), so leaving it would stack a second holder with the same name.
+    /// </summary>
+    internal static void ReleaseHolder()
+    {
+        var holder = _instance;
+        _instance = null;
+        if (holder != null)
+        {
+            UnityEngine.Object.Destroy(holder.gameObject);
+        }
     }
 
     public Buff? CreateBuffInstance(int id)

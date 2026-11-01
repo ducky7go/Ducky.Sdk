@@ -17,6 +17,13 @@ public abstract class ModBehaviourBase : ModBehaviour
     private static readonly ConcurrentDictionary<Type, EnableState> EnableStates = new();
 
     /// <summary>
+    /// True when this assembly is a development hot reload Core (named ModName.Core.&lt;stamp&gt;). Such a Core is
+    /// replaced while the game runs, so disabling it must release everything it registered. Release builds keep the
+    /// shared MessageHub host running, as before.
+    /// </summary>
+    private static readonly bool HotReloadBuild = HotReloadNames.IsCoreAssemblyName(typeof(ModBehaviourBase).Assembly.GetName().Name);
+
+    /// <summary>
     /// Gets or sets whether this mod should enable MessageHub host functionality.
     /// Default is true. Set to false to opt out of automatic host startup.
     /// </summary>
@@ -120,9 +127,42 @@ public abstract class ModBehaviourBase : ModBehaviour
             }
 
             enabled = false;
+            ReleaseHotReloadStateIfLast();
             ReleaseSharedResources();
         }
     }
+
+    /// <summary>
+    /// Hot reload builds only: removes what this Core registered in the game (buffs, localized texts) and stops the
+    /// MessageHub host if this Core started it, so the next Core starts fresh. Skipped while another ModBehaviourBase
+    /// subclass of this mod is still enabled. Never throws.
+    /// </summary>
+    private static void ReleaseHotReloadStateIfLast()
+    {
+        try
+        {
+            if (!ShouldReleaseHotReloadState(HotReloadBuild, EnableStates.Values.Any(s => s.IsEnabled)))
+            {
+                return;
+            }
+
+            BuffsContract.ReleaseOwnedBuffs();
+            BuffsContract.ReleaseHolder();
+            LocalizationService.Instance.ReleaseOverrideTexts();
+            MessageHubManager.StopOwnedHost();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ModBehaviourBase] Failed to release hot reload state: {e}");
+        }
+    }
+
+    /// <summary>The decision of <see cref="ReleaseHotReloadStateIfLast"/>, separated so it can be tested.</summary>
+    internal static bool ShouldReleaseHotReloadState(bool hotReloadBuild, bool anotherSubclassEnabled) =>
+        hotReloadBuild && !anotherSubclassEnabled;
+
+    /// <summary>True for a hot reload Core assembly name ("&lt;ModName&gt;.Core.&lt;17-digit stamp&gt;").</summary>
+    internal static bool IsDevelopmentAssemblyName(string? assemblyName) => HotReloadNames.IsCoreAssemblyName(assemblyName);
 
     /// <summary>
     /// Undo what enabling attached to process-wide state, so a disabled mod stops reacting to game events.

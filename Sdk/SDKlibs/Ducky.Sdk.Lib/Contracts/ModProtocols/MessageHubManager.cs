@@ -10,6 +10,8 @@ namespace Ducky.Sdk.Contracts.ModProtocols;
 internal static class MessageHubManager
 {
     private static object? _hostInstance;
+    // The host this assembly's StartHost created: hot reload stops it on disable, a host of another mod is left alone.
+    private static readonly HostOwnership<object> Ownership = new();
     private static readonly object _lock = new();
 
     /// <summary>
@@ -62,6 +64,7 @@ internal static class MessageHubManager
             var hostGO = new GameObject(ModHttpV1.HubGameObjectName);
             var hostComponent = hostGO.AddComponent<ModHttpV1>();
             _hostInstance = hostComponent;
+            Ownership.TryClaim(hostComponent);
 
             DontDestroyOnLoad(hostGO);
 
@@ -71,6 +74,27 @@ internal static class MessageHubManager
 
             Log.Info("MessageHubManager: Created new MessageHub host");
             return _hostInstance;
+        }
+    }
+
+    /// <summary>
+    /// Stops the host that this assembly started, so a hot reload's new Core can start a fresh one.
+    /// A host started by another assembly is left alone. Returns true when a host was stopped.
+    /// </summary>
+    internal static bool StopOwnedHost()
+    {
+        lock (_lock)
+        {
+            var owned = Ownership.Release() as MonoBehaviour;
+            _hostInstance = null;
+            if (owned == null)
+            {
+                return false;
+            }
+
+            Destroy(owned.gameObject);
+            Log.Info("MessageHubManager: stopped the MessageHub host this mod started");
+            return true;
         }
     }
 
