@@ -27,7 +27,7 @@ A comprehensive .NET SDK for developing mods for "Escape from Duckov" game.
 
 ### Prerequisites
 
-- .NET SDK 10.0 or later
+- .NET SDK 10.0 or later (the build runner needs the .NET 10 runtime that ships with the SDK; no `dotnet-script` or `ilrepack` install is needed)
 - "Escape from Duckov" game installed
 - Steam installation directory (for automated deployment)
 
@@ -393,7 +393,7 @@ Ducky.Sdk/
 │   │   │   ├── Ducky.Sdk.nuspec  # Package manifest
 │   │   │   ├── Ducky.Sdk.props   # MSBuild properties
 │   │   │   ├── Ducky.Sdk.targets # Build targets
-│   │   │   └── scripts/*.csx     # Automation scripts
+│   │   │   └── Ducky.Sdk.Orchestration.targets # Calls the build runner
 │   │   └── Ducky.Sdk.Lib/        # Shared library (distributed as source)
 │   ├── Ducky.Sdk.Analyser/       # Roslyn source generator
 │   └── Tests/                     # Unit tests
@@ -558,7 +558,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Game**: "Escape from Duckov" by TeamSoda
 - **Harmony**: [Harmony Library](https://github.com/pardeike/Harmony)
-- **ILRepack**: [dotnet-ilrepack](https://github.com/gluck/il-repack)
+- **ILRepack**: [ILRepack.Lib](https://github.com/gluck/il-repack) (called in process by the build runner)
 
 ## Support
 

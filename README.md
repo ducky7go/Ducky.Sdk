@@ -28,7 +28,7 @@
 
 ### 前置要求
 
-- .NET SDK 10.0 或更高版本
+- .NET SDK 10.0 或更高版本（构建运行器需要 .NET 10 运行时，SDK 10 自带；无需安装 `dotnet-script` 或 `ilrepack`）
 - 已安装"Escape from Duckov"游戏
 - Steam 安装目录（用于自动部署）
 
@@ -499,9 +499,10 @@ Ducky.Sdk/
 │   │   │   ├── Ducky.Sdk.nuspec  # 包清单
 │   │   │   ├── Ducky.Sdk.props   # MSBuild 属性
 │   │   │   ├── Ducky.Sdk.targets # 构建目标
-│   │   │   └── scripts/*.csx     # 自动化脚本
+│   │   │   └── Ducky.Sdk.Orchestration.targets # 调用构建运行器
 │   │   └── Ducky.Sdk.Lib/        # 共享库（以源码分发）
 │   ├── Ducky.Sdk.Analyser/       # Roslyn 源生成器
+│   ├── Ducky.Sdk.Build/          # 构建运行器（随包发布到 tools/net10.0/）
 │   └── Tests/                     # 单元测试
 ├── Samples/                       # 示例 Mod 项目
 │   ├── Ducky.SingleProject/
@@ -688,7 +689,7 @@ dotnet build
 
 - **游戏**："Escape from Duckov" by TeamSoda
 - **Harmony**：[Harmony Library](https://github.com/pardeike/Harmony)
-- **ILRepack**：[dotnet-ilrepack](https://github.com/gluck/il-repack)
+- **ILRepack**：[ILRepack.Lib](https://github.com/gluck/il-repack)（随构建运行器在进程内调用）
 
 ## 支持
 
