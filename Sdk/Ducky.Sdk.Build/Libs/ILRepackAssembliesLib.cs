@@ -96,8 +96,9 @@ public class ILRepackAssembliesLib
             // Prepare output paths
             var targetModDir = GetTargetModDirectory(context);
             var tempDir = Path.Combine(targetModDir, ".ilrepack_temp");
-            var tempOutput = Path.Combine(tempDir, $"{context.ModName}.dll");
-            var finalOutput = Path.Combine(targetModDir, $"{context.ModName}.dll");
+            // Default: ModName.dll. Hot reload: the Core (ModName.Core.<stamp>.dll); ModName.dll is the shim there.
+            var tempOutput = Path.Combine(tempDir, context.MainDeployFileName);
+            var finalOutput = Path.Combine(targetModDir, context.MainDeployFileName);
 
             BuildUtils.EnsureDirectoryExists(tempDir);
             BuildUtils.EnsureDirectoryExists(targetModDir);
@@ -187,12 +188,12 @@ public class ILRepackAssembliesLib
         }
 
         var targetModDir = GetTargetModDirectory(context);
-        planned.Add(Path.Combine(targetModDir, $"{context.ModName}.dll"));
+        planned.Add(Path.Combine(targetModDir, context.MainDeployFileName));
 
         var mainAssembly = context.MainAssemblyPath ?? FindMainAssembly(context);
         if (!string.IsNullOrEmpty(mainAssembly) && File.Exists(Path.ChangeExtension(mainAssembly, ".pdb")))
         {
-            planned.Add(Path.Combine(targetModDir, $"{context.ModName}.pdb"));
+            planned.Add(Path.Combine(targetModDir, Path.ChangeExtension(context.MainDeployFileName, ".pdb")));
         }
 
         return planned;
@@ -244,7 +245,7 @@ public class ILRepackAssembliesLib
     private static string FindMainAssembly(BuildContext context)
     {
         var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
-            context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
+            context.TargetFramework ?? "netstandard2.1", context.MainOutputFileName);
         return File.Exists(targetDll) ? targetDll : "";
     }
 

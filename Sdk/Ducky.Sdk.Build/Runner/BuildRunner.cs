@@ -121,7 +121,7 @@ internal static class BuildRunner
         }
 
         var requiredDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
-            context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
+            context.TargetFramework ?? "netstandard2.1", context.MainOutputFileName);
         if (File.Exists(requiredDll))
         {
             return true;

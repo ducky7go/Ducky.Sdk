@@ -367,7 +367,7 @@ public class DeployModLib
         try
         {
             var targetDll = Path.Combine(context.ProjectDir, "bin", context.Configuration ?? "Debug",
-                context.TargetFramework ?? "netstandard2.1", $"{Path.GetFileName(context.ProjectDir)}.dll");
+                context.TargetFramework ?? "netstandard2.1", context.MainOutputFileName);
             var targetDirName = Path.GetDirectoryName(targetDll) ?? "";
             // Source: the build output's Dependency folder (bin/<Configuration>/<TargetFramework>/Dependency).
             var dependencyDir = Path.Combine(targetDirName, "Dependency");
