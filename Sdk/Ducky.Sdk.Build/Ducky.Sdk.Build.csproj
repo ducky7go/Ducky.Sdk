@@ -20,6 +20,11 @@
     <InternalsVisibleTo Include="Ducky.Sdk.Lib.Tests" />
   </ItemGroup>
 
+  <!-- Preview backgrounds (generated once by scripts/generate_preview_backgrounds.sh, see Assets/PreviewBackgrounds/README.md) -->
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/PreviewBackgrounds/*.png" LogicalName="PreviewBackgrounds/%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="ILRepack.Lib" />
