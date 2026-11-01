@@ -115,6 +115,7 @@ namespace __MOD_NAME__
             for (var attempt = 1; attempt <= ReadAttempts && asm == null; attempt++)
             {
                 if (file == null) break;
+                string failure = null;
                 try
                 {
                     write = File.GetLastWriteTimeUtc(file);
@@ -123,8 +124,12 @@ namespace __MOD_NAME__
                 }
                 catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is BadImageFormatException)
                 {
-                    Debug.Log($"[HotReload] read/load attempt {attempt} for {Path.GetFileName(file)} failed ({e.GetType().Name}); retrying");
-                    asm = null;
+                    failure = e.GetType().Name;
+                }
+
+                if (asm == null && failure != null)
+                {
+                    Debug.Log($"[HotReload] read/load attempt {attempt} for {Path.GetFileName(file)} failed ({failure}); retrying");
                     yield return new WaitForSecondsRealtime(RetrySeconds);
                     file = NewestCoreFile();
                 }
