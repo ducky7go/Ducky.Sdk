@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\Local.props" Condition="Exists('../Local.props')" />
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>true</ImplicitUsings>
+    <ModName>Ducky.DebugEventReporter</ModName>
+    <ModsDirectory>./Publish</ModsDirectory>
+    <DeployMod>true</DeployMod>
+    <!-- Which packed Ducky.Sdk to build against; tasks 5.1/5.2 pass -p:DuckySdkVersion=... to pair builds. -->
+    <DuckySdkVersion Condition="'$(DuckySdkVersion)' == ''">0.0.200105-dev</DuckySdkVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ducky.Sdk" Version="$(DuckySdkVersion)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Publish\" />
+  </ItemGroup>
+</Project>

@@ -58,6 +58,7 @@
     <Reference Include="$(ManagedDirectory)ItemStatsSystem.dll" />
     <Reference Include="$(ManagedDirectory)Newtonsoft.Json.dll" />
     <Reference Include="$(ManagedDirectory)EasySave3.dll" />
+    <Reference Include="$(ManagedDirectory)UniTask*.dll" />
   </ItemGroup>
 
   <!-- Warn if ManagedDirectory is not available -->

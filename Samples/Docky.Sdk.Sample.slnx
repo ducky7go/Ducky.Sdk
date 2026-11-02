@@ -18,7 +18,16 @@
   <Folder Name="/HotReload/">
     <Project Path="Ducky.HotReloadSample\Ducky.HotReloadSample.csproj" />
   </Folder>
+  <Folder Name="/HttpEndpoints/">
+    <Project Path="Ducky.HttpEndpointSample\Ducky.HttpEndpointSample.csproj" />
+    <Project Path="Ducky.HttpHostSample\Ducky.HttpHostSample.csproj" />
+  </Folder>
   <Folder Name="/TryHarmony/">
     <Project Path="Ducky.TryHarmony/Ducky.TryHarmony.csproj" />
+  </Folder>
+  <Folder Name="/DebugEvents/">
+    <Project Path="Ducky.DebugEventRecorder\Ducky.DebugEventRecorder.csproj" />
+    <Project Path="Ducky.DebugEventReporter\Ducky.DebugEventReporter.csproj" />
+    <Project Path="Ducky.DebugEventSecondRecorder\Ducky.DebugEventSecondRecorder.csproj" />
   </Folder>
 </Solution>
