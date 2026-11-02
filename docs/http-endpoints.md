@@ -177,9 +177,27 @@ When a mod is disabled, its endpoints are withdrawn: an empty snapshot is sent t
 unregistered. This happens in every build, through the shared teardown of `ModBehaviourBase`. A host that is disabled
 releases `httphost`, and every enabled endpoint mod announces again to the next host it finds.
 
-### Known limitation: a host replaced within one check interval
+### Hub replaced: endpoint mods announce again
+
+When the hub object itself is replaced (the mod that started it was hot reloaded, so the old hub is destroyed and a new one
+starts empty), each endpoint mod notices the new hub object on its next tick. Its hub client registers on the new hub once,
+the mod negotiates with the host again and announces the whole table in one snapshot. This needs no reload of the endpoint
+mods and no game restart. Requests that arrive before the host has seen the new snapshot get `404`.
+
+### Known limitation: a host that re-registers on an unchanged hub within one check interval
 
 Endpoint mods learn that a host went away only at their presence check, which runs at most every 5 seconds. A host that
-is released and started again inside one check interval, for example by hot reloading the host mod, is not noticed. The
-endpoint mods keep their state, the new host has no routes, and the endpoints answer `404` until the endpoint mods are
-reloaded. A host that is seen absent at a check is handled: the endpoint mods negotiate and announce to it again.
+unregisters and registers again on the same hub object inside one check interval is not noticed. The endpoint mods keep
+their state, the host has no routes, and the endpoints answer `404` until the endpoint mods are reloaded. A host that is
+seen absent at a check is handled: the endpoint mods negotiate and announce to it again. The SDK has no signal from the hub
+for this case, so the check is the only detection.
+
+### Hot reload of the samples
+
+The client sample (`Samples/Ducky.HttpEndpointSample`) is reloaded; its `/status` answer names the Core assembly, so a
+caller sees which Core is live. The host sample (`Samples/Ducky.HttpHostSample`) is not reloaded. It logs the route count
+on every change, and its loopback-only listing at `/httphost/routes` shows the route table, so a check can confirm that
+each endpoint is listed once. The HTTP host mod is a consumer-side mod: its hot reload support is outside what the SDK
+controls, and the SDK does not try to make it survive a reload. The loop-back scenario tests in
+`Sdk/Tests/Ducky.Sdk.Lib.Tests/HotReloadScenarioTests.cs` cover the client reload, the hub replacement and a late teardown
+of the old Core.

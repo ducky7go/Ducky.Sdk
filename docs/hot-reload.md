@@ -156,10 +156,13 @@ Keep `EnableILRepack` on for a mod you want to hot reload. With it off, do not r
 - **The shim itself is not reloaded.** A change to the shim (the SDK's template) needs a game restart.
 - **Harmony is not reloaded.** `0Harmony.dll` is the same assembly for every Core. Patches are applied and removed per Core.
 - **Library projects (`IsModLib`) are not reloaded.**
-- **MessageHub clients do not follow a host restart by themselves.** A reload stops the host that the old Core
-  started and the new Core starts a new one. The new host has no client registrations, so a client that used the old host
-  must register again after the reload. The sample does not include a client, so this was not observed in the game; it
-  follows from the host holding its registrations in memory (`ModHttpV1`).
+- **MessageHub clients of the SDK follow a reload; clients a mod author registered directly do not.** A reload stops the hub
+  that the old Core started and the new Core starts a new one, with no registrations. The SDK's own hub clients (the HTTP
+  endpoint client, the debug event reporter and the client contracts) find the live hub object again, register on it once
+  and, for the endpoint client, announce their endpoints again, all without a game restart. A MessageHub client that a mod
+  author registered directly on `ModHttpV1` is not tracked by the SDK, so it must register again after the reload. The
+  hub holds its registrations in memory, so that is the only way it comes back. The scenarios are in
+  `Sdk/Tests/Ducky.Sdk.Lib.Tests/HotReloadScenarioTests.cs`. The real-game run of these scenarios is not recorded yet.
 - **Game state outside the mod** is reloaded only as far as the list above says.
 - **Shared libraries** are reloaded only with merging on. See "Shared libraries" above.
 

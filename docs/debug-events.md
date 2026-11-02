@@ -174,6 +174,20 @@ one warning, and the existing recorder keeps writing. The reporters are unaffect
 Two mods that start a recorder in the very same instant can race. The failure mode is a missing file, never a
 corrupted one.
 
+## Hot reload
+
+A reporter mod that is hot reloaded starts with a new shared reporter in the idle state, and the recorder keeps running. The
+new reporter registers its hub client, negotiates with the recorder and becomes ready within a few flush ticks. Until the
+recorder has answered, `Report` discards events, by design, so an event reported at the very start of a Core is lost when no
+recorder has answered yet. The sample reporter (`Samples/Ducky.DebugEventReporter`) reports one `core-enabled` event per
+enable, with the Core assembly name as detail, one second after it is enabled. The shared reporter releases its hub client
+on disable, and a hub replacement is handled by the SDK's hub binding: a reporter whose hub object was replaced registers
+again on the new hub and its next batch reaches the recorder once.
+
+The recorder mod is consumer-side: its hot reload support is outside what the SDK controls. The sample recorder
+(`Samples/Ducky.DebugEventRecorder`) logs the line count of its file after each start and stop, so a duplicated event shows
+up as a count that is too high. The scenarios are in `Sdk/Tests/Ducky.Sdk.Lib.Tests/HotReloadScenarioTests.cs`.
+
 ## Limits
 
 - Delivery is not guaranteed. Under a burst beyond the buffer, events are dropped and counted, never silently.
