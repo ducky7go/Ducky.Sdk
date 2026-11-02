@@ -766,6 +766,7 @@ dotnet build
 
 - 🐛 [报告问题](https://github.com/ducky7go/Ducky.Sdk/issues)
 - 💬 [讨论](https://github.com/ducky7go/Ducky.Sdk/discussions)
+- 🌐 [HagiCode](https://www.hagicode.com) - 了解同一团队制作的其他产品
 
 ---
 

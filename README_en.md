@@ -652,6 +652,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - 🐛 [Report Issues](https://github.com/ducky7go/Ducky.Sdk/issues)
 - 💬 [Discussions](https://github.com/ducky7go/Ducky.Sdk/discussions)
+- 🌐 [HagiCode](https://www.hagicode.com) - learn about our other products
 
 ---
 
