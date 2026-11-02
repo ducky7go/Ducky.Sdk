@@ -29,7 +29,8 @@ internal sealed class HoldCounter<TKey>
     }
 
     private readonly Dictionary<TKey, int> _counts = new();
-    private readonly HashSet<long> _live = new();
+    // live ticket id to its key, so one key's tickets can be dropped by <see cref="Forget"/>
+    private readonly Dictionary<long, TKey> _live = new();
     private int _generation;
     // unique across every counter of this key type, so a ticket from another counter never matches; 0 is never issued
     private static long _lastId;
@@ -49,7 +50,7 @@ internal sealed class HoldCounter<TKey>
         var first = CountOf(key) == 0;
         _counts[key] = CountOf(key) + 1;
         var id = Interlocked.Increment(ref _lastId);
-        _live.Add(id);
+        _live.Add(id, key);
         hold = new Hold(key, _generation, id);
         return first;
     }
@@ -82,5 +83,28 @@ internal sealed class HoldCounter<TKey>
         _generation++;
         _counts.Clear();
         _live.Clear();
+    }
+
+    /// <summary>
+    /// Forgets every hold of <paramref name="key"/> without a release: its count is dropped and its live tickets release nothing
+    /// afterwards. Other keys are untouched; a forgotten key counts from zero again. Forgetting an unknown key changes nothing.
+    /// </summary>
+    internal void Forget(TKey key)
+    {
+        _counts.Remove(key);
+
+        var stale = new List<long>();
+        foreach (var pair in _live)
+        {
+            if (EqualityComparer<TKey>.Default.Equals(pair.Value, key))
+            {
+                stale.Add(pair.Key);
+            }
+        }
+
+        foreach (var id in stale)
+        {
+            _live.Remove(id);
+        }
     }
 }
