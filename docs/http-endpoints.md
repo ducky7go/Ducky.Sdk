@@ -192,6 +192,16 @@ their state, the host has no routes, and the endpoints answer `404` until the en
 seen absent at a check is handled: the endpoint mods negotiate and announce to it again. The SDK has no signal from the hub
 for this case, so the check is the only detection.
 
+### Known risk: a late teardown of an old Core after its replacement announced
+
+When an old Core is released after the new Core has already announced its endpoints, the old client still sends its
+empty withdrawal (it was announced when it was released). The host then drops the routes of that mod, including the ones
+the new Core announced, until the new Core announces again. Its hub registration is not affected, so the new Core keeps
+receiving messages. The normal reload order (old Core released before the new one enables) does not trigger this. The
+SDK does not yet tell an owned withdrawal from a superseded one; the fix would be for the transport's unregister to report
+whether it removed the caller's own registration. The scenario test `LateTeardownOfTheOldCoreKeepsTheNewRegistrationServing`
+covers the case where the new Core has registered but not yet announced.
+
 ### Hot reload of the samples
 
 The client sample (`Samples/Ducky.HttpEndpointSample`) is reloaded; its `/status` answer names the Core assembly, so a
