@@ -190,7 +190,7 @@ up as a count that is too high. The scenarios are in `Sdk/Tests/Ducky.Sdk.Lib.Te
 
 ## Limits
 
-- Delivery is not guaranteed. Under a burst beyond the buffer, events are dropped and counted, never silently.
+- Delivery is not guaranteed. Under a burst beyond the buffer, events are dropped and counted. Events reported while the reporter is not ready (no recorder has answered, or the recorder was absent at the last check) are discarded at once and are not counted, so they are lost without a trace in the file.
 - Events are for developers. Nothing in the file is sent back through the hub, and rotation and compression are not
   provided.
 - The recorder's path comes only from the recorder mod's own code. A message cannot name or change it.
