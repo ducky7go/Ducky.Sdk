@@ -14,7 +14,11 @@ public readonly struct LootStartInfo
     /// <summary>The box being looted.</summary>
     public InteractableLootbox Box { get; }
 
-    /// <summary>True when the box had not been looted before this loot started (see <c>LootRules.IsFirstLoot</c>).</summary>
+    /// <summary>
+    /// True when the box had not been looted before this loot started, that is, before the game marked it as looted. The value
+    /// is captured at interact start and does not depend on handler order; without a capture it falls back to the live read
+    /// (see <c>LootRules.IsFirstLoot</c>).
+    /// </summary>
     public bool IsFirstLoot { get; }
 
     /// <summary>True when the box is the player's pet inventory.</summary>

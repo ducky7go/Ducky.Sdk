@@ -12,9 +12,21 @@ namespace Ducky.Sdk.GameEvents;
 /// </summary>
 public static class LootEvents
 {
+    // Looted of each box, captured at interact start: the game's LootView marks the box during the loot-start dispatch
+    private static readonly LootFirstOpenLedger<InteractableLootbox> FirstOpenLedger = new();
+
     private static readonly HandlerSet<LootStartInfo> LootStarts = new(
-        onFirst: () => InteractableLootbox.OnStartLoot += RaiseLootStart,
-        onLast: () => InteractableLootbox.OnStartLoot -= RaiseLootStart,
+        onFirst: () =>
+        {
+            InteractableBase.OnInteractStartStaticEvent += RecordInteractStart;
+            InteractableLootbox.OnStartLoot += RaiseLootStart;
+        },
+        onLast: () =>
+        {
+            InteractableLootbox.OnStartLoot -= RaiseLootStart;
+            InteractableBase.OnInteractStartStaticEvent -= RecordInteractStart;
+            FirstOpenLedger.Clear();
+        },
         onFailure: ex => Log.Error(ex, "[LootEvents] A loot-start handler failed; other subscribers still run"));
 
     private static readonly HandlerSet<(InteractableLootbox Box, bool IsPet)> LootStops = new(
@@ -34,9 +46,15 @@ public static class LootEvents
 
     /// <summary>
     /// Runs <paramref name="handler"/> when a loot box starts being looted, with the box, whether it is the first loot of that
-    /// box (<see cref="LootStartInfo.IsFirstLoot"/>, from <c>InteractableLootbox.Looted</c>) and whether it is the pet's. Pets are
-    /// left out unless <paramref name="includePets"/> is true. Dispose the returned handle to unsubscribe.
+    /// box (<see cref="LootStartInfo.IsFirstLoot"/>) and whether it is the pet's. Pets are left out unless
+    /// <paramref name="includePets"/> is true. Dispose the returned handle to unsubscribe.
     /// </summary>
+    /// <remarks>
+    /// <see cref="LootStartInfo.IsFirstLoot"/> is the box's <c>Looted</c> state from before this loot started. The SDK captures
+    /// <c>Looted</c> when the player starts interacting with the box, because the game's own loot-start handler marks the box
+    /// as looted during the dispatch. If the SDK subscribed in the middle of an interaction, no value was captured for it, and
+    /// <c>IsFirstLoot</c> falls back to the live <c>Looted</c> read, which may already be true on a first opening.
+    /// </remarks>
     public static IDisposable OnLootStart(Action<LootStartInfo> handler, bool includePets = false)
     {
         if (handler == null)
@@ -109,10 +127,19 @@ public static class LootEvents
         return box != null && pet != null && box.Inventory == pet;
     }
 
+    private static void RecordInteractStart(InteractableBase interactable)
+    {
+        // before the game's loot-start dispatch, so the game's LootView handler cannot have marked the box yet
+        if (interactable is InteractableLootbox box)
+        {
+            FirstOpenLedger.Record(box, box.Looted);
+        }
+    }
+
     private static void RaiseLootStart(InteractableLootbox box)
     {
-        // read once for every subscriber of this event
-        var isFirstLoot = LootRules.IsFirstLoot(box.Looted);
+        // resolved once for every subscriber of this event, so they all share one value
+        var isFirstLoot = FirstOpenLedger.Resolve(box, box.Looted);
         LootStarts.Raise(new LootStartInfo(box, isFirstLoot, IsPet(box)));
     }
 
