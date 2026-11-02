@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ducky.Sdk" Version="0.0.200101-dev">
+    <PackageReference Include="Ducky.Sdk" Version="0.0.200102-dev">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
