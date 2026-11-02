@@ -136,6 +136,16 @@
              Condition="!Exists('$(_HarmonyDllPath)')" />
   </Target>
 
+  <!-- Startup promotion line (ModBehaviours/HagiCodePromotion.cs). A mod that sets DuckyDisablePromotion=true gets the
+       DUCKY_SDK_NO_PROMOTION symbol, so the line is compiled out. Kept apart from AddHarmonyReference, whose target
+       condition is IncludeHarmony, so the symbol also applies to mods without Harmony. -->
+  <Target Name="AddDuckyPromotionSymbol" BeforeTargets="BeforeResolveReferences"
+          Condition=" '$(DuckyDisablePromotion)' == 'true' ">
+    <PropertyGroup>
+      <DefineConstants>$(DefineConstants);DUCKY_SDK_NO_PROMOTION</DefineConstants>
+    </PropertyGroup>
+  </Target>
+
   <!-- 全局 using 指令 -->
   <ItemGroup Condition=" '$(EnableGlobalUsing)' == 'true' ">
     <!-- 核心 SDK 命名空间 -->
