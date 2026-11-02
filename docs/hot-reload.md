@@ -162,7 +162,7 @@ Keep `EnableILRepack` on for a mod you want to hot reload. With it off, do not r
   and, for the endpoint client, announce their endpoints again, all without a game restart. A MessageHub client that a mod
   author registered directly on `ModHttpV1` is not tracked by the SDK, so it must register again after the reload. The
   hub holds its registrations in memory, so that is the only way it comes back. The scenarios are in
-  `Sdk/Tests/Ducky.Sdk.Lib.Tests/HotReloadScenarioTests.cs`. The real-game run of these scenarios is not recorded yet.
+  `Sdk/Tests/Ducky.Sdk.Lib.Tests/HotReloadScenarioTests.cs`. The real-game counts are in "Hub clients in the real game" under Verification.
 - **Game state outside the mod** is reloaded only as far as the list above says.
 - **Shared libraries** are reloaded only with merging on. See "Shared libraries" above.
 
@@ -179,3 +179,47 @@ The mechanism was verified in the real game (Escape from Duckov, remote Windows 
 Buff, a localized text, a Canvas and the MessageHub host) was loaded once and reloaded eight times with unique names, and
 a Core whose name was already loaded was refused. Every unload left zero of each item and every load left exactly one.
 The results and the log lines are in `Experiments/HotReload/README.md` and `Experiments/HotReload/results/`.
+
+### Hub clients in the real game (HTTP endpoints and debug events)
+
+Run on the remote Windows machine with Escape from Duckov (Debug builds, local `Ducky.Sdk` package). Four samples were
+loaded in one game session: `Ducky.HttpEndpointSample` and `Ducky.DebugEventReporter` (the reloaded client Cores),
+`Ducky.HttpHostSample` and `Ducky.DebugEventRecorder` (kept running). The game was started once and not restarted. Then
+the two client samples were rebuilt and reloaded eight times in a row (16 hot reloads in all). Each reload was confirmed
+by the shim's `REPORT ... stage=after-load` line, and every reload command exited with 0.
+
+| Check | Result after each of the 8 rounds | Observed |
+| --- | --- | --- |
+| Host route listing (`127.0.0.1:18765/httphost/routes`) | 3 routes, each once, owner `local.Ducky.HttpEndpointSample` (`GET /status`, `GET /frame`, `POST /echo`) | 8 of 8 rounds |
+| `GET /local.Ducky.HttpEndpointSample/status` | names the newest Core (`core` = that round's `Ducky.HttpEndpointSample.Core.<stamp>`) | 8 of 8 rounds |
+| Recorder file, `core-enabled` lines | one per enable, detail = Core assembly name, all names distinct | 9 of 9 (the first load + 8 reloads) |
+| Recorder file, `multiline` lines | one per Core | 9 of 9 |
+| Recorder file, `tick` lines per Core | counts 1..N with no gap and no repeat, per Core | 9 of 9 Cores (216 ticks in all) |
+| Recorder file, exact duplicate lines | none | 0 |
+| Recorder file, `burst` lines | none: the 1000-event burst reported in `ModEnabled` is discarded while the reporter is Idle | 0 of 9 enables |
+| Exception lines in `Player.log` | none | 0 |
+
+Not observed in the game: the host sample's `RoutesChanged` log line. The sample's `Log` output does not reach
+`Player.log` in these mods (the game returns `NoOpLogger`), so only the route listing shows the route table. The
+endpoint client's announce after each reload was seen through the route table and `/status`, not through a log line.
+
+
+### Hub replacement and host restart (real game)
+
+A second run in one game session, with the same four samples. `Ducky.DebugEventRecorder` started the hub (its REPORT lines
+show `hostComponents=1` after load and `hostComponents=0` after unload), so reloading it replaces the hub that the other
+samples use. The host sample (`Ducky.HttpHostSample`) and the endpoint client were not reloaded for the first three steps.
+
+| Step | Route listing (`/httphost/routes`) | `/status` through the host | Notes |
+| --- | --- | --- | --- |
+| Baseline | 3 routes, each once | 200, the endpoint Core answered | |
+| Recorder reload 1, 2, 3 (hub replaced each time) | 3 routes, each once, after every replacement | 200 each time | the endpoint client and the host both bound to the new hub; the request was forwarded through the new hub |
+| Host reload (`Ducky.HttpHostSample`) | empty | 404 | the host restarted within one check interval, so the endpoint client did not notice (the documented limitation) |
+| Endpoint client reload | 3 routes, each once | 200, the new Core answered | the documented recovery path |
+
+Recorder file, same session: one reporter Core, ticks 1 to 141, no duplicate tick. One tick is missing between
+04:03:04.5 and 04:03:06.5 (UTC), in the window of the second recorder reload. No `debug-events-dropped` line was written
+for it: the reporter discards events while it is Idle and does not count them, so the loss is not recorded. No tick
+was written twice.
+
+Not verified in this run: the host sample's `RoutesChanged` log line (not visible in `Player.log`, see above).
