@@ -187,7 +187,15 @@ Guns and bullets:
   and after about 2.3 seconds `lootStop` with `Looted` true. Opening the same box again raises `lootStart` immediately, with
   `Looted` true.
 - **Verified**: `Inventory.hasBeenInspectedInLootBox` becomes true only after `OnStopLoot`. Use `InteractableLootbox.Looted`
-  to tell a first opening, read in `OnStartLoot`.
+  to tell a first opening, but not read it during `OnStartLoot`: the game's `LootView.OnStartLoot` handler adds the box to
+  `lootedInventories` (so `Looted` becomes true) during that same dispatch, and the result then depends on which handler runs
+  first. Read `Looted` before the dispatch, at `InteractableBase.OnInteractStartStaticEvent`, which is raised when the
+  interaction starts (static read: `InteractableBase.OnInteractStart` runs before `StartLoot`, and nothing adds to
+  `lootedInventories` in between). The SDK does this in `LootEvents`.
+- **Fallback**: if the SDK subscribed to loot start during an interaction, there is no value captured for that box. It then
+  reads `Looted` live at `OnStartLoot`, which can already be true on a first opening. This is the same as the old behavior and
+  is not hidden in the SDK.
+- **Static read**: the capture-before-dispatch ordering above is not yet confirmed in the game (in-game verification pending).
 - **Verified**: the box closes itself about 2.3 seconds after opening (cause not investigated).
 - **Static read**: corpse loot boxes are also `InteractableLootbox`, and so is the pet proxy. Exclude them by name (`LootBox_*`)
   or by object type.
@@ -336,7 +344,8 @@ Guns and bullets:
 - **Verified**: the first opening of a box raises `OnStartLoot` with `Looted` false. Stopping raised `OnStopLoot` about 2.3 seconds
   later. Opening the same box again raised `OnStartLoot` at once with `Looted` true.
 - **Verified**: `Inventory.hasBeenInspectedInLootBox` becomes true only after `OnStopLoot`. It cannot tell whether a box is opened
-  for the first time when the loot starts. Use `InteractableLootbox.Looted`, read at `OnStartLoot`.
+  for the first time when the loot starts. Use `InteractableLootbox.Looted`, but read it before `OnStartLoot` is dispatched
+  (at interact start, see section 8); a read during the dispatch can already be true, because `LootView` marks the box then.
 - **Static read**: corpse loot boxes are ordinary `InteractableLootbox` objects. The pet's inventory is `PetProxy.PetInventory`,
   and the SDK identifies a pet box by comparing the box's `Inventory` with it. The research note describes the pet as an
   `InteractableLootbox` subclass; the decompiled `PetProxy` is a `MonoBehaviour`, so the comparison is used instead.
