@@ -31,6 +31,17 @@
       <Private>false</Private>
     </Reference>
   </ItemGroup>
+  <!-- The game's Plugins.dll (UnityEngine.UI.ProceduralImage) is compiled against only when it is in the managed directory;
+       it is never copied to the output, so it is not merged into anything. Defines DUCKY_SDK_GAMEUI for GameUi/. -->
+  <PropertyGroup Condition="Exists('$(ManagedDirectory)Plugins.dll')">
+    <DefineConstants>$(DefineConstants);DUCKY_SDK_GAMEUI</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(ManagedDirectory)Plugins.dll')">
+    <Reference Include="Plugins">
+      <HintPath>$(ManagedDirectory)Plugins.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
   <ItemGroup>
     <Reference Include="$(ManagedDirectory)TeamSoda.*" />
     <Reference Include="$(ManagedDirectory)Unity*" />

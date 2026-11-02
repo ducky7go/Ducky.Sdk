@@ -45,6 +45,10 @@
       <!-- 是否包含 Harmony 支持，默认不包含 -->
       <IncludeHarmony Condition="'$(IncludeHarmony)' == ''">false</IncludeHarmony>
 
+      <!-- 是否引用游戏的 Plugins.dll（ProceduralImage 圆角 UI），默认不包含。
+           Only a mod that opts in compiles the rounded bridge; the reference is compile-time only and never copied. -->
+      <IncludeGameUi Condition="'$(IncludeGameUi)' == ''">false</IncludeGameUi>
+
       <!-- 默认 AssetsDir：所有项目（包括 ModLib）都需要 assets 目录来处理本地化 -->
       <AssetsDir Condition="'$(AssetsDir)' == '' OR '$(AssetsDir)' == '$(MSBuildProjectDirectory)assets'">$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)','assets'))</AssetsDir>
 
@@ -80,6 +84,9 @@
     <Message Text="[Ducky.Sdk] ModsDirectory: $(ModsDirectory)" Importance="high" />
     <Message Text="[Ducky.Sdk] EnableILRepack: $(EnableILRepack)" Importance="high" />
     <Message Text="[Ducky.Sdk] IncludeHarmony: $(IncludeHarmony)" Importance="high" />
+    <Message Text="[Ducky.Sdk] IncludeGameUi: $(IncludeGameUi)" Importance="high" />
+    <Warning Condition="'$(IncludeGameUi)' == 'true' AND ('$(ManagedDirectory)' == '' OR !Exists('$(ManagedDirectory)Plugins.dll'))"
+             Text="[Ducky.Sdk] IncludeGameUi is true but Plugins.dll was not found in '$(ManagedDirectory)'. Rounded game UI will fall back to plain images." />
     <Message Text="[Ducky.Sdk] LocalizationAssetsDir: $(LocalizationAssetsDir)" Importance="high" />
     <Message Text="[Ducky.Sdk] AssetsDir: $(AssetsDir)" Importance="high" />
     <Message Text="[Ducky.Sdk] IsModLib: $(IsModLib)" Importance="high" Condition="'$(IsModLib)' != ''" />
@@ -216,9 +223,18 @@
       <_SpecificDlls Include="$(ManagedDirectory)com.rlabrecque.steamworks.net.dll" />
       <_SpecificDlls Include="$(ManagedDirectory)DOTween*.dll" />
       <_SpecificDlls Include="$(ManagedDirectory)UniTask*.dll" />
+      <!-- Game UI (ProceduralImage) only for mods that opt in with IncludeGameUi. Compile-time reference, Private=false below,
+           so it is never copied to the output and never merged by ILRepack. -->
+      <_GameUiDlls Include="$(ManagedDirectory)Plugins.dll" Condition="'$(IncludeGameUi)' == 'true' AND Exists('$(ManagedDirectory)Plugins.dll')" />
+
       <!-- Combine all found DLLs -->
-      <_AllManagedDlls Include="@(_TeamSodaDlls);@(_UnityDlls);@(_FOWDlls);@(_SodaLocalizationDlls);@(_SpecificDlls);" />
+      <_AllManagedDlls Include="@(_TeamSodaDlls);@(_UnityDlls);@(_FOWDlls);@(_SodaLocalizationDlls);@(_SpecificDlls);@(_GameUiDlls)" />
     </ItemGroup>
+
+    <!-- The rounded bridge (GameUi/ProceduralImageBridge.cs) is compiled into the mod only with the reference above. -->
+    <PropertyGroup Condition="'$(IncludeGameUi)' == 'true' AND Exists('$(ManagedDirectory)Plugins.dll')">
+      <DefineConstants>$(DefineConstants);DUCKY_SDK_GAMEUI</DefineConstants>
+    </PropertyGroup>
 
     <Message Text="[Ducky.Sdk] Found @(_AllManagedDlls->Count()) managed assemblies to reference" Importance="high" />
     <Message Text="[Ducky.Sdk] References: @(_AllManagedDlls->'%(Filename)', ', ')" Importance="high"

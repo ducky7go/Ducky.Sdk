@@ -30,4 +30,7 @@
     <Project Path="Ducky.DebugEventReporter\Ducky.DebugEventReporter.csproj" />
     <Project Path="Ducky.DebugEventSecondRecorder\Ducky.DebugEventSecondRecorder.csproj" />
   </Folder>
+  <Folder Name="/GameUi/">
+    <Project Path="Ducky.GameUiSample/Ducky.GameUiSample.csproj" />
+  </Folder>
 </Solution>
