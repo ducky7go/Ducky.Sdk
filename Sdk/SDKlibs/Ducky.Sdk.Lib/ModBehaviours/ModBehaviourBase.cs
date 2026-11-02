@@ -104,6 +104,7 @@ public abstract class ModBehaviourBase : ModBehaviour
 
                 Subscriptions.Activate();
                 MainThread.EnsureStarted();
+                HagiCodePromotion.Write();
                 ModEnabled();
             }
             catch (Exception e)

@@ -136,6 +136,7 @@ public static class PrintResultLib
         Console.WriteLine();
         Console.WriteLine("    [COMPLETE] Build completed! Check the results above for any issues.");
         Console.WriteLine("    [INFO]     All build results are saved in obj/ducky-build-result.json");
+        Console.WriteLine("    [HAGICODE] Discover HagiCode: https://www.hagicode.com");
     }
 
     private static string TruncateWithEllipsis(string text, int maxLength)
