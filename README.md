@@ -337,7 +337,7 @@ protected override void ModEnabled()
 
 ### 游戏机制参考
 
-[docs/game-mechanics.md](docs/game-mechanics.md) 记录游戏的实际行为（Buff 抗性、敌人出生时机、`Health.Hurt` 伤害顺序、爆炸、天气与时钟、翻滚与耐力、开箱，以及第二批的治疗与进食、AI 控制与隐身、经济、手雷与地雷、挡弹墙、发现玩家、烧伤与眩晕、超重与翻滚、拾取、声音和爆炸目标），并附每条结论的证据等级，同时说明基于它们实现的辅助类（`BuffImmunity`、`StatBuff`、`PlayerCombat`、`HurtRules`、`RestoreRules`、`CharacterRestore`、`Economy`、`Grenades`、`BulletBlockers`、`EnemyNoticed`、`LootEvents`、`AiSounds`、`CharacterControlRules`、`CharacterVisibility`、`Explosions`、`LethalDamageGuard`、`EnemyReady` 等）。基于 Harmony 的辅助类需要把 `IncludeHarmony` 设为 true。开发期热重载见 [docs/hot-reload.md](docs/hot-reload.md)。
+[docs/game-mechanics.md](docs/game-mechanics.md) 记录游戏的实际行为（Buff 抗性、敌人出生时机、`Health.Hurt` 伤害顺序、爆炸、天气与时钟、翻滚与耐力、开箱，以及第二批的治疗与进食、AI 控制与隐身、经济、手雷与地雷、挡弹墙、发现玩家、烧伤与眩晕、超重与翻滚、拾取、声音和爆炸目标），并附每条结论的证据等级，同时说明基于它们实现的辅助类（`BuffImmunity`、`StatBuff`、`PlayerCombat`、`HurtRules`、`RestoreRules`、`CharacterRestore`、`Economy`、`Grenades`、`BulletBlockers`、`EnemyNoticed`、`LootEvents`、`AiSounds`、`CharacterControlRules`、`CharacterVisibility`、`MouseAimControl`、`Explosions`、`LethalDamageGuard`、`EnemyReady` 等）。基于 Harmony 的辅助类需要把 `IncludeHarmony` 设为 true。开发期热重载见 [docs/hot-reload.md](docs/hot-reload.md)。
 
 ## 高级功能
 

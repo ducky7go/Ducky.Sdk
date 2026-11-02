@@ -377,6 +377,37 @@ The table of all 71 player attributes is not included yet. The exact names must 
 `research/stats` output or the stat database). The research notes name only 57 of them, and this page does not guess the rest.
 The attribute keys named in `StatKeys` are the ones the research validated.
 
+## 20. Mouse aiming (`MouseAimControl`)
+
+- **Static read**: inside a level the game hides the cursor and turns mouse movement into the aim point. `InputManager.InputActived`
+  is false while its source set `blockInputSources` is not empty or its 2-frame cool-down is above zero. `DisableInput(GameObject)`
+  adds a source and sets the cool-down; `ActiveInput(GameObject)` removes the source. The game's own `View` screens use this pair
+  (`OnOpen` disables, `OnClose` activates).
+- **Static read**: while `InputActived` is false, the cursor is shown, the aim point follows the real mouse position and stays
+  frozen (`SetAimInputUsingMouse` returns before `SetAimPoint`), fire is forced off, move input is forced to zero, and the item
+  shortcuts, the interact HUD and camera edge-pan stop.
+- **Static read**: movement, firing and aiming share this one flag, so there is no aim-only block; it would need Harmony patches on
+  private members of `InputManager`.
+- **Static read**: each frame `UpdateInputActived` removes every source that is `null` or not `activeInHierarchy`, so a deactivated or
+  destroyed source releases itself.
+- **Static read**: `DisableInput` checks the `InputManager` instance; `ActiveInput` does not and throws when it is missing. The
+  helper checks `LevelManager.Instance.InputManager` before each call.
+- **Helper**: `MouseAimControl.StopAiming()` returns a handle; `StopAiming(owner)` ties the stop to a `GameObject`;
+  `RestoreAiming()` releases every stop taken through this copy of the SDK; `IsAimingStopped` reports whether a stop is still in force.
+- **Side effect**: stopping aiming also stops movement, firing, item shortcuts and camera edge-pan, because they share the flag above.
+  A panel that needs the mouse only should not use it.
+- **Level start**: a stop taken outside a level has no effect on the game. Every stop is forgotten when a level is initialized
+  (`LevelEvents.OnInitialized`), and a handle taken before that does nothing when disposed.
+- **Release rules**: release the handle when the panel closes, on Esc and on scene change. Add it to `ModBehaviourBase.Subscriptions`
+  so it is released when the mod is disabled. A stop of an owner that is destroyed or deactivated stops counting within a frame,
+  because the SDK's holder object prunes it every frame. A panel that reopens must take a new stop.
+- **Counting**: stops are counted per owner object and per SDK copy. The copies of two mods do not share counts, but the game keeps
+  both sources in its set, so input stays blocked until both release.
+- **Main thread**: every call touches Unity objects, so call it on the Unity main thread only.
+- **Static read, not yet verified in the game** (task 4.2): the cursor becomes visible and clicks reach the panel, the aim stays
+  put, movement and firing stop, the click that closes the panel does not fire, aim resumes from the cursor, and deactivating an
+  owner without disposing restores input.
+
 ## Helper usage in this SDK
 
 The helpers below implement parts of the mechanics above. The Harmony-based ones are compiled only when the mod sets
@@ -404,3 +435,5 @@ The helpers below implement parts of the mechanics above. The Harmony-based ones
   in-memory event trace. They keep state per compiled copy.
 - **`Item.Drop` and `InteractableLootbox.Looted`**: game members, not SDK wrappers. The SDK adds no overload with the same
   name, because a same-named extension in the SDK would make calls ambiguous in mods that also see the game's extension.
+- **`MouseAimControl`** (no Harmony): stops mouse aiming while a panel is open and gives it back on release (section 20).
+  Stopping aiming also stops movement and firing.
