@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Cysharp.Threading.Tasks;
+using Ducky.Sdk.Contracts.ModProtocols;
 using Ducky.Sdk.Logging;
 using UnityEngine;
 
@@ -11,10 +13,11 @@ namespace Ducky.Sdk.Contracts;
 /// </summary>
 public class ModHttpV1ClientContract : MonoBehaviour
 {
-    private static readonly Dictionary<string, ModHttpV1ClientContract> Instances = new();
+    private static readonly ContractInstanceTable<ModHttpV1ClientContract> Instances = new();
     private static GameObject? _containerGameObject;
 
-    private ModHttpV1Proxy? _proxy;
+    // Follows the live hub; a virtual proxy holds messages sent before any hub exists.
+    private HubBinding? _binding;
     private string _modId = string.Empty;
 
     /// <summary>
@@ -39,12 +42,12 @@ public class ModHttpV1ClientContract : MonoBehaviour
             throw new ArgumentException("modId cannot be null or empty", nameof(modId));
         }
 
-        // 如果已存在该 modId 的实例，直接返回
-        if (Instances.TryGetValue(modId, out var existingInstance) && existingInstance != null)
-        {
-            return existingInstance;
-        }
+        // 已存在且仍然有效的实例直接返回；否则创建新实例并记录
+        return Instances.GetOrAdd(modId, CreateContract, instance => instance != null);
+    }
 
+    private static ModHttpV1ClientContract CreateContract(string modId)
+    {
         // 创建容器 GameObject（如果不存在）
         if (_containerGameObject == null)
         {
@@ -58,11 +61,52 @@ public class ModHttpV1ClientContract : MonoBehaviour
         var contract = go.AddComponent<ModHttpV1ClientContract>();
         contract.Setup(modId);
 
-        // 注册到字典
-        Instances[modId] = contract;
-
         Log.Info($"Created ModHttpV1ClientContract singleton for modId: {modId}");
         return contract;
+    }
+
+    /// <summary>
+    /// Releases every client contract of this mod copy: unregisters their hub clients, clears the instance table and
+    /// destroys their objects. Called from the shared teardown of <c>ModBehaviourBase</c>. Idempotent and never throws.
+    /// </summary>
+    public static void Release()
+    {
+        List<ModHttpV1ClientContract> contracts;
+        try
+        {
+            contracts = Instances.TakeAll();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "ModHttpV1ClientContract failed to list its instances");
+            return;
+        }
+
+        foreach (var contract in contracts)
+        {
+            try
+            {
+                contract.ReleaseBinding();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "ModHttpV1ClientContract failed to release {ModId}", contract._modId);
+            }
+        }
+
+        try
+        {
+            if (_containerGameObject != null)
+            {
+                Destroy(_containerGameObject);
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "ModHttpV1ClientContract failed to destroy its container");
+        }
+
+        _containerGameObject = null;
     }
 
     private void Setup(string modId)
@@ -76,17 +120,17 @@ public class ModHttpV1ClientContract : MonoBehaviour
     /// <param name="handler"></param>
     public async UniTask Connect(Func<string, string, string, UniTask> handler)
     {
-        if (_proxy != null)
+        if (_binding != null)
         {
-            _proxy.UnregisterClient(_modId);
+            _binding.Unregister(_modId);
             if (OnUnregisterClient != null)
             {
                 await OnUnregisterClient.Invoke(_modId);
             }
         }
 
-        _proxy = ModHttpV1Proxy.CreateFromSingleton();
-        _proxy.RegisterClient(_modId, Callback);
+        var binding = _binding ??= HubBinding.ForSingleton(virtualFallback: true);
+        binding.Register(_modId, Callback);
         if (OnRegisterClient != null)
         {
             await OnRegisterClient.Invoke(_modId);
@@ -100,12 +144,11 @@ public class ModHttpV1ClientContract : MonoBehaviour
 
     private void OnDestroy()
     {
-        _proxy?.UnregisterClient(_modId);
+        ReleaseBinding();
 
-        // 从单例字典中移除
-        if (!string.IsNullOrEmpty(_modId))
+        // A late OnDestroy of an older instance must not remove a newer instance of the same mod id.
+        if (!string.IsNullOrEmpty(_modId) && Instances.RemoveIfOwned(_modId, this))
         {
-            Instances.Remove(_modId);
             Log.Info("Removed ModHttpV1ClientContract singleton for modId: {_modId}", _modId);
         }
     }
@@ -120,12 +163,20 @@ public class ModHttpV1ClientContract : MonoBehaviour
     /// <exception cref="InvalidOperationException"></exception>
     public UniTask SendTo(string modId, string contentType, string body)
     {
-        if (_proxy == null)
+        if (_binding == null)
         {
             throw new InvalidOperationException(
                 "ModHttpV1ClientContract is not connected. Call ConnectToModBus first.");
         }
 
-        return _proxy.Notify(_modId, modId, contentType, body);
+        return _binding.Notify(_modId, modId, contentType, body);
+    }
+
+    /// <summary>Unregisters this contract's hub client and drops its binding. Idempotent.</summary>
+    private void ReleaseBinding()
+    {
+        var binding = _binding;
+        _binding = null;
+        binding?.Release();
     }
 }

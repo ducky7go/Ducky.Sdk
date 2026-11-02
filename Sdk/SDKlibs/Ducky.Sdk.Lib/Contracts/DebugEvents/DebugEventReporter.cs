@@ -477,58 +477,13 @@ internal sealed class DebugEventReporter
     /// </summary>
     /// <remarks>
     /// The hub object is replaced whenever the mod that started it is hot reloaded: that mod's teardown destroys the hub
-    /// (<c>MessageHubManager.StopOwnedHost</c>) and the next Core starts a new one. A proxy keeps the hub object it was
-    /// created for, so every call here looks the current hub up and, when it changed, binds a new proxy and registers
-    /// this host's clients on it again. No proxy is created while no hub object exists, so virtual proxies never pile up.
+    /// (<c>MessageHubManager.StopOwnedHost</c>) and the next Core starts a new one. The shared <see cref="HubBinding"/>
+    /// finds the live hub, binds a new proxy when the hub object changed and registers this host's clients on it again.
+    /// No proxy is created while no hub object exists.
     /// </remarks>
     internal sealed class ModHttpV1DebugEventHost : IDebugEventHost
     {
-        private static readonly IReadOnlyList<string> NoModIds = Array.Empty<string>();
-
-        private readonly Dictionary<string, Action<string, string, string>> _clients = new();
-        private ModHttpV1Proxy? _proxy;
-        private object? _hubObject;
-
-        private ModHttpV1Proxy? Hub()
-        {
-            var current = FindHubObject();
-            if (current == null)
-            {
-                return null;
-            }
-
-            if (_proxy == null || !ReferenceEquals(current, _hubObject))
-            {
-                _hubObject = current;
-                _proxy = ModHttpV1Proxy.CreateFromSingleton();
-                foreach (var client in _clients)
-                {
-                    _proxy.RegisterClient(client.Key, Wrap(client.Value));
-                }
-            }
-
-            return _proxy;
-        }
-
-        /// <summary>The live hub component, found by type name because the hub type may come from another Core.</summary>
-        private static object? FindHubObject()
-        {
-            var go = GameObject.Find(ModHttpV1.HubGameObjectName);
-            if (go == null)
-            {
-                return null;
-            }
-
-            foreach (var component in go.GetComponents<MonoBehaviour>())
-            {
-                if (component.GetType().Name == "ModHttpV1")
-                {
-                    return component;
-                }
-            }
-
-            return null;
-        }
+        private readonly HubBinding _binding = HubBinding.ForSingleton(virtualFallback: false);
 
         private static Func<string, string, string, UniTask> Wrap(Action<string, string, string> handler)
         {
@@ -547,24 +502,17 @@ internal sealed class DebugEventReporter
             };
         }
 
-        public IReadOnlyList<string> GetModIds() => Hub()?.GetModIds() ?? NoModIds;
+        public IReadOnlyList<string> GetModIds() => _binding.GetModIds();
 
-        public void Register(string modId, Action<string, string, string> handler)
-        {
-            _clients[modId] = handler;
-            Hub()?.RegisterClient(modId, Wrap(handler));
-        }
+        public void Register(string modId, Action<string, string, string> handler) =>
+            _binding.Register(modId, Wrap(handler));
 
-        public void Unregister(string modId)
-        {
-            _clients.Remove(modId);
-            Hub()?.UnregisterClient(modId);
-        }
+        public void Unregister(string modId) => _binding.Unregister(modId);
 
         public void Send(string from, string to, string contentType, string body)
         {
             // No hub object: nothing can be delivered, and the reporter's next alias check will see that.
-            Hub()?.Notify(from, to, contentType, body).Forget();
+            _binding.Notify(from, to, contentType, body).Forget();
         }
 
         public DateTime UtcNow => DateTime.UtcNow;

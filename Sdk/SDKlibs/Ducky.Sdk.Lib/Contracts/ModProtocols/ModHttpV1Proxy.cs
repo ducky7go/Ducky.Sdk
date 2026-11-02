@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Duckov.Utilities;
+using Ducky.Sdk.Contracts.ModProtocols;
 using Ducky.Sdk.Logging;
 
 namespace Ducky.Sdk.Contracts;
@@ -14,13 +15,17 @@ namespace Ducky.Sdk.Contracts;
 /// <summary>
 /// ModHttpV1 proxy for efficient reflection-based calls without direct dependency on the original library.
 /// </summary>
-public class ModHttpV1Proxy
+public class ModHttpV1Proxy : IHubProxy
 {
     private object? _hubInstance;
     private Action<object, string, Func<string, string, string, UniTask>>? _registerClientDelegate;
     private Action<object, string>? _unregisterClientDelegate;
+    private Action<object, string, Func<string, string, string, UniTask>>? _unregisterOwnedClientDelegate;
     private Func<object, string, string, string, string, UniTask>? _notifyDelegate;
     private Func<object, IReadOnlyList<string>>? _getModIdsDelegate;
+
+    // 本代理为每个 modId 注册时使用的委托；注销时原样传回，供热重载的所有者检查使用
+    private readonly Dictionary<string, Func<string, string, string, UniTask>> _registeredCallbacks = new();
 
     private readonly VirtualHub _virtualHub;
     private bool _isVirtual;
@@ -31,6 +36,12 @@ public class ModHttpV1Proxy
     private static readonly ConcurrentBag<WeakReference<ModHttpV1Proxy>> s_virtualProxies = new();
     private static CancellationTokenSource? s_checkProcessorCts;
     private static bool s_checkProcessorRunning = false;
+
+    // 场景监控：所有存活虚拟代理共用一个场景加载处理器，最后一个分离时才取消订阅
+    private static readonly object s_sceneMonitorLock = new();
+    private static int s_attachedVirtualProxyCount;
+    private bool _isAttachedToSceneMonitor;
+    private bool _isReleased;
 
     /// <summary>
     /// 条件日志记录方法，仅当启用 ModHttpV1 日志时才记录
@@ -65,6 +76,14 @@ public class ModHttpV1Proxy
         }
     }
 
+    /// <summary>Creates a virtual proxy that holds registrations and messages until a real hub is found.</summary>
+    internal static ModHttpV1Proxy CreateVirtual() => new();
+
+    /// <summary>Creates a proxy bound to one hub object.</summary>
+    internal static ModHttpV1Proxy BindToHub(object hubInstance) => new(hubInstance);
+
+    bool IHubProxy.IsVirtual => _isVirtual;
+
     private ModHttpV1Proxy()
     {
         _virtualHub = new VirtualHub();
@@ -74,8 +93,8 @@ public class ModHttpV1Proxy
         // 注册虚拟代理实例
         s_virtualProxies.Add(new WeakReference<ModHttpV1Proxy>(this));
 
-        // 启动场景监控（如果还未启动）
-        StartSceneMonitoringIfNeeded();
+        // 挂接场景监控（处理器只在第一个虚拟代理出现时订阅一次）
+        AttachSceneMonitor();
     }
 
     private ModHttpV1Proxy(object hubInstance)
@@ -121,6 +140,26 @@ public class ModHttpV1Proxy
         _unregisterClientDelegate = Expression.Lambda<Action<object, string>>(unregCall, unregInstance, unregModId)
             .Compile();
 
+        // UnregisterClient(string, Func<string, string, string, UniTask>) - 可选，旧版 Hub 没有时回退到按 id 注销
+        var ownedUnregMethod = type.GetMethod("UnregisterClient", BindingFlags.Public | BindingFlags.Instance, null,
+            new[] { typeof(string), typeof(Func<string, string, string, UniTask>) }, null);
+        if (ownedUnregMethod != null)
+        {
+            var ownedInstance = Expression.Parameter(typeof(object), "instance");
+            var ownedModId = Expression.Parameter(typeof(string), "modId");
+            var ownedCallback = Expression.Parameter(typeof(Func<string, string, string, UniTask>), "callback");
+            var ownedCall = Expression.Call(
+                Expression.Convert(ownedInstance, type),
+                ownedUnregMethod,
+                ownedModId,
+                ownedCallback
+            );
+            _unregisterOwnedClientDelegate = Expression
+                .Lambda<Action<object, string, Func<string, string, string, UniTask>>>(ownedCall, ownedInstance,
+                    ownedModId, ownedCallback)
+                .Compile();
+        }
+
         // Notify(string, string, string, string) : UniTask
         var notifyMethod = type.GetMethod("Notify", BindingFlags.Public | BindingFlags.Instance, null,
             new[] { typeof(string), typeof(string), typeof(string), typeof(string) }, null);
@@ -156,6 +195,23 @@ public class ModHttpV1Proxy
     }
 
     /// <summary>
+    /// Binds this virtual proxy to a real hub object, moves its clients over, replays its pending messages once and
+    /// detaches from the scene monitor. Does nothing when the proxy is not virtual.
+    /// </summary>
+    internal async UniTask UpgradeToHub(object hubInstance)
+    {
+        if (!_isVirtual)
+        {
+            return;
+        }
+
+        InitializeRealHub(hubInstance);
+        await _virtualHub.MigrateToRealHub(this);
+        _isSearching = false;
+        DetachSceneMonitor();
+    }
+
+    /// <summary>
     /// 检查请求类型
     /// </summary>
     public enum CheckRequestType
@@ -187,6 +243,8 @@ public class ModHttpV1Proxy
     // 高效注册委托（表达式编译）
     public void RegisterClient(string modId, Func<string, string, string, UniTask> callback)
     {
+        _registeredCallbacks[modId] = callback;
+
         if (_isVirtual)
         {
             _virtualHub.RegisterClient(modId, callback);
@@ -198,11 +256,23 @@ public class ModHttpV1Proxy
         }
     }
 
+    /// <summary>
+    /// 注销客户端。若真实 Hub 支持所有者检查，则只删除本代理注册时使用的那一份注册；
+    /// 否则按 mod id 注销（旧版 Hub 的行为）。
+    /// </summary>
     public void UnregisterClient(string modId)
     {
+        _registeredCallbacks.TryGetValue(modId, out var callback);
+        _registeredCallbacks.Remove(modId);
+
         if (_isVirtual)
         {
-            _virtualHub.UnregisterClient(modId);
+            _virtualHub.UnregisterClient(modId, callback);
+        }
+        else if (_unregisterOwnedClientDelegate != null)
+        {
+            // callback 为 null（本代理从未注册该 id）时，Hub 的所有者检查会不做任何事
+            _unregisterOwnedClientDelegate(_hubInstance!, modId, callback!);
         }
         else
         {
@@ -255,14 +325,59 @@ public class ModHttpV1Proxy
     }
 
     /// <summary>
-    /// 启动场景监控（检测进入base）
+    /// 挂接本虚拟代理的场景监控；只有第一个虚拟代理会订阅场景加载事件
     /// </summary>
-    private static void StartSceneMonitoringIfNeeded()
+    private void AttachSceneMonitor()
+    {
+        lock (s_sceneMonitorLock)
+        {
+            if (_isAttachedToSceneMonitor)
+            {
+                return;
+            }
+
+            _isAttachedToSceneMonitor = true;
+            if (s_attachedVirtualProxyCount++ == 0)
+            {
+                SubscribeSceneLoad();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 分离本虚拟代理的场景监控（升级为真实 Hub 或被释放时调用）；最后一个分离时取消订阅
+    /// </summary>
+    internal void DetachSceneMonitor()
+    {
+        lock (s_sceneMonitorLock)
+        {
+            if (_isAttachedToSceneMonitor)
+            {
+                _isAttachedToSceneMonitor = false;
+                if (--s_attachedVirtualProxyCount == 0)
+                {
+                    UnsubscribeSceneLoad();
+                }
+            }
+
+            CleanUpWeakReferences();
+        }
+    }
+
+    /// <summary>
+    /// 释放本代理：分离场景监控，之后不再执行任何检查请求。可重复调用。
+    /// </summary>
+    public void Release()
+    {
+        _isReleased = true;
+        DetachSceneMonitor();
+    }
+
+    private static void SubscribeSceneLoad()
     {
         // 注册场景加载事件监听（直接访问，无需反射）
         try
         {
-            // 直接注册场景加载事件
             SceneLoader.onAfterSceneInitialize += OnSceneLoad;
             LogIfEnabled("[ModHttpV1Proxy] 场景监控已启动，将监听base场景进入事件", Log.Info);
         }
@@ -270,6 +385,19 @@ public class ModHttpV1Proxy
         {
             LogIfEnabled(ex, "[ModHttpV1Proxy] 无法注册场景监控，将仅依赖定时检查", Log.Warn);
             LogIfEnabled("[ModHttpV1Proxy] 场景监控启动完成（仅定时检查模式）", Log.Info);
+        }
+    }
+
+    private static void UnsubscribeSceneLoad()
+    {
+        try
+        {
+            SceneLoader.onAfterSceneInitialize -= OnSceneLoad;
+            LogIfEnabled("[ModHttpV1Proxy] 场景监控已停止", Log.Info);
+        }
+        catch (Exception ex)
+        {
+            LogIfEnabled(ex, "[ModHttpV1Proxy] 取消场景监控时发生异常", Log.Warn);
         }
     }
 
@@ -319,7 +447,7 @@ public class ModHttpV1Proxy
             if (weakRef.TryGetTarget(out var proxy))
             {
                 // 只对仍在搜索且为虚拟状态的代理触发检查
-                if (proxy._isVirtual && !proxy._isSearching)
+                if (proxy._isVirtual && !proxy._isSearching && !proxy._isReleased)
                 {
                     var enterBaseRequest = new CheckRequest
                     {
@@ -350,26 +478,30 @@ public class ModHttpV1Proxy
     /// </summary>
     private static void CleanUpWeakReferences()
     {
-        // 由于ConcurrentBag不支持删除操作，我们创建一个新的bag来存储有效的引用
-        var validRefs = new List<WeakReference<ModHttpV1Proxy>>();
-
-        foreach (var weakRef in s_virtualProxies)
+        lock (s_sceneMonitorLock)
         {
-            if (weakRef.TryGetTarget(out _))
+            // 由于ConcurrentBag不支持删除操作，我们创建一个新的bag来存储有效的引用；
+            // 已分离（升级或释放）的虚拟代理不再保留在登记表中
+            var validRefs = new List<WeakReference<ModHttpV1Proxy>>();
+
+            foreach (var weakRef in s_virtualProxies)
             {
-                validRefs.Add(weakRef);
+                if (weakRef.TryGetTarget(out var proxy) && proxy._isAttachedToSceneMonitor)
+                {
+                    validRefs.Add(weakRef);
+                }
             }
-        }
 
-        // 清空原bag并重新添加有效引用
-        while (s_virtualProxies.TryTake(out _))
-        {
-            // 空操作，只是为了清空
-        }
+            // 清空原bag并重新添加有效引用
+            while (s_virtualProxies.TryTake(out _))
+            {
+                // 空操作，只是为了清空
+            }
 
-        foreach (var validRef in validRefs)
-        {
-            s_virtualProxies.Add(validRef);
+            foreach (var validRef in validRefs)
+            {
+                s_virtualProxies.Add(validRef);
+            }
         }
     }
 
@@ -448,6 +580,12 @@ public class ModHttpV1Proxy
     /// </summary>
     private static async UniTask ProcessCheckRequest(CheckRequest request, CancellationToken cancellationToken)
     {
+        if (request.Requester._isReleased)
+        {
+            // 已释放的代理不再检查
+            return;
+        }
+
         LogIfEnabled($"[ModHttpV1Proxy] 处理检查请求: {request.Type}, 尝试次数: {request.AttemptCount + 1}/{request.MaxAttempts}",
             Log.Debug);
 
@@ -477,10 +615,8 @@ public class ModHttpV1Proxy
                     LogIfEnabled(
                         $"[ModHttpV1Proxy] 检测到真实对象挂载 (请求类型: {request.Type}, 尝试次数: {request.AttemptCount})，开始迁移数据",
                         Log.Info);
-                    request.Requester.InitializeRealHub(hub);
-                    await request.Requester._virtualHub.MigrateToRealHub(request.Requester);
+                    await request.Requester.UpgradeToHub(hub);
                     LogIfEnabled("[ModHttpV1Proxy] 数据迁移完成，虚拟载体已销毁", Log.Info);
-                    request.Requester._isSearching = false;
                     return;
                 }
             }
@@ -567,8 +703,15 @@ public class ModHttpV1Proxy
             LogIfEnabled($"[VirtualHub] 注册客户端: {modId}", Log.Debug);
         }
 
-        public void UnregisterClient(string modId)
+        public void UnregisterClient(string modId, Func<string, string, string, UniTask>? callback)
         {
+            // 只删除本调用方注册的那一份；已被新注册覆盖时保持不变
+            if (!_clients.TryGetValue(modId, out var current) || !ReferenceEquals(current, callback))
+            {
+                LogIfEnabled($"[VirtualHub] 注销被跳过（注册不属于调用方）: {modId}", Log.Debug);
+                return;
+            }
+
             _clients.Remove(modId);
             LogIfEnabled($"[VirtualHub] 注销客户端: {modId}", Log.Debug);
         }

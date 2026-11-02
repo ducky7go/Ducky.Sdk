@@ -440,4 +440,109 @@ public class HttpEndpointClientTests
     }
 
     #endregion
+
+    #region Replaced hub (task 7.3)
+
+    private void ReplaceHub()
+    {
+        _transport.HubGeneration++;
+        _client.Tick();
+    }
+
+    [Test]
+    public void ReplacedHubFromAnnouncedNegotiatesAgainAndAnnouncesOnce()
+    {
+        MapEndpoints(2);
+        AnnounceToHost();
+        _transport.Drain();
+        _client.State.ShouldBe(HttpEndpointClientState.Announced);
+
+        ReplaceHub();
+        _client.State.ShouldBe(HttpEndpointClientState.Negotiating);
+        _transport.Deliver(ClientId, Host, HttpEndpointProtocol.ReadyContentType, HttpEndpointProtocol.EncodeReady(1, new[] { 1 }));
+
+        _client.State.ShouldBe(HttpEndpointClientState.Announced);
+        _transport.SentOf(HttpEndpointProtocol.HelloContentType).Count().ShouldBe(2);
+        _transport.SentOf(HttpEndpointProtocol.RegisterContentType).Count().ShouldBe(2);
+    }
+
+    [Test]
+    public void ReplacedHubFromNegotiatingSendsOneNewHello()
+    {
+        MapEndpoints(1);
+        _transport.ModIds.Add(Host);
+        _client.Tick();
+        _client.State.ShouldBe(HttpEndpointClientState.Negotiating);
+        _transport.SentOf(HttpEndpointProtocol.HelloContentType).Count().ShouldBe(1);
+
+        ReplaceHub();
+
+        _client.State.ShouldBe(HttpEndpointClientState.Negotiating);
+        _transport.SentOf(HttpEndpointProtocol.HelloContentType).Count().ShouldBe(2);
+    }
+
+    [Test]
+    public void ReplacedHubFromIncompatibleGoesBackAndNegotiatesAgain()
+    {
+        MapEndpoints(1);
+        _transport.ModIds.Add(Host);
+        _client.Tick();
+        _transport.Deliver(ClientId, Host, HttpEndpointProtocol.ReadyContentType, HttpEndpointProtocol.EncodeReady(0, new[] { 1 }));
+        _client.State.ShouldBe(HttpEndpointClientState.Incompatible);
+
+        ReplaceHub();
+
+        _client.State.ShouldBe(HttpEndpointClientState.Negotiating);
+        _transport.SentOf(HttpEndpointProtocol.HelloContentType).Count().ShouldBe(2);
+    }
+
+    [Test]
+    public void ReplacedHubDoesNotRegisterTheHubClientAgain()
+    {
+        MapEndpoints(1);
+        AnnounceToHost();
+        _transport.Drain();
+        var registersBefore = _transport.RegisterCalls;
+
+        ReplaceHub();
+
+        _transport.RegisterCalls.ShouldBe(registersBefore);
+    }
+
+    [Test]
+    public void UnchangedGenerationDoesNothingExtra()
+    {
+        MapEndpoints(2);
+        AnnounceToHost();
+        _transport.Drain();
+        var sentBefore = _transport.Sent.Count;
+
+        for (var i = 0; i < 3; i++)
+        {
+            AdvanceSeconds(1);
+            _client.Tick();
+        }
+
+        _client.State.ShouldBe(HttpEndpointClientState.Announced);
+        _transport.Sent.Count.ShouldBe(sentBefore);
+    }
+
+    [Test]
+    public void ReleasedClientIgnoresAGenerationChange()
+    {
+        MapEndpoints(1);
+        AnnounceToHost();
+        _transport.Drain();
+        _client.Shutdown();
+        var sentBefore = _transport.Sent.Count;
+        var registersBefore = _transport.RegisterCalls;
+
+        ReplaceHub();
+
+        _client.State.ShouldBe(HttpEndpointClientState.Released);
+        _transport.Sent.Count.ShouldBe(sentBefore);
+        _transport.RegisterCalls.ShouldBe(registersBefore);
+    }
+
+    #endregion
 }

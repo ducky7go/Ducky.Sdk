@@ -41,6 +41,7 @@ internal sealed class HttpEndpointClient
     private int _version;
     private DateTime _lastCheck = DateTime.MinValue;
     private bool _dirty;
+    private int? _seenHubGeneration;
     private bool _registered;
     private bool _loopRunning;
     private CancellationTokenSource? _loopCts;
@@ -265,11 +266,23 @@ internal sealed class HttpEndpointClient
     }
 
     /// <summary>
-    /// One step on the main thread: registers the hub client while endpoints exist, checks for the host at most every 5
-    /// seconds while the table is not empty, and sends a pending snapshot when announced.
+    /// One step on the main thread: follows a replaced hub, registers the hub client while endpoints exist, checks for the
+    /// host at most every 5 seconds while the table is not empty, and sends a pending snapshot when announced.
     /// </summary>
     internal void Tick()
     {
+        lock (_gate)
+        {
+            if (_state == HttpEndpointClientState.Released)
+            {
+                return;
+            }
+        }
+
+        // Reading the generation refreshes the hub binding: after a replaced hub it has registered our hub client on
+        // the new hub already. The first read only records the value.
+        var generation = _transport.HubGeneration;
+
         bool hasEndpoints;
         lock (_gate)
         {
@@ -278,6 +291,15 @@ internal sealed class HttpEndpointClient
                 return;
             }
 
+            if (_seenHubGeneration is int seen && seen != generation)
+            {
+                // The hub was replaced: negotiate and announce again. _registered stays as it is on purpose.
+                _state = HttpEndpointClientState.NoHost;
+                _lastCheck = DateTime.MinValue;
+                _dirty = _table.Count > 0;
+            }
+
+            _seenHubGeneration = generation;
             hasEndpoints = _table.Count > 0;
         }
 

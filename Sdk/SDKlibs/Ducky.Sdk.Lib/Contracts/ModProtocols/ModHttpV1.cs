@@ -33,6 +33,9 @@ internal class ModHttpV1 : MonoBehaviour
     // 每个 modId 的处理协程取消令牌
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _processingCts = new();
 
+    // 保护注册与注销的组合操作（所有者检查 + 删除），避免旧 Core 的注销与新 Core 的注册交错
+    private readonly object _registrationLock = new();
+
     private const int MaxQueueSize = 200;
 
     // 默认 TTL：60 秒
@@ -114,10 +117,13 @@ internal class ModHttpV1 : MonoBehaviour
     public void RegisterClient(string modId, Func<string, string, string, UniTask> callback)
     {
         LogIfEnabled($"ModHttpV1: RegisterClient called for modId: {modId}", Log.Info);
-        _eventMap[modId] = callback;
+        lock (_registrationLock)
+        {
+            _eventMap[modId] = callback;
 
-        // 确保消息队列存在
-        _messageQueues.TryAdd(modId, new ConcurrentQueue<MessageItem>());
+            // 确保消息队列存在
+            _messageQueues.TryAdd(modId, new ConcurrentQueue<MessageItem>());
+        }
 
         // 启动消息处理协程
         StartMessageProcessing(modId);
@@ -129,17 +135,46 @@ internal class ModHttpV1 : MonoBehaviour
     public void UnregisterClient(string modId)
     {
         LogIfEnabled($"ModHttpV1: UnregisterClient called for modId: {modId}", Log.Info);
-        _eventMap.TryRemove(modId, out _);
+        RemoveRegistration(modId);
+    }
 
-        // 停止消息处理协程
-        if (_processingCts.TryRemove(modId, out var cts))
+    /// <summary>
+    /// 注销客户端，仅当当前注册的委托与 <paramref name="callback"/> 是同一个实例时才生效。
+    /// 用于热重载：旧 Core 的延迟注销不会删除新 Core 对同一 mod id 的注册。
+    /// </summary>
+    /// <param name="modId">mod 的唯一字符串 id</param>
+    /// <param name="callback">调用方注册时使用的委托实例</param>
+    public void UnregisterClient(string modId, Func<string, string, string, UniTask> callback)
+    {
+        lock (_registrationLock)
         {
-            cts?.Cancel();
-            cts?.Dispose();
-        }
+            if (!_eventMap.TryGetValue(modId, out var current) || !ReferenceEquals(current, callback))
+            {
+                LogIfEnabled($"ModHttpV1: UnregisterClient skipped for modId: {modId}, registration is not owned by caller", Log.Info);
+                return;
+            }
 
-        // 清空消息队列
-        _messageQueues.TryRemove(modId, out _);
+            LogIfEnabled($"ModHttpV1: UnregisterClient called for modId: {modId}", Log.Info);
+            RemoveRegistration(modId);
+        }
+    }
+
+    private void RemoveRegistration(string modId)
+    {
+        lock (_registrationLock)
+        {
+            _eventMap.TryRemove(modId, out _);
+
+            // 停止消息处理协程
+            if (_processingCts.TryRemove(modId, out var cts))
+            {
+                cts?.Cancel();
+                cts?.Dispose();
+            }
+
+            // 清空消息队列
+            _messageQueues.TryRemove(modId, out _);
+        }
     }
 
     /// <summary>

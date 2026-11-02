@@ -29,7 +29,7 @@ public class ModBehaviour : ModBehaviourBase
         }
 
         Debug.Log($"[Ducky.DebugEventReporter] burst of 1000 reported; queued for {RecorderId}: {QueuedForRecorder()} (t={Time.realtimeSinceStartup:F2})");
-        ReportEverySecond(_cts.Token).Forget();
+        ReportEverySecond(_cts.Token, CoreAssemblyName).Forget();
     }
 
     protected override void ModDisabled()
@@ -39,7 +39,7 @@ public class ModBehaviour : ModBehaviourBase
         Debug.Log($"[Ducky.DebugEventReporter] stopped reporting (t={Time.realtimeSinceStartup:F2})");
     }
 
-    private static async UniTaskVoid ReportEverySecond(CancellationToken token)
+    private static async UniTaskVoid ReportEverySecond(CancellationToken token, string coreName)
     {
         var n = 0;
         try
@@ -48,6 +48,13 @@ public class ModBehaviour : ModBehaviourBase
             {
                 await UniTask.Delay(TimeSpan.FromSeconds(1), cancellationToken: token);
                 n++;
+                if (n == 1)
+                {
+                    // Once per enable, after the first second: a reloaded reporter starts Idle and drops events until the
+                    // recorder has answered its hello, so an event reported straight from ModEnabled would be lost.
+                    Contract.DebugEvents.Report("core-enabled", coreName);
+                }
+
                 if (n == 2)
                 {
                     Contract.DebugEvents.Report("multiline", "first line\nsecond \"quoted\" line");
@@ -61,6 +68,9 @@ public class ModBehaviour : ModBehaviourBase
             // Disabled: the loop ends.
         }
     }
+
+    /// <summary>The name of the assembly this Core was loaded from. It is the detail of the <c>core-enabled</c> event.</summary>
+    private static string CoreAssemblyName => typeof(ModBehaviour).Assembly.GetName().Name;
 
     /// <summary>
     /// Messages waiting in the hub's queue for the recorder id, read from the hub's own state. -1: no hub, -2: no queue

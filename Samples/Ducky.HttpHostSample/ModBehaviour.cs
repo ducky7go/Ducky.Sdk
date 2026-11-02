@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Ducky.Sdk.Contracts;
 using Ducky.Sdk.Contracts.HttpEndpoints;
+using Newtonsoft.Json;
 
 namespace Ducky.HttpHostSample;
 
@@ -19,6 +21,9 @@ public class ModBehaviour : ModBehaviourBase
     /// <summary>Fixed loopback port of the test listener.</summary>
     public const int TestPort = 18765;
 
+    /// <summary>Path of the route listing on the loopback listener. Not forwarded to any mod.</summary>
+    public const string RoutesPath = "/httphost/routes";
+
     private HttpListener? _listener;
     private CancellationTokenSource? _cts;
 
@@ -29,6 +34,9 @@ public class ModBehaviour : ModBehaviourBase
             Log.Warn("Ducky.HttpHostSample did not start: another httphost holds the role");
             return;
         }
+
+        Subscriptions.Add(() => Contract.HttpHost.RoutesChanged -= OnRoutesChanged);
+        Contract.HttpHost.RoutesChanged += OnRoutesChanged;
 
         _listener = new HttpListener();
         _listener.Prefixes.Add($"http://127.0.0.1:{TestPort}/");
@@ -46,6 +54,11 @@ public class ModBehaviour : ModBehaviourBase
         _listener?.Close();
         _listener = null;
         Log.Info("Ducky.HttpHostSample stopped");
+    }
+
+    private void OnRoutesChanged()
+    {
+        Log.Info("Ducky.HttpHostSample routes changed: {Count} routes", Contract.HttpHost.Routes.Count);
     }
 
     private async void Serve(HttpListener listener, CancellationToken token)
@@ -72,6 +85,12 @@ public class ModBehaviour : ModBehaviourBase
         var response = context.Response;
         try
         {
+            if (request.Url?.AbsolutePath == RoutesPath)
+            {
+                await WriteRouteListing(response);
+                return;
+            }
+
             var forwarded = new HttpEndpointRequest
             {
                 Method = request.HttpMethod,
@@ -97,6 +116,19 @@ public class ModBehaviour : ModBehaviourBase
         {
             response.Close();
         }
+    }
+
+    /// <summary>Writes the route table as a JSON array, one object per endpoint with its owner mod.</summary>
+    private static async Task WriteRouteListing(HttpListenerResponse response)
+    {
+        var routes = Contract.HttpHost.Routes
+            .Select(route => new { method = route.Method, path = route.Path, owner = route.OwnerModId })
+            .ToList();
+        var bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(routes));
+        response.StatusCode = 200;
+        response.ContentType = "application/json";
+        response.ContentLength64 = bytes.Length;
+        await response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
     }
 
     private static IReadOnlyList<KeyValuePair<string, string>> ReadQuery(HttpListenerRequest request)

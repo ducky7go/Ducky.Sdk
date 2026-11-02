@@ -50,6 +50,9 @@ internal sealed class FakeHttpEndpointTransport : IHttpEndpointTransport
     /// <summary>How many times the code under test read the hub's id list.</summary>
     public int IdListReads { get; private set; }
 
+    /// <summary>The hub generation the fake reports. Set it to simulate a replaced hub.</summary>
+    public int HubGeneration { get; set; }
+
     public IReadOnlyList<string> GetModIds()
     {
         IdListReads++;

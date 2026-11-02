@@ -17,6 +17,12 @@ internal interface IHttpEndpointTransport
     /// <summary>The hub's registered ids.</summary>
     IReadOnlyList<string> GetModIds();
 
+    /// <summary>
+    /// Changes each time the hub object this client is bound to is replaced (a hot reload of the mod that started the hub).
+    /// Reading it refreshes the binding; the client resets its protocol state when the value changes.
+    /// </summary>
+    int HubGeneration { get; }
+
     /// <summary>Registers a hub client. The handler is called on the main thread.</summary>
     void Register(string clientId, Action<string, string, string> handler);
 
@@ -50,27 +56,29 @@ internal sealed class ModHttpV1HttpEndpointTransport : IHttpEndpointTransport
 {
     public static readonly ModHttpV1HttpEndpointTransport Instance = new();
 
-    // One proxy per mod copy: CreateFromSingleton on a missing hub makes a virtual proxy that subscribes to scene
-    // events, so creating one per call would leak.
-    private static readonly object ProxyGate = new();
-    private static ModHttpV1Proxy? _proxy;
+    // One binding per mod copy. It follows the live hub object (see HubBinding), so a hot reload of the hub's mod is
+    // picked up without a game restart. Created on first use, on the main thread, never in a static constructor.
+    private static readonly object BindingGate = new();
+    private static HubBinding? _binding;
 
-    private static ModHttpV1Proxy HubProxy
+    private static HubBinding Binding
     {
         get
         {
-            lock (ProxyGate)
+            lock (BindingGate)
             {
-                return _proxy ??= ModHttpV1Proxy.CreateFromSingleton();
+                return _binding ??= HubBinding.ForSingleton(virtualFallback: false);
             }
         }
     }
 
-    public IReadOnlyList<string> GetModIds() => HubProxy.GetModIds();
+    public int HubGeneration => Binding.Generation;
+
+    public IReadOnlyList<string> GetModIds() => Binding.GetModIds();
 
     public void Register(string clientId, Action<string, string, string> handler)
     {
-        HubProxy.RegisterClient(clientId, (from, contentType, body) =>
+        Binding.Register(clientId, (from, contentType, body) =>
         {
             MainThread.Post(() =>
             {
@@ -88,11 +96,11 @@ internal sealed class ModHttpV1HttpEndpointTransport : IHttpEndpointTransport
         });
     }
 
-    public void Unregister(string clientId) => HubProxy.UnregisterClient(clientId);
+    public void Unregister(string clientId) => Binding.Unregister(clientId);
 
     public void Send(string from, string to, string contentType, string body)
     {
-        HubProxy.Notify(from, to, contentType, body).Forget();
+        Binding.Notify(from, to, contentType, body).Forget();
     }
 
     public void PostToMainThread(Action action) => MainThread.Post(action);

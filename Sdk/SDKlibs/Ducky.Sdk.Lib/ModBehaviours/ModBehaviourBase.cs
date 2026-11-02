@@ -263,6 +263,25 @@ public abstract class ModBehaviourBase : ModBehaviour
             Debug.LogError($"[ModBehaviourBase] Failed to release the HTTP host: {e}");
         }
 
+        // The terminal contract goes first: its "offline" message is sent through the HTTP client contract.
+        try
+        {
+            ModTerminalClientContract.Release();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ModBehaviourBase] Failed to release the terminal client contract: {e}");
+        }
+
+        try
+        {
+            ModHttpV1ClientContract.Release();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ModBehaviourBase] Failed to release the HTTP client contract: {e}");
+        }
+
         try
         {
             MainThread.Close();
