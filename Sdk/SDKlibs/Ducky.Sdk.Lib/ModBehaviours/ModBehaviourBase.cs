@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Linq;
 using Duckov.Modding;
 using Ducky.Sdk.Contracts;
+using Ducky.Sdk.Contracts.DebugEvents;
+using Ducky.Sdk.Contracts.HttpEndpoints;
 using Ducky.Sdk.Contracts.ModProtocols;
 using Ducky.Sdk.Localizations;
 using Ducky.Sdk.Logging;
@@ -223,6 +225,42 @@ public abstract class ModBehaviourBase : ModBehaviour
         catch (Exception e)
         {
             Debug.LogError($"[ModBehaviourBase] Failed to release shared resources: {e}");
+        }
+
+        try
+        {
+            DebugEventRecorder.Release();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ModBehaviourBase] Failed to release the debug event recorder: {e}");
+        }
+
+        try
+        {
+            DebugEventReporter.Release();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ModBehaviourBase] Failed to release the debug event reporter: {e}");
+        }
+
+        try
+        {
+            HttpEndpointClient.Release();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ModBehaviourBase] Failed to release the HTTP endpoint client: {e}");
+        }
+
+        try
+        {
+            HttpHostCore.Release();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ModBehaviourBase] Failed to release the HTTP host: {e}");
         }
 
         try
