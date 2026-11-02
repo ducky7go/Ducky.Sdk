@@ -28,7 +28,7 @@ public class ModBehaviour : ModBehaviourBase
             Contract.DebugEvents.Report("burst", i.ToString());
         }
 
-        Debug.Log($"[Ducky.DebugEventReporter] burst of 1000 reported; queued for {RecorderId}: {QueuedForRecorder()} (t={Time.realtimeSinceStartup:F2})");
+        Debug.Log($"[Ducky.DebugEventReporter] burst of 1000 reported; recorder ready when reported: {Contract.DebugEvents.IsRecorderAvailable} (events reported before the recorder answers are discarded and not counted); hub queue for {RecorderId}: {QueuedForRecorder()} (t={Time.realtimeSinceStartup:F2})");
         ReportEverySecond(_cts.Token, CoreAssemblyName).Forget();
     }
 
