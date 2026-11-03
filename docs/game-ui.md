@@ -236,3 +236,32 @@ Each reload should unload the old Core (its panel is destroyed, `childObjects=0`
 ## 8. How to repeat
 
 `Newbe.DebugMod` deployed and the test save in place (see the `duckov-remote-debug` skill), then the calls in 5.2, the screenshot in 5.3 and the switch in 5.4. Copy the PNG down with `windows-host copy-from`, and restore the test save with `restore-save` when finished.
+
+## 9. Panels in the Tab bar (`GameUiTabs`, `GameUiTabView`)
+
+Add a panel next to the game's inventory, stats, quest and map views. A mod writes a subclass of `GameUiTabView` (title, `BuildContent`, optional `OnShown`) and registers it in `ModEnabled()`:
+
+```csharp
+Subscriptions.Add(GameUiTabs.Register<MyView>(new GameUiTabOptions { Tint = new Color(1f, 0.8f, 0.3f) }));
+```
+
+Disposing the registration (the `Subscriptions` do it on disable and hot reload) destroys the view and the tab button. `GameUiTabs` checks once a second and installs the tab into any tab bar that does not have it yet. The sample is `Samples/Ducky.GameUiTabSample` (a player-attributes panel with a "copy brief text" button).
+
+### 9.1 Observed in the game (2026-11-03, base scene, test slot 6)
+
+- **Layout.** `LevelConfig/LevelManager(Clone)/GameplayUICanvas/Tabs` (`ViewTabs`) has `Top`, `Bottom`, `ViewArea` and `ViewButtons`. The views of the tab bar (`MiniMapView`, `QuestView`, `PlayerStatsView`, `InventoryView`, `LootView`, `MasterKeysView`, `NoteIndexView`) are children of `ViewArea`; the tab buttons are children of `ViewButtons` (a `HorizontalLayoutGroup` with `ContentSizeFitter`), after the decoration children `BG` and `line`.
+- **The bar is rebuilt with every level**, because it sits under `LevelManager(Clone)`. A second set of buttons (`BackpackButton`, `QuestsButton`) is under `HUDCanvas/ViewButtons`; the SDK does not touch it.
+- **Tab buttons are `GenericButton`**, not `UnityEngine.UI.Button`: click is `onPointerClick`, wired as a persistent listener to `ViewsProxy.ShowXxx`. `RemoveAllListeners()` leaves persistent listeners, so the SDK switches them off with `SetPersistentListenerState(i, Off)`.
+- **A tab is highlighted by name**: `ViewTabDisplayEntry.viewTypeName` (private) is compared with `GetType().Name` of the opened view. Two views with the same class name light each other's tab; `GameUiTabs` refuses a name that is already taken.
+- **`View.Awake` reads `transform.parent.parent` as the `ViewTabs`**, so the object is created inactive, parented under `ViewArea`, and only then activated.
+- **TextMeshPro:** with word wrap off and `overflowMode = Truncate`, one line that is too wide drops every line after it (`isTextTruncated = true`). Use `Overflow` and shorten long labels.
+
+### 9.2 Verified in the game
+
+Tab key (real keyboard event) shows the bar with the new tab; clicking it closes the open view and opens the panel; clicking the map tab switches away; Esc closes it and the HUD returns; a click on a button inside the panel works; the clipboard holds the copied text (read back with `Get-Clipboard` after a sentinel value); hot reload while the panel is open removes the old panel and tab and installs the new ones, five REPORT lines, no exception naming the mod.
+
+### 9.3 Not verified
+
+- A tab bar rebuilt by entering a level (the base scene only was tested); the one-second check is designed for it.
+- The window was windowed at 2880×1800 only; other resolutions were not checked.
+- The `Icon` option (a custom sprite); the sample uses the template's icon with a tint.
