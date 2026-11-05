@@ -47,8 +47,6 @@ public static class LethalDamageGuard
     // Hurt can nest (an effect may hurt someone from inside an event), so keep a stack.
     private static readonly List<GuardedHit> Active = new();
 
-    private static Harmony? _harmony;
-
     /// <summary>Registers a rescue. Dispose the returned handle to remove it; disposing it again does nothing.</summary>
     public static IDisposable Register(Rescue rescue)
     {
@@ -60,10 +58,8 @@ public static class LethalDamageGuard
         return Rescues.Add(rescue, 0);
     }
 
-    private static void Install()
-    {
-        var harmony = new Harmony(HarmonyId);
-        try
+    private static void Install() =>
+        HarmonyPatches.Install(HarmonyId, harmony =>
         {
             harmony.Patch(
                 AccessTools.Method(typeof(Health), nameof(Health.Hurt), new[] { typeof(DamageInfo) }),
@@ -72,19 +68,11 @@ public static class LethalDamageGuard
             harmony.Patch(
                 AccessTools.PropertySetter(typeof(Health), nameof(Health.CurrentHealth)),
                 prefix: new HarmonyMethod(typeof(LethalDamageGuard), nameof(SetCurrentHealthPrefix)));
-            _harmony = harmony;
-        }
-        catch (Exception ex)
-        {
-            harmony.UnpatchAll(HarmonyId); // never leave half of it in place
-            Log.Error(ex, "[LethalDamageGuard] could not install its patches");
-        }
-    }
+        }, "[LethalDamageGuard] could not install its patches");
 
     private static void Uninstall()
     {
-        _harmony?.UnpatchAll(HarmonyId);
-        _harmony = null;
+        HarmonyPatches.Uninstall(HarmonyId);
         Active.Clear();
     }
 

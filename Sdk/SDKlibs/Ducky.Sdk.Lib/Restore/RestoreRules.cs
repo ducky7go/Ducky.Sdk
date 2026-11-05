@@ -1,6 +1,7 @@
 #if DUCKY_SDK_HARMONY
 using System;
 using Ducky.Sdk.Logging;
+using Ducky.Sdk.Utils;
 using HarmonyLib;
 
 namespace Ducky.Sdk.Restore;
@@ -42,11 +43,8 @@ public static class RestoreRules
             rule(ref value, context.ForAmount(value)), priority);
     }
 
-    private static void Install(RestoreKind kind)
-    {
-        var id = RestoreRuleTable.PatchIdFor(AssemblyName, kind, InstanceId);
-        var harmony = new Harmony(id);
-        try
+    private static void Install(RestoreKind kind) =>
+        HarmonyPatches.Install(RestoreRuleTable.PatchIdFor(AssemblyName, kind, InstanceId), harmony =>
         {
             var (method, prefix) = kind switch
             {
@@ -58,19 +56,10 @@ public static class RestoreRules
                     new[] { typeof(float) }), nameof(WaterPrefix)),
             };
             harmony.Patch(method, prefix: new HarmonyMethod(typeof(RestoreRules), prefix));
-        }
-        catch (Exception ex)
-        {
-            harmony.UnpatchAll(id); // never leave half of it in place
-            Log.Error(ex, $"[RestoreRules] could not install the prefix for {kind}");
-        }
-    }
+        }, $"[RestoreRules] could not install the prefix for {kind}");
 
-    private static void Uninstall(RestoreKind kind)
-    {
-        var id = RestoreRuleTable.PatchIdFor(AssemblyName, kind, InstanceId);
-        new Harmony(id).UnpatchAll(id);
-    }
+    private static void Uninstall(RestoreKind kind) =>
+        HarmonyPatches.Uninstall(RestoreRuleTable.PatchIdFor(AssemblyName, kind, InstanceId));
 
     // Harmony binds these by name: the parameter names are the parameter names of the game's methods.
     private static void HealthPrefix(CharacterMainControl __instance, ref float healthValue) =>

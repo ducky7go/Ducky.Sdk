@@ -31,7 +31,6 @@ public static class EnemyNoticed
         onLast: Detach,
         onFailure: ex => Log.Error(ex, "[EnemyNoticed] A handler failed; other subscribers still run"));
 
-    private static Harmony? _harmony;
     private static IDisposable? _levelReset;
 
     /// <summary>
@@ -52,26 +51,16 @@ public static class EnemyNoticed
     {
         _levelReset = LevelEvents.OnInitialized(Seen.Clear);
 
-        var harmony = new Harmony(HarmonyId);
-        try
-        {
-            harmony.Patch(
+        HarmonyPatches.Install(HarmonyId, harmony => harmony.Patch(
                 AccessTools.Method(typeof(AICharacterController), nameof(AICharacterController.SetNoticedToTarget),
                     new[] { typeof(DamageReceiver) }),
-                postfix: new HarmonyMethod(typeof(EnemyNoticed), nameof(NoticedPostfix)));
-            _harmony = harmony;
-        }
-        catch (Exception ex)
-        {
-            harmony.UnpatchAll(HarmonyId); // never leave half of it in place
-            Log.Error(ex, "[EnemyNoticed] could not install its postfix");
-        }
+                postfix: new HarmonyMethod(typeof(EnemyNoticed), nameof(NoticedPostfix))),
+            "[EnemyNoticed] could not install its postfix");
     }
 
     private static void Detach()
     {
-        _harmony?.UnpatchAll(HarmonyId);
-        _harmony = null;
+        HarmonyPatches.Uninstall(HarmonyId);
         _levelReset?.Dispose();
         _levelReset = null;
         Seen.Clear();

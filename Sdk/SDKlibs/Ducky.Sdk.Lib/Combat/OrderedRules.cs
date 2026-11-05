@@ -11,58 +11,28 @@ namespace Ducky.Sdk.Combat;
 internal sealed class OrderedRules<TItem>
     where TItem : class
 {
-    private readonly Action? _onFirst;
-    private readonly Action? _onLast;
-    private readonly List<Entry> _entries = new();
-    private long _sequence;
+    private readonly PrioritizedRegistry<TItem> _registry;
 
     /// <param name="onFirst">Called when the first item is added (the patch is installed here).</param>
     /// <param name="onLast">Called when the last item is removed (the patch is removed here).</param>
-    public OrderedRules(Action? onFirst = null, Action? onLast = null)
-    {
-        _onFirst = onFirst;
-        _onLast = onLast;
-    }
-
-    private sealed class Entry
-    {
-        public int Priority;
-        public long Sequence;
-        public TItem Item = null!;
-    }
+    public OrderedRules(Action? onFirst = null, Action? onLast = null) =>
+        _registry = new PrioritizedRegistry<TItem>(onFirst, onLast);
 
     /// <summary>How many items are registered.</summary>
-    public int Count => _entries.Count;
+    public int Count => _registry.Count;
 
     /// <summary>
     /// Adds <paramref name="item"/> at <paramref name="priority"/>. The returned handle removes this registration only and
     /// does nothing when disposed again.
     /// </summary>
-    public IDisposable Add(TItem item, int priority)
-    {
-        if (item == null)
-        {
-            throw new ArgumentNullException(nameof(item));
-        }
-
-        if (_entries.Count == 0)
-        {
-            _onFirst?.Invoke();
-        }
-
-        var entry = new Entry { Priority = priority, Sequence = _sequence++, Item = item };
-        _entries.Add(entry);
-        return new DisposeOnce(() => Remove(entry));
-    }
+    public IDisposable Add(TItem item, int priority) => _registry.Add(item, priority);
 
     /// <summary>The items in run order: ascending priority, then registration order.</summary>
     public IReadOnlyList<TItem> InRunOrder()
     {
-        var ordered = new List<Entry>(_entries);
-        ordered.Sort((a, b) => a.Priority != b.Priority ? a.Priority.CompareTo(b.Priority) : a.Sequence.CompareTo(b.Sequence));
-
-        var items = new List<TItem>(ordered.Count);
-        foreach (var entry in ordered)
+        var entries = _registry.Snapshot();
+        var items = new List<TItem>(entries.Length);
+        foreach (var entry in entries)
         {
             items.Add(entry.Item);
         }
@@ -86,19 +56,6 @@ internal sealed class OrderedRules<TItem>
             {
                 onFailure(ex);
             }
-        }
-    }
-
-    private void Remove(Entry entry)
-    {
-        if (!_entries.Remove(entry))
-        {
-            return;
-        }
-
-        if (_entries.Count == 0)
-        {
-            _onLast?.Invoke();
         }
     }
 }

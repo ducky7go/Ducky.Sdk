@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Ducky.Sdk.Utils;
 
 namespace Ducky.Sdk.Combat;
@@ -11,20 +10,17 @@ namespace Ducky.Sdk.Combat;
 /// </summary>
 internal sealed class HandlerSet<TArgs>
 {
-    private readonly Action _onFirst;
-    private readonly Action _onLast;
+    private readonly PrioritizedRegistry<Action<TArgs>> _registry;
     private readonly Action<Exception> _onFailure;
-    private readonly List<Action<TArgs>> _handlers = new();
 
     public HandlerSet(Action onFirst, Action onLast, Action<Exception> onFailure)
     {
-        _onFirst = onFirst;
-        _onLast = onLast;
+        _registry = new PrioritizedRegistry<Action<TArgs>>(onFirst, onLast);
         _onFailure = onFailure;
     }
 
     /// <summary>How many handlers are registered.</summary>
-    public int Count => _handlers.Count;
+    public int Count => _registry.Count;
 
     /// <summary>
     /// Registers <paramref name="handler"/>. The returned handle removes this registration only; the same handler added
@@ -37,48 +33,24 @@ internal sealed class HandlerSet<TArgs>
             throw new ArgumentNullException(nameof(handler));
         }
 
-        if (_handlers.Count == 0)
-        {
-            _onFirst();
-        }
-
         // a new delegate per registration, so removing one never removes another registration of the same method
         Action<TArgs> entry = args => handler(args);
-        _handlers.Add(entry);
-        return new DisposeOnce(() => Remove(entry));
+        return _registry.Add(entry, 0);
     }
 
     /// <summary>Calls every handler with <paramref name="args"/>, in registration order.</summary>
     public void Raise(TArgs args)
     {
-        if (_handlers.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var handler in _handlers.ToArray())
+        foreach (var registration in _registry.Snapshot())
         {
             try
             {
-                handler(args);
+                registration.Item(args);
             }
             catch (Exception ex)
             {
                 _onFailure(ex);
             }
-        }
-    }
-
-    private void Remove(Action<TArgs> entry)
-    {
-        if (!_handlers.Remove(entry))
-        {
-            return;
-        }
-
-        if (_handlers.Count == 0)
-        {
-            _onLast();
         }
     }
 }

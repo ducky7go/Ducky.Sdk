@@ -51,8 +51,6 @@ public static class EnemyReady
         onLast: Uninstall,
         onFailure: ex => Log.Error(ex, "[EnemyReady] A handler failed; the other handlers still run"));
 
-    private static Harmony? _harmony;
-
     // Bumped on every install and uninstall, so a wait started earlier stops once the subscription has changed.
     private static int _generation;
 
@@ -74,26 +72,18 @@ public static class EnemyReady
     {
         // installed on the main thread, so the scheduler's holder object can be created here
         MainThread.EnsureStarted();
-        var harmony = new Harmony(HarmonyId);
-        try
-        {
-            harmony.Patch(
+        if (HarmonyPatches.Install(HarmonyId, harmony => harmony.Patch(
                 AccessTools.Method(typeof(CharacterMainControl), nameof(CharacterMainControl.SetTeam)),
-                postfix: new HarmonyMethod(typeof(EnemyReady), nameof(SetTeamPostfix)));
-            _harmony = harmony;
-            _generation++;
-        }
-        catch (Exception ex)
+                postfix: new HarmonyMethod(typeof(EnemyReady), nameof(SetTeamPostfix))),
+            "[EnemyReady] could not install its patch"))
         {
-            harmony.UnpatchAll(HarmonyId); // never leave half of it in place
-            Log.Error(ex, "[EnemyReady] could not install its patch");
+            _generation++;
         }
     }
 
     private static void Uninstall()
     {
-        _harmony?.UnpatchAll(HarmonyId);
-        _harmony = null;
+        HarmonyPatches.Uninstall(HarmonyId);
         _generation++;
     }
 

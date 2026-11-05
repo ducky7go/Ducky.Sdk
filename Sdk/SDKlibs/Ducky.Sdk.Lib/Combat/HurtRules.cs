@@ -75,8 +75,6 @@ public static class HurtRules
     // Installed with the first rule, removed with the last one.
     private static readonly OrderedRules<HurtRule> Rules = new(onFirst: Install, onLast: Uninstall);
 
-    private static Harmony? _harmony;
-
     /// <summary>
     /// Registers a rule at <paramref name="priority"/> (lower runs first). Dispose the returned handle to remove this rule
     /// only; disposing it again does nothing.
@@ -91,28 +89,13 @@ public static class HurtRules
         return Rules.Add(rule, priority);
     }
 
-    private static void Install()
-    {
-        var harmony = new Harmony(HarmonyId);
-        try
-        {
-            harmony.Patch(
+    private static void Install() =>
+        HarmonyPatches.Install(HarmonyId, harmony => harmony.Patch(
                 AccessTools.Method(typeof(Health), nameof(Health.Hurt), new[] { typeof(DamageInfo) }),
-                prefix: new HarmonyMethod(typeof(HurtRules), nameof(HurtPrefix)));
-            _harmony = harmony;
-        }
-        catch (Exception ex)
-        {
-            harmony.UnpatchAll(HarmonyId); // never leave half of it in place
-            Log.Error(ex, "[HurtRules] could not install its prefix");
-        }
-    }
+                prefix: new HarmonyMethod(typeof(HurtRules), nameof(HurtPrefix))),
+            "[HurtRules] could not install its prefix");
 
-    private static void Uninstall()
-    {
-        _harmony?.UnpatchAll(HarmonyId);
-        _harmony = null;
-    }
+    private static void Uninstall() => HarmonyPatches.Uninstall(HarmonyId);
 
     // Harmony binds these by name: __instance is the Health, damageInfo is the parameter of Health.Hurt.
     private static void HurtPrefix(Health __instance, ref DamageInfo damageInfo)

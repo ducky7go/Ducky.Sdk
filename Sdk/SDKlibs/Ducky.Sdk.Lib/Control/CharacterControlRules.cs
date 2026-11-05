@@ -73,28 +73,13 @@ public static class CharacterControlRules
     private static string IdFor(string feature) =>
         PatchIds.For(AssemblyName, "CharacterControlRules." + feature, InstanceId);
 
-    private static void Install(string method, string feature, Type[] parameters, string prefix)
-    {
-        var id = IdFor(feature);
-        var harmony = new Harmony(id);
-        try
-        {
-            harmony.Patch(
+    private static void Install(string method, string feature, Type[] parameters, string prefix) =>
+        HarmonyPatches.Install(IdFor(feature), harmony => harmony.Patch(
                 AccessTools.Method(typeof(CharacterMainControl), method, parameters),
-                prefix: new HarmonyMethod(typeof(CharacterControlRules), prefix));
-        }
-        catch (Exception ex)
-        {
-            harmony.UnpatchAll(id); // never leave half of it in place
-            Log.Error(ex, $"[CharacterControlRules] could not install the {feature} prefix");
-        }
-    }
+                prefix: new HarmonyMethod(typeof(CharacterControlRules), prefix)),
+            $"[CharacterControlRules] could not install the {feature} prefix");
 
-    private static void Uninstall(string feature)
-    {
-        var id = IdFor(feature);
-        new Harmony(id).UnpatchAll(id);
-    }
+    private static void Uninstall(string feature) => HarmonyPatches.Uninstall(IdFor(feature));
 
     // Harmony binds these by name: the parameter names are those of the game's methods.
     private static void MovePrefix(CharacterMainControl __instance, ref Vector3 moveInput)
