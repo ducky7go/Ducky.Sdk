@@ -47,6 +47,12 @@ public readonly struct HurtContext
 
     /// <summary>The victim's head armor.</summary>
     public float HeadArmor { get; }
+
+    /// <summary>The victim's <c>Health</c>, the object the hit lands on. Null only for a context made outside the game hook.</summary>
+    public Health? VictimHealth { get; init; }
+
+    /// <summary>The victim character, or null when the <c>Health</c> has none (for example a destructible).</summary>
+    public CharacterMainControl? Victim { get; init; }
 }
 
 /// <summary>
@@ -107,7 +113,11 @@ public static class HurtRules
             __instance.IsDead,
             damageInfo.isExplosion,
             __instance.BodyArmor,
-            __instance.HeadArmor);
+            __instance.HeadArmor)
+        {
+            VictimHealth = __instance,
+            Victim = __instance.TryGetCharacter(),
+        };
 
         // a ref parameter cannot be captured by a lambda, so the rules run in a loop
         foreach (var rule in Rules.InRunOrder())
