@@ -309,6 +309,17 @@ else
   fi
 fi
 
+# Record which version was packed last, for repositories that build against the local feed (Newbe.Dod's
+# Directory.Packages.props imports this file when the .nupkg it names exists). nuget.props is not enough for that:
+# it is only rewritten by an auto-incremented pack, not by --version. duckylocal/ is git-ignored, so this stays local.
+if [[ -f "$TARGET_PKG" ]]; then
+  printf '<Project>\n  <PropertyGroup>\n    <DuckySdkLocalVersion>%s</DuckySdkLocalVersion>\n  </PropertyGroup>\n</Project>\n' \
+    "$OVERRIDE_VERSION" > "${LOCAL_FEED}/local-version.props"
+  log "Recorded ${OVERRIDE_VERSION} in ${LOCAL_FEED}/local-version.props"
+else
+  warn "No ${TARGET_PKG}; local-version.props was not updated, so consumers keep using the published package"
+fi
+
 # Clean temp nuspec if created
 if [[ -n "$TEMP_NUSPEC" ]]; then
   log "Cleaning temp nuspec"
