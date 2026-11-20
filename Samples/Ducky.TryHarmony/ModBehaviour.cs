@@ -25,9 +25,21 @@ public class ModBehaviour : ModBehaviourBase
             .CreateLogger();
 
         var modName = Helper.GetModName();
-        var harmony = new HarmonyLib.Harmony(modName);
-        harmony.PatchAll();
-        _harmony = harmony;
+        // An id of its own for this copy of the mod, so another copy (or another mod) that picks the mod name cannot share
+        // it, and UnpatchAll(id) removes only what this copy applied.
+        var harmonyId = Ducky.Sdk.Utils.PatchIds.For(modName, "Patches", System.Guid.NewGuid());
+        var harmony = new HarmonyLib.Harmony(harmonyId);
+        try
+        {
+            harmony.PatchAll();
+            _harmony = harmony;
+        }
+        catch (System.Exception ex)
+        {
+            // PatchAll may have applied some patches before it failed: take them back and say so in the log.
+            harmony.UnpatchAll(harmonyId);
+            Ducky.Sdk.Utils.PatchHealth.Fail(harmonyId, ex, "[TryHarmony] could not apply its patches");
+        }
 
         _buffId = Contract.Buffs.RegisterBuff<DoNothingBuff>(buff =>
         {

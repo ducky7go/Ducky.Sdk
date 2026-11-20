@@ -95,6 +95,12 @@ public static class HurtRules
         return Rules.Add(rule, priority);
     }
 
+    /// <summary>
+    /// True when the patch could not be installed (for example after a game update changed the patched method): rules
+    /// registered then are accepted but never run. The error is also in <see cref="PatchHealth.Failures"/>.
+    /// </summary>
+    public static bool InstallFailed => PatchHealth.IsFailed(HarmonyId);
+
     private static void Install() =>
         HarmonyPatches.Install(HarmonyId, harmony => harmony.Patch(
                 AccessTools.Method(typeof(Health), nameof(Health.Hurt), new[] { typeof(DamageInfo) }),

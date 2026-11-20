@@ -58,6 +58,12 @@ public static class LethalDamageGuard
         return Rescues.Add(rescue, 0);
     }
 
+    /// <summary>
+    /// True when the patch could not be installed (for example after a game update changed the patched method): rules
+    /// registered then are accepted but never run. The error is also in <see cref="PatchHealth.Failures"/>.
+    /// </summary>
+    public static bool InstallFailed => PatchHealth.IsFailed(HarmonyId);
+
     private static void Install() =>
         HarmonyPatches.Install(HarmonyId, harmony =>
         {

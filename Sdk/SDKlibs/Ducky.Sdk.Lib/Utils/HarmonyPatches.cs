@@ -1,6 +1,5 @@
 #if DUCKY_SDK_HARMONY
 using System;
-using Ducky.Sdk.Logging;
 using HarmonyLib;
 
 namespace Ducky.Sdk.Utils;
@@ -13,7 +12,7 @@ internal static class HarmonyPatches
 {
     /// <summary>
     /// Runs <paramref name="patch"/> against a Harmony instance for <paramref name="id"/>. When it throws, the patches made under
-    /// that id are removed, <paramref name="failure"/> is logged, and false is returned.
+    /// that id are removed, <paramref name="failure"/> is logged and recorded in <see cref="PatchHealth"/>, and false is returned.
     /// </summary>
     public static bool Install(string id, Action<Harmony> patch, string failure)
     {
@@ -21,12 +20,13 @@ internal static class HarmonyPatches
         try
         {
             patch(harmony);
+            PatchHealth.Succeeded(id);
             return true;
         }
         catch (Exception ex)
         {
             harmony.UnpatchAll(id); // never leave half of it in place
-            Log.Error(ex, failure);
+            PatchHealth.Fail(id, ex, failure); // logs the error and records it for PatchHealth.Failures
             return false;
         }
     }
